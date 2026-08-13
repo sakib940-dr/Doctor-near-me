@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b` and `12`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, and `13`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -28,6 +28,11 @@ Use a new Supabase staging project, not the production database.
    verify the URL retains the filters.
 8. Open an approved doctor's `/doctors/:doctorId` page and verify only public
    fields, approved chambers, and active schedules appear.
+9. Register fictional Patient, Doctor, Hospital, and Ambulance accounts.
+10. Confirm privileged roles are absent from the public registration page.
+11. Confirm email when enabled, complete onboarding, refresh the protected
+    dashboard, and log out for every test role.
+12. Confirm a new Doctor account remains pending and absent from public search.
 
 ## Full end-to-end testing
 

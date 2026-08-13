@@ -37,6 +37,11 @@ import type {
 } from './types';
 import DoctorDirectory from './pages/DoctorDirectory';
 import DoctorProfile from './pages/DoctorProfile';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import OnboardingPage from './pages/OnboardingPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -66,6 +71,7 @@ function humanizeError(error: unknown) {
 
 function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [homepage, setHomepage] = useState(emptyHomepage);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -189,7 +195,7 @@ function HomePage() {
             <a href="#hospitals" onClick={() => setMenuOpen(false)}>হাসপাতাল</a>
             <a href="#ambulances" onClick={() => { setMode('ambulance'); setMenuOpen(false); }}>অ্যাম্বুলেন্স</a>
             <a href="#blood" onClick={() => setMenuOpen(false)}>রক্তদাতা</a>
-            <button className="login-button" type="button">লগইন</button>
+            <Link className="login-button" to={user ? '/dashboard' : '/auth'}>{user ? 'Dashboard' : 'লগইন'}</Link>
           </nav>
 
           <button
@@ -419,6 +425,9 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/doctors" element={<DoctorDirectory />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

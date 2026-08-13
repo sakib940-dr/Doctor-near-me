@@ -12,7 +12,8 @@ create extension if not exists pgcrypto;
 -- ------------------------------------------------------------
 do $$ begin
   create type public.user_role as enum (
-    'patient','doctor','chamber','hospital','admin','super_admin'
+    'patient','doctor','chamber','hospital','ambulance',
+    'verification_officer','admin','super_admin'
   );
 exception when duplicate_object then null; end $$;
 
@@ -360,18 +361,37 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  requested_role public.user_role;
 begin
-  insert into public.profiles(id, full_name, email, phone)
+  requested_role := case new.raw_user_meta_data ->> 'intended_role'
+    when 'doctor' then 'doctor'::public.user_role
+    when 'hospital' then 'hospital'::public.user_role
+    when 'ambulance' then 'ambulance'::public.user_role
+    else 'patient'::public.user_role
+  end;
+
+  insert into public.profiles(id, role, full_name, email, phone)
   values (
     new.id,
+    requested_role,
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
     new.email,
-    new.raw_user_meta_data ->> 'phone'
+    coalesce(new.phone,new.raw_user_meta_data ->> 'phone')
   )
   on conflict (id) do nothing;
+
+  if requested_role='doctor' then
+    insert into public.doctors(id,verification_status)
+    values(new.id,'pending')
+    on conflict(id) do nothing;
+  end if;
+
   return new;
 end;
 $$;
+
+revoke all on function public.handle_new_user() from public,anon,authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -455,6 +475,10 @@ drop policy if exists "profiles_update_own_or_admin" on public.profiles;
 create policy "profiles_update_own_or_admin" on public.profiles for update
 using (id = auth.uid() or public.is_admin_or_above())
 with check (id = auth.uid() or public.is_admin_or_above());
+
+-- Profile changes use field-specific SECURITY DEFINER RPCs. This prevents a
+-- signed-in user from directly changing role/account_status/admin-only fields.
+revoke update on table public.profiles from public,anon,authenticated;
 
 -- Doctor/provider data: public read only for approved/active records.
 drop policy if exists "doctors_public_approved_select" on public.doctors;

@@ -1,4 +1,36 @@
 export type SearchMode = 'doctor' | 'ambulance';
+export type PublicRegistrationRole = 'patient' | 'doctor' | 'hospital' | 'ambulance';
+export type UserRole = PublicRegistrationRole | 'chamber' | 'verification_officer' | 'admin' | 'super_admin';
+
+export interface AccountContext {
+  user_id: string;
+  role: UserRole;
+  account_status: 'active' | 'suspended' | 'banned';
+  full_name: string | null;
+  avatar_url: string | null;
+  profile_completed: boolean;
+}
+
+export interface DashboardContext extends AccountContext {
+  district_id: number | null;
+  upazila_id: number | null;
+  doctor?: {
+    verification_status: string;
+    bmdc_verified: boolean;
+    degree: string | null;
+    designation: string | null;
+    consultation_fee: number | null;
+    accepting_appointments: boolean;
+  } | null;
+  providers?: Array<{
+    id: string;
+    name_bn: string;
+    provider_type: string;
+    status: string;
+    verified: boolean;
+  }>;
+  admin_scope?: string;
+}
 
 export interface District {
   id: number;

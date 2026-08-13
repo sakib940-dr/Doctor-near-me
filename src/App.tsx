@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   Ambulance,
   ArrowRight,
@@ -34,6 +35,8 @@ import type {
   HomepageConfiguration,
   SearchMode,
 } from './types';
+import DoctorDirectory from './pages/DoctorDirectory';
+import DoctorProfile from './pages/DoctorProfile';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -61,7 +64,8 @@ function humanizeError(error: unknown) {
   return 'ডেটা লোড করা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।';
 }
 
-function App() {
+function HomePage() {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [homepage, setHomepage] = useState(emptyHomepage);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -148,16 +152,23 @@ function App() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mode === 'doctor') {
+      const params = new URLSearchParams();
+      if (query.trim()) params.set('q', query.trim());
+      if (districtId) params.set('district', districtId);
+      navigate(`/doctors${params.size ? `?${params}` : ''}`);
+      return;
+    }
     void runSearch();
   }
 
   function chooseTopic(topic: DiscoveryTopic) {
-    setMode('doctor');
-    setQuery(topic.name_bn);
-    void runSearch('doctor', topic.name_bn, topic.specialty_ids);
-    window.setTimeout(() => {
-      document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+    const params = new URLSearchParams({ q: topic.name_bn });
+    if (topic.specialty_ids.length) {
+      params.set('specialties', topic.specialty_ids.join(','));
+    }
+    if (districtId) params.set('district', districtId);
+    navigate(`/doctors?${params}`);
   }
 
   const resultCount = mode === 'doctor'
@@ -174,7 +185,7 @@ function App() {
           </a>
 
           <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label="প্রধান নেভিগেশন">
-            <a href="#doctors" onClick={() => setMenuOpen(false)}>ডাক্তার</a>
+            <Link to="/doctors" onClick={() => setMenuOpen(false)}>ডাক্তার</Link>
             <a href="#hospitals" onClick={() => setMenuOpen(false)}>হাসপাতাল</a>
             <a href="#ambulances" onClick={() => { setMode('ambulance'); setMenuOpen(false); }}>অ্যাম্বুলেন্স</a>
             <a href="#blood" onClick={() => setMenuOpen(false)}>রক্তদাতা</a>
@@ -379,7 +390,7 @@ function DoctorCard({ doctor }: { doctor: DoctorSearchRow }) {
         <div><dt>এলাকা</dt><dd>{[doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ') || 'তথ্য নেই'}</dd></div>
         {doctor.consultation_fee != null && <div><dt>ভিজিট</dt><dd>৳{doctor.consultation_fee}</dd></div>}
       </dl>
-      <button className="card-action" type="button">প্রোফাইল দেখুন <ArrowRight size={17} /></button>
+      <Link className="card-action" to={`/doctors/${doctor.doctor_id}`}>প্রোফাইল দেখুন <ArrowRight size={17} /></Link>
     </article>
   );
 }
@@ -399,6 +410,17 @@ function AmbulanceCard({ ambulance }: { ambulance: AmbulanceSearchRow }) {
       </dl>
       <a className="card-action call-action" href={`tel:${ambulance.phone}`}><Phone size={17} /> {ambulance.phone}</a>
     </article>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/doctors" element={<DoctorDirectory />} />
+      <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

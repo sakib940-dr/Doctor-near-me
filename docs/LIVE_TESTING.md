@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, in filename order.
+1. Run migrations `01` through `11`, then `11b` and `12`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -24,6 +24,10 @@ Use a new Supabase staging project, not the production database.
 4. Confirm topics and all 64 districts load from Supabase.
 5. Search approved doctors by name/topic/district.
 6. Switch to ambulance mode and search available approved ambulances.
+7. Open `/doctors`, combine district/upazila/specialty filters, and refresh to
+   verify the URL retains the filters.
+8. Open an approved doctor's `/doctors/:doctorId` page and verify only public
+   fields, approved chambers, and active schedules appear.
 
 ## Full end-to-end testing
 

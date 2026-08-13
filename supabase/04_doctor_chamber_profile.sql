@@ -30,7 +30,7 @@ create or replace function public.get_doctor_public_profile(p_doctor_id uuid)
 returns jsonb
 language sql
 stable
-security invoker
+security definer
 set search_path=public
 as $$
   select jsonb_build_object(
@@ -94,6 +94,14 @@ as $$
     and d.verification_status='approved'
     and p.account_status='active';
 $$;
+
+revoke all on function public.get_doctor_public_profile(uuid)
+  from public,anon;
+grant execute on function public.get_doctor_public_profile(uuid)
+  to anon,authenticated,service_role;
+
+revoke select on table public.profiles from public,anon;
+grant select on table public.profiles to authenticated,service_role;
 
 -- ---------- Provider doctor list ----------
 create or replace function public.get_provider_doctors(p_provider_id uuid)

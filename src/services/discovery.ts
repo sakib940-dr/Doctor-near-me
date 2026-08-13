@@ -3,7 +3,10 @@ import type {
   AmbulanceSearchRow,
   District,
   DoctorSearchRow,
+  DoctorPublicProfile,
   HomepageConfiguration,
+  Specialty,
+  Upazila,
 } from '../types';
 
 const emptyHomepage: HomepageConfiguration = {
@@ -32,32 +35,73 @@ export async function getDistricts() {
   return (data ?? []) as District[];
 }
 
+export async function getUpazilas(districtId: number) {
+  const { data, error } = await requireSupabase()
+    .from('upazilas')
+    .select('id,district_id,name_bn,name_en,slug')
+    .eq('is_active', true)
+    .eq('district_id', districtId)
+    .order('name_bn');
+  if (error) throw error;
+  return (data ?? []) as Upazila[];
+}
+
+export async function getSpecialties() {
+  const { data, error } = await requireSupabase()
+    .from('specialties')
+    .select('id,name_bn,name_en,slug,sort_order')
+    .eq('is_active', true)
+    .order('sort_order');
+  if (error) throw error;
+  return (data ?? []) as Specialty[];
+}
+
 export async function searchDoctors(input: {
   query?: string;
   districtId?: number | null;
+  upazilaId?: number | null;
   specialtyIds?: number[];
+  degrees?: string[];
+  designations?: string[];
+  minFee?: number | null;
+  maxFee?: number | null;
+  availableToday?: boolean;
+  sort?: 'name' | 'newest' | 'fee_low' | 'fee_high';
+  limit?: number;
+  offset?: number;
 }) {
   const { data, error } = await requireSupabase().rpc(
     'search_doctors_advanced',
     {
       p_query: input.query?.trim() || null,
       p_district_id: input.districtId ?? null,
-      p_upazila_id: null,
+      p_upazila_id: input.upazilaId ?? null,
       p_specialty_ids: input.specialtyIds?.length
         ? input.specialtyIds
         : null,
-      p_degrees: null,
-      p_designations: null,
-      p_min_fee: null,
-      p_max_fee: null,
-      p_available_today: false,
-      p_sort: 'name',
-      p_limit: 20,
-      p_offset: 0,
+      p_degrees: input.degrees?.length ? input.degrees : null,
+      p_designations: input.designations?.length
+        ? input.designations
+        : null,
+      p_min_fee: input.minFee ?? null,
+      p_max_fee: input.maxFee ?? null,
+      p_available_today: input.availableToday ?? false,
+      p_sort: input.sort ?? 'name',
+      p_limit: input.limit ?? 20,
+      p_offset: input.offset ?? 0,
     },
   );
   if (error) throw error;
   return (data ?? []) as DoctorSearchRow[];
+}
+
+export async function getDoctorPublicProfile(doctorId: string) {
+  const { data, error } = await requireSupabase().rpc(
+    'get_doctor_public_profile',
+    { p_doctor_id: doctorId },
+  );
+  if (error) throw error;
+  return (data ?? null) as DoctorPublicProfile | null;
 }
 
 export async function searchAmbulances(input: {

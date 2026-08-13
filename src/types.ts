@@ -8,6 +8,22 @@ export interface District {
   slug: string;
 }
 
+export interface Upazila {
+  id: number;
+  district_id: number;
+  name_bn: string;
+  name_en: string;
+  slug: string;
+}
+
+export interface Specialty {
+  id: number;
+  name_bn: string;
+  name_en: string;
+  slug: string;
+  sort_order: number;
+}
+
 export interface DiscoveryTopic {
   id: number;
   name_bn: string;
@@ -96,4 +112,48 @@ export interface AmbulanceSearchRow {
   hospital_id: string | null;
   hospital_name_bn: string | null;
   total_count: number;
+}
+
+export interface DoctorPublicProfile {
+  doctor: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    degree: string | null;
+    designation: string | null;
+    professional_title: string | null;
+    bmdc_registration_no: string | null;
+    experience_years: number | null;
+    consultation_fee: number | null;
+    headline: string | null;
+    bio: string | null;
+    languages: string[] | null;
+    accepting_appointments: boolean;
+  };
+  specialties: Array<{
+    id: number;
+    name_bn: string;
+    name_en: string;
+    icon_url: string | null;
+  }>;
+  chambers: Array<{
+    id: string;
+    type: 'chamber' | 'hospital';
+    name_bn: string;
+    name_en: string | null;
+    address: string | null;
+    district_id: number | null;
+    upazila_id: number | null;
+    latitude: number | null;
+    longitude: number | null;
+    map_url: string | null;
+    phone: string | null;
+    emergency_available: boolean;
+    schedules: Array<{
+      day_of_week: number;
+      start_time: string;
+      end_time: string;
+      fee: number | null;
+    }>;
+  }>;
 }

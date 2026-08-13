@@ -57,6 +57,7 @@ import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
 import VerificationOfficerPage from './pages/VerificationOfficerPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -458,6 +459,7 @@ function App() {
       <Route path="/ambulance/hospitals" element={<ProtectedRoute><AmbulanceHospitalLinksPage /></ProtectedRoute>} />
       <Route path="/verification/evidence" element={<ProtectedRoute><VerificationEvidencePage /></ProtectedRoute>} />
       <Route path="/verification/reviews" element={<ProtectedRoute><VerificationOfficerPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

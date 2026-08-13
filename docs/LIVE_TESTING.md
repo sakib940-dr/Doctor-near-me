@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, and `18`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, and `19`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -84,10 +84,26 @@ Use a new Supabase staging project, not the production database.
     directly update Doctor/Provider tables, or edit submitted profile fields.
 40. Confirm the decision created both an owner notification and an
     `admin_audit_logs` entry with actor, entity, status, note, and timestamp.
+41. Sign in as a staging Admin and open `/admin`; verify the user, service,
+    pending-verification, and appointment counts against Supabase test data.
+42. Filter/search the user directory. Suspend a fictional non-privileged user
+    with a reason and confirm the account loses protected operational access.
+43. Restore that user and confirm both actions create owner notifications and
+    Admin activity records.
+44. Confirm the Admin cannot manage their own status, any Admin/Super Admin
+    account, or restore a banned account. Confirm roles cannot be changed here.
+45. Open Appointment oversight, select a fictional dispute case, choose another
+    status, add a reason, and complete the two-step confirmation.
+46. Confirm Patient and Doctor receive the override notification and the new
+    status appears in their own appointment history.
+47. As Admin, confirm Activity shows only that Admin's actions. As Super Admin,
+    confirm the same page shows the platform-wide sensitive audit trail.
+48. Open Verification oversight and confirm it routes to the existing unified
+    Doctor/Provider/Ambulance review queue.
 
 ## Full end-to-end testing
 
-Patient ↔ Doctor ↔ Provider appointments, Ambulance ↔ Hospital linking, and the
-Verification Officer review lifecycle are now available end to end. Full
-blood-request and Admin/Super Admin UI testing starts after the remaining role
-dashboards are connected.
+Patient ↔ Doctor ↔ Provider appointments, Ambulance ↔ Hospital linking,
+Verification review, and core Admin operations are now available end to end.
+Full blood-request, CMS/reference management, and Super Admin role-control UI
+testing starts after the remaining dashboard slices are connected.

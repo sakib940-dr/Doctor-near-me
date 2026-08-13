@@ -440,3 +440,68 @@ export interface VerificationReviewDetail {
   data: Record<string, unknown>;
   documents: VerificationEvidenceDocument[];
 }
+
+export interface AdminOperationalSummary {
+  total_users: number;
+  active_users: number;
+  suspended_users: number;
+  banned_users: number;
+  doctors: number;
+  providers: number;
+  ambulances: number;
+  pending_doctors: number;
+  pending_providers: number;
+  pending_ambulances: number;
+  pending_verifications: number;
+  appointments_today: number;
+  pending_appointments: number;
+  appointments_last_30_days: number;
+  role_counts: Partial<Record<UserRole, number>>;
+}
+
+export interface AdminUserRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: UserRole;
+  account_status: 'active' | 'suspended' | 'banned';
+  district_id: number | null;
+  upazila_id: number | null;
+  professional_status: string | null;
+  entity_id: string | null;
+  created_at: string;
+  updated_at: string;
+  total_count: number;
+}
+
+export interface AdminAppointmentRow {
+  appointment_id: string;
+  appointment_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: AppointmentStatus;
+  patient_id: string;
+  patient_name: string;
+  patient_phone: string | null;
+  doctor_id: string;
+  doctor_name: string;
+  provider_id: string | null;
+  provider_name: string | null;
+  patient_note: string | null;
+  created_at: string;
+  updated_at: string;
+  total_count: number;
+}
+
+export interface AdminActivityRow {
+  audit_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_user_id: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}

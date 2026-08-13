@@ -48,6 +48,10 @@ import PatientProfilePage from './pages/PatientProfilePage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
 import DoctorSchedulePage from './pages/DoctorSchedulePage';
 import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
+import ProviderProfilePage from './pages/ProviderProfilePage';
+import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
+import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
+import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -440,6 +444,10 @@ function App() {
       <Route path="/doctor/profile" element={<ProtectedRoute><DoctorProfessionalProfilePage /></ProtectedRoute>} />
       <Route path="/doctor/schedules" element={<ProtectedRoute><DoctorSchedulePage /></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DoctorAppointmentsPage /></ProtectedRoute>} />
+      <Route path="/doctor/invitations" element={<ProtectedRoute><DoctorInvitationsPage /></ProtectedRoute>} />
+      <Route path="/provider/profile" element={<ProtectedRoute><ProviderProfilePage /></ProtectedRoute>} />
+      <Route path="/provider/doctors" element={<ProtectedRoute><ProviderDoctorsPage /></ProtectedRoute>} />
+      <Route path="/provider/appointments" element={<ProtectedRoute><ProviderAppointmentsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

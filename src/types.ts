@@ -272,3 +272,64 @@ export interface MyDoctorProfile {
   specialty_ids: number[];
   chambers: DoctorDashboardChamber[];
 }
+
+export interface ProviderDoctorLink {
+  doctor_id: string;
+  doctor_name: string;
+  avatar_url: string | null;
+  degree: string | null;
+  designation: string | null;
+  professional_title: string | null;
+  verification_status: string;
+  link_status: 'pending' | 'approved' | 'rejected' | 'removed';
+  created_at: string;
+  schedules: DoctorDashboardSchedule[];
+}
+
+export interface ProviderDashboardItem {
+  id: string;
+  provider_type: 'hospital' | 'chamber';
+  name_bn: string;
+  name_en: string | null;
+  short_description: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  facebook_url: string | null;
+  website_url: string | null;
+  address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  google_maps_url: string | null;
+  opening_note: string | null;
+  emergency_available: boolean;
+  departments: string[];
+  services: string[];
+  gallery_paths: string[];
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  verified: boolean;
+  doctor_links: ProviderDoctorLink[];
+}
+
+export interface ProviderDoctorSearchRow {
+  doctor_id: string;
+  doctor_name: string;
+  avatar_url: string | null;
+  degree: string | null;
+  designation: string | null;
+  professional_title: string | null;
+  specialty_names_bn: string[];
+}
+
+export interface DoctorProviderInvitation {
+  provider_id: string;
+  provider_name: string;
+  provider_type: 'hospital' | 'chamber';
+  address: string | null;
+  link_status: 'pending' | 'approved' | 'rejected' | 'removed';
+  invited_at: string;
+}

@@ -13,7 +13,6 @@ import {
   Menu,
   Search,
   ShieldCheck,
-  Stethoscope,
   UserRound,
   Users,
   X,

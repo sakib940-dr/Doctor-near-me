@@ -2,6 +2,8 @@
 
 Run now: `npm.cmd run dev`
 
+Complete developer handoff: `PROJECT_HANDOFF_SUMMARY.md`
+
 Database migrations:
 `01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 11b, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21`
 

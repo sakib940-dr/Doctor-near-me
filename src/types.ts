@@ -147,6 +147,7 @@ export interface DoctorSearchRow {
   degree: string | null;
   designation: string | null;
   professional_title: string | null;
+  bmdc_registration_no?: string | null;
   consultation_fee: number | null;
   experience_years: number | null;
   district_id: number | null;
@@ -156,6 +157,25 @@ export interface DoctorSearchRow {
   specialties: DoctorSpecialty[];
   available_today: boolean;
   total_count: number;
+}
+
+
+export interface ProviderDirectoryRow {
+  id: string;
+  provider_type: 'hospital' | 'chamber';
+  name_bn: string;
+  name_en: string | null;
+  slug: string;
+  logo_url: string | null;
+  banner_url: string | null;
+  phone: string | null;
+  address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  map_url: string | null;
+  verified: boolean;
 }
 
 export interface AmbulanceSearchRow {

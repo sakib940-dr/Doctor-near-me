@@ -5,6 +5,7 @@ import type {
   DoctorSearchRow,
   DoctorPublicProfile,
   HomepageConfiguration,
+  ProviderDirectoryRow,
   Specialty,
   Upazila,
 } from '../types';
@@ -92,7 +93,56 @@ export async function searchDoctors(input: {
     },
   );
   if (error) throw error;
-  return (data ?? []) as DoctorSearchRow[];
+  const rows = (data ?? []) as DoctorSearchRow[];
+  if (!rows.length) return rows;
+
+  const ids = rows.map((row) => row.doctor_id);
+  const { data: directoryRows } = await requireSupabase()
+    .from('public_doctor_directory')
+    .select('doctor_id,bmdc_registration_no')
+    .in('doctor_id', ids);
+  const bmdcByDoctor = new Map((directoryRows ?? []).map((row) => [String(row.doctor_id), row.bmdc_registration_no as string | null]));
+  return rows.map((row) => ({ ...row, bmdc_registration_no: bmdcByDoctor.get(row.doctor_id) ?? null }));
+}
+
+export async function getPublicProviders(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  limit?: number;
+} = {}) {
+  let query = requireSupabase()
+    .from('public_provider_directory')
+    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
+    .order('name_bn')
+    .limit(input.limit ?? 20);
+  if (input.districtId) query = query.eq('district_id', input.districtId);
+  if (input.upazilaId) query = query.eq('upazila_id', input.upazilaId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as ProviderDirectoryRow[];
+}
+
+export async function getPublicProvider(providerId: string) {
+  const { data, error } = await requireSupabase()
+    .from('public_provider_directory')
+    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
+    .eq('id', providerId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as ProviderDirectoryRow | null;
+}
+
+export async function getDoctorsForProvider(providerId: string) {
+  const doctors = await searchDoctors({ limit: 100, sort: 'name' });
+  const profiles = await Promise.all(doctors.map(async (doctor) => {
+    try {
+      const profile = await getDoctorPublicProfile(doctor.doctor_id);
+      return profile?.chambers.some((chamber) => chamber.id === providerId) ? doctor : null;
+    } catch {
+      return null;
+    }
+  }));
+  return profiles.filter((doctor): doctor is DoctorSearchRow => Boolean(doctor));
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {

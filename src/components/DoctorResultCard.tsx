@@ -1,34 +1,30 @@
-import { ArrowRight, BadgeCheck, CalendarCheck, MapPin, Stethoscope } from 'lucide-react';
+import { ArrowRight, BadgeCheck, MapPin, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../lib/storage';
 import type { DoctorSearchRow } from '../types';
 
 export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }) {
   const avatar = getImageUrl(doctor.avatar_url, 'avatars');
+  const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
   return (
-    <article className="directory-doctor-card">
-      <div className="directory-card-head">
-        <div className="directory-avatar">
-          {avatar ? <img src={avatar} alt={doctor.doctor_name} /> : <Stethoscope size={30} />}
+    <article className="directory-doctor-card visitor-doctor-card">
+      <Link className="visitor-doctor-main" to={`/doctors/${doctor.doctor_id}`}>
+        <div className="directory-avatar visitor-doctor-avatar">
+          {avatar ? <img src={avatar} alt={doctor.doctor_name} /> : <Stethoscope size={34} />}
         </div>
-        <div>
+        <div className="visitor-doctor-copy">
           <div className="verified-line"><BadgeCheck size={15} /> যাচাইকৃত চিকিৎসক</div>
           <h2>{doctor.doctor_name}</h2>
+          {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
+          <strong>{primarySpecialty?.name_bn || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
           <p>{doctor.designation || doctor.professional_title || 'বিশেষজ্ঞ চিকিৎসক'}</p>
+          <div className="visitor-doctor-meta">
+            {doctor.bmdc_registration_no && <span><ShieldCheck /> BMDC: {doctor.bmdc_registration_no}</span>}
+            <span><MapPin /> {[doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ') || 'এলাকার তথ্য নেই'}</span>
+          </div>
         </div>
-      </div>
-      <div className="directory-tags">
-        {doctor.specialties.slice(0, 3).map((specialty) => <span key={specialty.id}>{specialty.name_bn}</span>)}
-      </div>
-      {doctor.degree && <p className="directory-degree">{doctor.degree}</p>}
-      <div className="directory-meta">
-        <span><MapPin size={16} />{[doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ') || 'এলাকার তথ্য নেই'}</span>
-        {doctor.available_today && <span className="today"><CalendarCheck size={16} /> আজ চেম্বার আছে</span>}
-      </div>
-      <div className="directory-card-footer">
-        <div><small>ভিজিট ফি</small><strong>{doctor.consultation_fee == null ? 'যোগাযোগ করুন' : `৳${doctor.consultation_fee}`}</strong></div>
-        <Link to={`/doctors/${doctor.doctor_id}`}>প্রোফাইল দেখুন <ArrowRight size={17} /></Link>
-      </div>
+        <span className="visitor-doctor-arrow"><ArrowRight /></span>
+      </Link>
     </article>
   );
 }

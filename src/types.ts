@@ -575,3 +575,64 @@ export interface AdminCmsSnapshot {
   pages: AdminCmsContentPage[];
   settings: AdminCmsSetting[];
 }
+
+export interface SuperAdminUserRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: UserRole;
+  account_status: 'active' | 'suspended' | 'banned';
+  district_id: number | null;
+  district_name: string | null;
+  upazila_id: number | null;
+  upazila_name: string | null;
+  address_line: string | null;
+  profile_completed: boolean;
+  last_location_at: string | null;
+  last_sign_in_at: string | null;
+  created_at: string;
+  total_count: number;
+}
+
+export interface SuperAdminUserDetail {
+  profile: Record<string, unknown> & {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    role: UserRole;
+    account_status: 'active' | 'suspended' | 'banned';
+    date_of_birth: string | null;
+    gender: string | null;
+    blood_group: string | null;
+    address_line: string | null;
+    district_id: number | null;
+    upazila_id: number | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+  };
+  auth: { email_confirmed_at: string | null; phone_confirmed_at: string | null; last_sign_in_at: string | null; auth_created_at: string };
+  district: { id: number | null; name_bn: string | null; name_en: string | null };
+  upazila: { id: number | null; name_bn: string | null; name_en: string | null };
+  last_location: { latitude: number; longitude: number; accuracy_meters: number | null; source: string; updated_at: string; district_id: number | null; district_name: string | null; upazila_id: number | null; upazila_name: string | null } | null;
+  doctor: Record<string, unknown> | null;
+  providers: Array<Record<string, unknown>>;
+  ambulances: Array<Record<string, unknown>>;
+  blood_donor: Record<string, unknown> | null;
+  appointment_counts: { as_patient: number; as_doctor: number; pending: number };
+  recent_appointments: Array<Record<string, unknown>>;
+  recent_audit: Array<Record<string, unknown>>;
+}
+
+export interface PrivilegedAccountInvite {
+  invite_id: string;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  target_role: 'admin' | 'verification_officer';
+  expires_at: string;
+  claimed_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+}

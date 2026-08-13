@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, and `20`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, and `21`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -116,10 +116,32 @@ Use a new Supabase staging project, not the production database.
     insert/update/delete CMS/reference tables.
 56. Confirm every successful CMS save appears in the Admin's Activity tab and
     in the full Super Admin audit trail.
+57. Confirm there is no more than one `super_admin` before Step 21 migration,
+    run it, then sign in as that account and open `/super-admin`.
+58. Search users by name, email, and phone; combine role/status/district/upazila
+    filters and confirm totals plus visible results are correct.
+59. Open a fictional user and inspect core profile, address, auth timestamps,
+    role-specific data, appointments, target audit, and last recorded location.
+60. Confirm opening sensitive detail creates `sensitive_user_detail_viewed` in
+    the audit log; test a user with no location and confirm no coordinates appear.
+61. Correct a fictional user's name/phone/address/district/upazila with a reason.
+    Confirm email/password remain read-only Auth identities.
+62. Promote an existing account to Verification Officer, then Admin; demote it
+    again and confirm notifications, audit records, and role resource lockdown.
+63. Create a new privileged invitation, open the generated registration link,
+    register using that exact email, and confirm the invited role is assigned.
+64. Suspend, ban, and restore a fictional account with reasons. Confirm live
+    Ambulance availability is disabled when its owner becomes non-active.
+65. Permanently delete a disposable fictional account using the exact typed
+    confirmation. Confirm owned Provider data and Auth/Profile records are gone.
+66. Confirm Super Admin cannot change their own role/status/delete themselves,
+    no second Super Admin can be created, and legacy role/status RPCs fail.
+67. From Existing Controls, verify inherited Admin, Verification, CMS, and full
+    audit tools remain accessible without duplicating them in this dashboard.
 
 ## Full end-to-end testing
 
 Patient ↔ Doctor ↔ Provider appointments, Ambulance ↔ Hospital linking,
-Verification review, core Admin operations, and Admin CMS/reference management
-are now available end to end. Full blood-request and Super Admin role-control UI
-testing starts after the remaining dashboard slices are connected.
+Verification review, Admin operations/CMS, and the single-owner Super Admin
+control lifecycle are now available end to end. Remaining non-priority features,
+including the full blood-request UI, can be implemented later.

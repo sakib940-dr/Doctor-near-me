@@ -23,7 +23,7 @@ export default function AuthPage() {
   const location = useLocation();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<PublicRegistrationRole>('patient');
@@ -68,7 +68,7 @@ export default function AuthPage() {
           },
         });
         if (signupError) throw signupError;
-        if (data.session) navigate('/onboarding', { replace: true });
+        if (data.session) navigate(searchParams.get('email') ? '/dashboard' : '/onboarding', { replace: true });
         else setNotice('আপনার ইমেইলে confirmation link পাঠানো হয়েছে। ইমেইল confirm করে লগইন করুন।');
       }
     } catch (submitError) {

@@ -333,3 +333,69 @@ export interface DoctorProviderInvitation {
   link_status: 'pending' | 'approved' | 'rejected' | 'removed';
   invited_at: string;
 }
+
+export type AmbulanceVehicleType = 'ac' | 'non_ac' | 'icu' | 'freezer' | 'basic' | 'other';
+export type AmbulanceDocumentType = 'vehicle_registration' | 'driver_license' | 'national_id' | 'organization_document' | 'vehicle_photo' | 'other';
+
+export interface AmbulanceHospitalLink {
+  hospital_id: string;
+  hospital_name_bn: string;
+  status: 'pending' | 'approved' | 'rejected' | 'removed';
+  review_note: string | null;
+}
+
+export interface MyAmbulanceService {
+  ambulance_id: string;
+  operator_name: string;
+  driver_name: string | null;
+  phone: string;
+  secondary_phone: string | null;
+  vehicle_registration_no: string;
+  vehicle_type: AmbulanceVehicleType;
+  capabilities: string[];
+  service_area: string | null;
+  address: string;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  price_note: string | null;
+  operates_24_hours: boolean;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  verified: boolean;
+  admin_note: string | null;
+  verified_at: string | null;
+  is_available: boolean;
+  last_seen_at: string | null;
+  document_count: number;
+  hospital_links: AmbulanceHospitalLink[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AmbulanceDocument {
+  document_id: string;
+  document_type: AmbulanceDocumentType;
+  storage_path: string;
+  created_at: string;
+}
+
+export interface ApprovedHospitalRow {
+  hospital_id: string;
+  hospital_name: string;
+  address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+}
+
+export interface HospitalAmbulanceLinkRequest {
+  ambulance_id: string;
+  operator_name: string;
+  phone: string;
+  vehicle_registration_no: string;
+  vehicle_type: AmbulanceVehicleType;
+  ambulance_status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  link_status: 'pending' | 'approved' | 'rejected' | 'removed';
+  requested_at: string;
+  review_note: string | null;
+}

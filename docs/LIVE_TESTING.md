@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, and `16`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, and `17`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -57,9 +57,18 @@ Use a new Supabase staging project, not the production database.
 26. Book the exact schedule as a Patient and process it from
     `/provider/appointments`; verify the Patient receives the updated status.
 27. Remove the Doctor link and confirm existing schedules are made inactive.
+28. Create a fictional Ambulance listing and confirm it remains absent from
+    public search while pending.
+29. Upload fictional verification files and confirm signed owner access; verify
+    another Ambulance account cannot read or attach them.
+30. Approve the listing in staging, enable availability with GPS, and confirm
+    public search returns distance but not exact live coordinates.
+31. Edit the listing and confirm it returns to pending and becomes unavailable.
+32. After re-approval, request an approved Hospital link; approve it from the
+    Hospital dashboard and confirm the public result shows the affiliation.
 
 ## Full end-to-end testing
 
-Patient ↔ Doctor ↔ Provider appointment testing is now available end to end.
-Full ambulance, blood request, verification-officer, and admin UI testing starts
-after the remaining role dashboards are connected.
+Patient ↔ Doctor ↔ Provider appointments and Ambulance ↔ Hospital linking are
+now available end to end. Full blood-request, verification-officer, and admin UI
+testing starts after the remaining role dashboards are connected.

@@ -55,6 +55,8 @@ import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import AmbulanceServicesPage from './pages/AmbulanceServicesPage';
 import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
+import VerificationEvidencePage from './pages/VerificationEvidencePage';
+import VerificationOfficerPage from './pages/VerificationOfficerPage';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -454,6 +456,8 @@ function App() {
       <Route path="/provider/ambulances" element={<ProtectedRoute><ProviderAmbulanceLinksPage /></ProtectedRoute>} />
       <Route path="/ambulance/services" element={<ProtectedRoute><AmbulanceServicesPage /></ProtectedRoute>} />
       <Route path="/ambulance/hospitals" element={<ProtectedRoute><AmbulanceHospitalLinksPage /></ProtectedRoute>} />
+      <Route path="/verification/evidence" element={<ProtectedRoute><VerificationEvidencePage /></ProtectedRoute>} />
+      <Route path="/verification/reviews" element={<ProtectedRoute><VerificationOfficerPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

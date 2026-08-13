@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, and `17`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, and `18`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -66,9 +66,28 @@ Use a new Supabase staging project, not the production database.
 31. Edit the listing and confirm it returns to pending and becomes unavailable.
 32. After re-approval, request an approved Hospital link; approve it from the
     Hospital dashboard and confirm the public result shows the affiliation.
+33. As a fictional Doctor, upload BMDC/degree evidence from
+    `/verification/evidence`; as a Hospital/Chamber owner, upload trade-license
+    and organization evidence from the same route.
+34. Sign in with a staging Verification Officer account and open
+    `/verification/reviews`; confirm pending Doctor, Provider, and Ambulance
+    applications appear oldest first.
+35. Filter each entity type, open a review, and verify submitted fields are
+    read-only while private evidence opens only through a short-lived signed URL.
+36. Reject one fictional application and confirm a reason shorter than three
+    characters is refused. Submit a valid reason and confirm the owner sees it.
+37. As that owner, correct the profile/evidence and confirm it returns to the
+    pending queue with the previous review decision cleared.
+38. Approve the corrected application and confirm its public visibility and
+    verified state follow the role-specific rules.
+39. Confirm a Verification Officer cannot open Admin user-management/CMS tools,
+    directly update Doctor/Provider tables, or edit submitted profile fields.
+40. Confirm the decision created both an owner notification and an
+    `admin_audit_logs` entry with actor, entity, status, note, and timestamp.
 
 ## Full end-to-end testing
 
-Patient ↔ Doctor ↔ Provider appointments and Ambulance ↔ Hospital linking are
-now available end to end. Full blood-request, verification-officer, and admin UI
-testing starts after the remaining role dashboards are connected.
+Patient ↔ Doctor ↔ Provider appointments, Ambulance ↔ Hospital linking, and the
+Verification Officer review lifecycle are now available end to end. Full
+blood-request and Admin/Super Admin UI testing starts after the remaining role
+dashboards are connected.

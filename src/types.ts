@@ -399,3 +399,44 @@ export interface HospitalAmbulanceLinkRequest {
   requested_at: string;
   review_note: string | null;
 }
+
+export type VerificationEntityType = 'doctor' | 'provider' | 'ambulance';
+
+export interface VerificationEvidenceDocument {
+  document_id: string;
+  document_type: string;
+  storage_path: string;
+  created_at: string;
+}
+
+export interface OwnerVerificationEvidence {
+  entity_type: 'doctor' | 'provider';
+  entity_id: string;
+  status: string;
+  note: string | null;
+  verified_at: string | null;
+  documents: VerificationEvidenceDocument[];
+}
+
+export interface VerificationQueueRow {
+  entity_type: VerificationEntityType;
+  entity_id: string;
+  display_name: string;
+  subtitle: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  status: string;
+  evidence_count: number;
+  submitted_at: string;
+}
+
+export interface VerificationReviewDetail {
+  entity_type: VerificationEntityType;
+  entity_id: string;
+  owner_id: string;
+  status: string;
+  note: string | null;
+  verified_at: string | null;
+  data: Record<string, unknown>;
+  documents: VerificationEvidenceDocument[];
+}

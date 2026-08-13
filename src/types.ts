@@ -224,3 +224,51 @@ export interface DoctorPublicProfile {
     }>;
   }>;
 }
+
+export interface DoctorDashboardSchedule {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  fee: number | null;
+  is_active: boolean;
+}
+
+export interface DoctorDashboardChamber {
+  id: string;
+  name_bn: string;
+  provider_type: 'chamber' | 'hospital';
+  address: string | null;
+  phone: string | null;
+  link_status: 'pending' | 'approved' | 'rejected' | 'removed';
+  provider_status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  verified: boolean;
+  schedules: DoctorDashboardSchedule[];
+}
+
+export interface MyDoctorProfile {
+  doctor: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    district_id: number | null;
+    upazila_id: number | null;
+    professional_title: string | null;
+    degree: string | null;
+    designation: string | null;
+    bmdc_registration_no: string | null;
+    bmdc_verified: boolean;
+    bio: string | null;
+    consultation_fee: number | null;
+    experience_years: number | null;
+    verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
+    profile_headline: string | null;
+    profile_photo_url: string | null;
+    consultation_note: string | null;
+    languages: string[] | null;
+    accepting_appointments: boolean;
+  };
+  specialty_ids: number[];
+  chambers: DoctorDashboardChamber[];
+}

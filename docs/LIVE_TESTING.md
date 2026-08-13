@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, and `14`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, and `15`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -39,8 +39,18 @@ Use a new Supabase staging project, not the production database.
 15. Confirm the request appears as pending under `/appointments` after refresh.
 16. Confirm duplicate active booking and arbitrary schedule payloads fail.
 17. Cancel the pending request through the two-step confirmation UI.
+18. Sign in as the fictional Doctor and save `/doctor/profile`; verify degree,
+    designation, BMDC, specialty, location, photo, and appointment preference.
+19. Change a credential and confirm the Doctor returns to pending verification.
+20. At `/doctor/schedules`, add/edit/delete a schedule only for an approved and
+    verified linked chamber. Confirm a pending/unverified link stays read-only.
+21. Book again as the Patient, then as the Doctor confirm the pending request,
+    mark it completed, and verify both Patient and Doctor history after refresh.
+22. Verify pending → completed and completed → confirmed are rejected by the
+    server, even if attempted outside the UI.
 
 ## Full end-to-end testing
 
-Full appointment, blood request, verification, and role-dashboard testing
-starts after the public UI and dashboards are connected in later frontend steps.
+Patient ↔ Doctor appointment testing is now available end to end. Full provider,
+blood request, verification-officer, and admin workflow testing starts after the
+remaining role dashboards are connected.

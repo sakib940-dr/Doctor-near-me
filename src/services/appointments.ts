@@ -54,9 +54,13 @@ export async function createPatientAppointment(input: {
 }
 
 export async function cancelAppointment(appointmentId: string) {
+  return updateAppointmentStatus(appointmentId, 'cancelled');
+}
+
+export async function updateAppointmentStatus(appointmentId: string, status: AppointmentStatus) {
   const { error } = await requireSupabase().rpc('update_appointment_status', {
     p_appointment_id: appointmentId,
-    p_status: 'cancelled',
+    p_status: status,
   });
   if (error) throw error;
 }

@@ -45,6 +45,9 @@ import { useAuth } from './contexts/AuthContext';
 import AppointmentsPage from './pages/AppointmentsPage';
 import BookingPage from './pages/BookingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
+import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
+import DoctorSchedulePage from './pages/DoctorSchedulePage';
+import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
 
 const fallbackTopics: DiscoveryTopic[] = [
   { id: -1, name_bn: 'হৃদরোগ', name_en: 'Heart', slug: 'heart', icon: '🫀', description_bn: null, search_keywords: [], specialty_ids: [] },
@@ -434,6 +437,9 @@ function App() {
       <Route path="/profile" element={<ProtectedRoute><PatientProfilePage /></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
+      <Route path="/doctor/profile" element={<ProtectedRoute><DoctorProfessionalProfilePage /></ProtectedRoute>} />
+      <Route path="/doctor/schedules" element={<ProtectedRoute><DoctorSchedulePage /></ProtectedRoute>} />
+      <Route path="/doctor/appointments" element={<ProtectedRoute><DoctorAppointmentsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

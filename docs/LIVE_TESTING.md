@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, and `19`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, and `20`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -100,10 +100,26 @@ Use a new Supabase staging project, not the production database.
     confirm the same page shows the platform-wide sensitive audit trail.
 48. Open Verification oversight and confirm it routes to the existing unified
     Doctor/Provider/Ambulance review queue.
+49. As Admin, open `/admin/cms`, add a fictional Specialty with a unique slug,
+    reorder it, hide/show it, and verify public filters follow the active state.
+50. Add a patient-friendly Discovery Topic, map multiple Specialties, provide
+    Bangla/English labels and comma-separated keywords, then verify homepage data.
+51. Edit a Homepage Section's order, card limit, visibility, view-all path, and
+    valid JSON filter config. Confirm invalid JSON and invalid paths are refused.
+52. Upload a fictional JPG/PNG/WebP/AVIF banner under 5 MB, configure platform
+    or district targeting and start/end dates, then verify scheduling/visibility.
+53. Save About/FAQ/Help as drafts. Publish one only after adding at least 20
+    characters of Bangla content and verify unpublished pages remain private.
+54. Edit `public_brand`, `social_links`, and `default_location` with valid JSON
+    objects; confirm unsupported or sensitive setting keys cannot be changed.
+55. Confirm ordinary authenticated users cannot call Admin CMS RPCs or directly
+    insert/update/delete CMS/reference tables.
+56. Confirm every successful CMS save appears in the Admin's Activity tab and
+    in the full Super Admin audit trail.
 
 ## Full end-to-end testing
 
 Patient ↔ Doctor ↔ Provider appointments, Ambulance ↔ Hospital linking,
-Verification review, and core Admin operations are now available end to end.
-Full blood-request, CMS/reference management, and Super Admin role-control UI
+Verification review, core Admin operations, and Admin CMS/reference management
+are now available end to end. Full blood-request and Super Admin role-control UI
 testing starts after the remaining dashboard slices are connected.

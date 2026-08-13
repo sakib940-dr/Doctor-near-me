@@ -505,3 +505,73 @@ export interface AdminActivityRow {
   metadata: Record<string, unknown>;
   created_at: string;
 }
+
+export interface AdminCmsSpecialty extends Specialty {
+  icon_url: string | null;
+  is_active: boolean;
+}
+
+export interface AdminCmsTopic extends DiscoveryTopic {
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface AdminCmsSection {
+  id: string;
+  section_key: string;
+  title_bn: string;
+  title_en: string | null;
+  description_bn: string | null;
+  data_source: 'doctor' | 'provider' | 'ambulance' | 'topic' | 'custom';
+  filter_config: Record<string, unknown>;
+  view_all_path: string | null;
+  card_limit: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface AdminCmsBanner {
+  id: string;
+  title_bn: string;
+  title_en: string | null;
+  subtitle_bn: string | null;
+  subtitle_en: string | null;
+  image_path: string;
+  image_alt_bn: string | null;
+  target_url: string | null;
+  district_id: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface AdminCmsContentPage {
+  id: string;
+  slug: 'about' | 'terms' | 'privacy' | 'faq' | 'help';
+  title_bn: string;
+  title_en: string | null;
+  body_bn: string;
+  body_en: string | null;
+  seo_title: string | null;
+  meta_description: string | null;
+  is_published: boolean;
+  updated_at: string;
+}
+
+export interface AdminCmsSetting {
+  setting_key: 'public_brand' | 'social_links' | 'default_location';
+  setting_value: Record<string, unknown>;
+  is_public: boolean;
+  description: string | null;
+  updated_at: string;
+}
+
+export interface AdminCmsSnapshot {
+  specialties: AdminCmsSpecialty[];
+  topics: AdminCmsTopic[];
+  sections: AdminCmsSection[];
+  banners: AdminCmsBanner[];
+  pages: AdminCmsContentPage[];
+  settings: AdminCmsSetting[];
+}

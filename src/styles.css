@@ -752,6 +752,92 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   .admin-activity-list time { grid-column: 2; }
 }
 
+/* Step 21: Admin reference and homepage CMS */
+.cms-page { min-height: 100vh; background: #f5f7fb; }
+.cms-main { padding-block: 28px 70px; }
+.cms-heading { display: flex; align-items: center; gap: 13px; margin: 15px 0 18px; }
+.cms-heading > span { width: 55px; height: 55px; display: grid; place-items: center; color: white; border-radius: 15px; background: linear-gradient(145deg,#087f5b,#0a9a6d); box-shadow: 0 10px 25px rgba(8,127,91,.2); }
+.cms-heading > div { flex: 1; }
+.cms-heading small { color: var(--green-700); font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.cms-heading h1 { margin: 2px 0; color: var(--green-950); font-size: 25px; }
+.cms-heading p { margin: 0; color: var(--muted); font-size: 10px; }
+.cms-heading > button { display: flex; align-items: center; gap: 5px; padding: 8px 11px; color: var(--green-700); border: 1px solid #b9dacf; border-radius: 8px; background: white; cursor: pointer; font-size: 9px; font-weight: 800; }
+.cms-heading > button svg { width: 14px; }
+.cms-tabs { display: flex; gap: 5px; padding: 6px; margin-bottom: 15px; overflow-x: auto; border: 1px solid #e1e7e4; border-radius: 11px; background: white; }
+.cms-tabs button { min-width: max-content; display: flex; align-items: center; gap: 5px; padding: 8px 11px; color: #61726c; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 8px; font-weight: 800; }
+.cms-tabs button svg { width: 14px; }
+.cms-tabs button.active { color: white; background: var(--green-700); }
+.cms-workspace { display: grid; grid-template-columns: minmax(270px,.68fr) minmax(430px,1.32fr); gap: 12px; align-items: start; }
+.cms-list,.cms-editor { padding: 17px; border: 1px solid #e1e7e4; border-radius: 14px; background: white; box-shadow: 0 7px 25px rgba(28,60,49,.035); }
+.cms-list > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 11px; }
+.cms-list h2,.cms-editor h2 { margin: 0; color: var(--green-950); font-size: 14px; }
+.cms-list header small { color: var(--muted); font-size: 7px; }
+.cms-list header > button { display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: var(--green-700); border: 1px solid #b9dacf; border-radius: 7px; background: var(--green-50); cursor: pointer; font-size: 7px; font-weight: 800; }
+.cms-list header > button svg { width: 12px; }
+.cms-search { min-height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 9px; margin-bottom: 9px; color: #788a83; border: 1px solid #e0e8e4; border-radius: 7px; background: #f9fbfa; }
+.cms-search svg { width: 13px; }
+.cms-search input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 8px; }
+.cms-list > div { max-height: 650px; display: grid; gap: 5px; overflow-y: auto; }
+.cms-list > div > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px; text-align: left; border: 1px solid #e5ebe8; border-radius: 8px; background: white; cursor: pointer; }
+.cms-list > div > button.selected { border-color: #73b7a0; background: var(--green-50); box-shadow: inset 3px 0 var(--green-600); }
+.cms-list > div > button span { min-width: 0; }
+.cms-list strong,.cms-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cms-list strong { color: var(--green-950); font-size: 9px; }
+.cms-list small { margin-top: 2px; color: var(--muted); font-size: 7px; }
+.cms-list b { flex: 0 0 auto; padding: 3px 5px; border-radius: 999px; font-size: 6px; }
+.cms-list b.on { color: var(--green-800); background: var(--green-100); }
+.cms-list b.off { color: #8a655c; background: #f4e9e6; }
+.cms-editor { display: grid; gap: 10px; }
+.cms-editor-title { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #edf1ef; }
+.cms-editor-title > span { width: 35px; height: 35px; display: grid; place-items: center; color: var(--green-700); border-radius: 9px; background: var(--green-50); }
+.cms-editor-title > span svg { width: 16px; }
+.cms-editor-title small { color: var(--muted); font-size: 7px; }
+.cms-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.cms-grid.small-left { grid-template-columns: .35fr 1fr; }
+.cms-field { min-width: 0; display: grid; gap: 4px; color: #526b62; font-size: 8px; font-weight: 800; }
+.cms-field input,.cms-field select,.cms-field textarea { width: 100%; padding: 9px 10px; color: var(--ink); border: 1px solid #dfe7e3; border-radius: 7px; outline: 0; background: #fbfdfc; font-size: 9px; font-weight: 500; }
+.cms-field input,.cms-field select { min-height: 38px; }
+.cms-field textarea { resize: vertical; line-height: 1.55; }
+.cms-field input:focus,.cms-field select:focus,.cms-field textarea:focus { border-color: #67af97; box-shadow: 0 0 0 3px rgba(10,154,109,.07); }
+.cms-field .code-field { font-family: Consolas,monospace; font-size: 8px; }
+.cms-field .cms-multi { min-height: 130px; padding: 5px; }
+.cms-field .cms-multi option { padding: 5px; }
+.cms-toggle { min-height: 38px; display: flex; align-items: center; gap: 7px; color: #526b62; cursor: pointer; font-size: 8px; font-weight: 800; }
+.cms-toggle input { display: none; }
+.cms-toggle > span { width: 31px; height: 18px; position: relative; border-radius: 999px; background: #cbd6d2; transition: .2s; }
+.cms-toggle > span::after { content: ''; width: 14px; height: 14px; position: absolute; top: 2px; left: 2px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: .2s; }
+.cms-toggle input:checked + span { background: var(--green-600); }
+.cms-toggle input:checked + span::after { transform: translateX(13px); }
+.cms-save { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 6px; color: white; border: 0; border-radius: 8px; background: var(--green-700); cursor: pointer; font-size: 9px; font-weight: 850; }
+.cms-save svg { width: 15px; }
+.cms-file { min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--green-700); border: 1px dashed #7db8a4; border-radius: 8px; background: var(--green-50); cursor: pointer; font-size: 8px; font-weight: 800; }
+.cms-file svg { width: 15px; }
+.cms-file input { display: none; }
+.cms-banner-preview { height: 170px; overflow: hidden; border-radius: 10px; background: #edf3f0; }
+.cms-banner-preview img { width: 100%; height: 100%; object-fit: cover; }
+.cms-content-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 12px; align-items: start; }
+.cms-content-editor > form,.cms-setting-editor > form { display: grid; gap: 10px; }
+.cms-choice-row { display: flex; gap: 5px; overflow-x: auto; }
+.cms-choice-row > button { min-width: max-content; display: flex; align-items: center; gap: 5px; padding: 7px 9px; color: #657870; border: 1px solid #dfe7e3; border-radius: 7px; background: white; cursor: pointer; font-size: 7px; font-weight: 800; text-transform: capitalize; }
+.cms-choice-row > button.active { color: var(--green-800); border-color: #75b69f; background: var(--green-50); }
+.cms-choice-row b { padding: 2px 4px; border-radius: 999px; background: #eef1f0; font-size: 6px; }
+.cms-choice-row.settings { flex-wrap: wrap; }
+.cms-help { padding: 8px; margin: 0; color: #63776f; border-radius: 7px; background: #f4f7f6; font-size: 8px; }
+
+@media (max-width: 850px) {
+  .cms-workspace,.cms-content-grid { grid-template-columns: 1fr; }
+  .cms-list > div { max-height: 330px; }
+}
+@media (max-width: 580px) {
+  .cms-heading { align-items: flex-start; flex-wrap: wrap; }
+  .cms-heading > button { margin-left: 68px; }
+  .cms-grid,.cms-grid.small-left { grid-template-columns: 1fr; }
+}
+@media (max-width: 400px) {
+  .cms-heading > button { margin-left: 0; }
+  .cms-list,.cms-editor { padding: 13px; }
+}
+
 /* Step 16 — Doctor professional dashboard */
 .doctor-dashboard-page { min-height: 100vh; background: #f4f9f7; }
 .doctor-dashboard-main { padding-block: 31px 80px; }

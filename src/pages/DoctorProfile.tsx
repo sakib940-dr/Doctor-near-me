@@ -48,7 +48,7 @@ export default function DoctorProfile() {
               <div className="directory-tags">{profile.specialties.map((specialty) => <span key={specialty.id}>{specialty.name_bn}</span>)}</div>
             </div>
             <div className="profile-actions">
-              <button type="button" disabled={!profile.doctor.accepting_appointments}><CalendarDays size={18} />{profile.doctor.accepting_appointments ? 'অ্যাপয়েন্টমেন্ট নিন' : 'অ্যাপয়েন্টমেন্ট বন্ধ'}</button>
+              {profile.doctor.accepting_appointments ? <Link className="profile-book-link" to={`/doctors/${profile.doctor.id}/book`}><CalendarDays size={18} /> অ্যাপয়েন্টমেন্ট নিন</Link> : <button type="button" disabled><CalendarDays size={18} /> অ্যাপয়েন্টমেন্ট বন্ধ</button>}
               {profile.doctor.consultation_fee != null && <span><small>সাধারণ ভিজিট</small><strong>৳{profile.doctor.consultation_fee}</strong></span>}
             </div>
           </section>

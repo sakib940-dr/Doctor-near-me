@@ -32,6 +32,41 @@ export interface DashboardContext extends AccountContext {
   admin_scope?: string;
 }
 
+export interface PatientProfile {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  date_of_birth: string | null;
+  gender: 'male' | 'female' | 'other' | null;
+  blood_group: string | null;
+  address_line: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  preferred_language: string;
+  profile_completed: boolean;
+}
+
+export type AppointmentStatus = 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed' | 'no_show';
+
+export interface AppointmentRow {
+  appointment_id: string;
+  appointment_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: AppointmentStatus;
+  patient_name: string;
+  doctor_name: string;
+  provider_name: string | null;
+  provider_type: string | null;
+  address: string | null;
+  consultation_fee: number | null;
+  patient_note: string | null;
+  created_at: string;
+}
+
 export interface District {
   id: number;
   division_id: number;

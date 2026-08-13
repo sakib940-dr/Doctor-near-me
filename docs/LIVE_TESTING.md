@@ -4,7 +4,7 @@
 
 Use a new Supabase staging project, not the production database.
 
-1. Run migrations `01` through `11`, then `11b`, `12`, and `13`, in filename order.
+1. Run migrations `01` through `11`, then `11b`, `12`, `13`, and `14`, in filename order.
 2. Run `tests/step11_smoke.sql`.
 3. Confirm the final `STEP 11 SMOKE TEST PASSED` result.
 4. Test public RPCs from the Supabase API panel:
@@ -33,6 +33,12 @@ Use a new Supabase staging project, not the production database.
 11. Confirm email when enabled, complete onboarding, refresh the protected
     dashboard, and log out for every test role.
 12. Confirm a new Doctor account remains pending and absent from public search.
+13. Complete a fictional Patient profile with district/upazila and emergency
+    contact details.
+14. Book an approved doctor's exact active chamber schedule.
+15. Confirm the request appears as pending under `/appointments` after refresh.
+16. Confirm duplicate active booking and arbitrary schedule payloads fail.
+17. Cancel the pending request through the two-step confirmation UI.
 
 ## Full end-to-end testing
 

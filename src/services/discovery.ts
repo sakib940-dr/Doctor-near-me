@@ -309,15 +309,19 @@ export async function saveMyCurrentLocation(input: {
 
 export async function searchAmbulances(input: {
   districtId?: number | null;
+  upazilaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  radiusKm?: number | null;
 }) {
   const { data, error } = await requireSupabase().rpc('search_ambulances', {
     p_district_id: input.districtId ?? null,
-    p_upazila_id: null,
+    p_upazila_id: input.upazilaId ?? null,
     p_vehicle_types: null,
     p_available_only: true,
-    p_latitude: null,
-    p_longitude: null,
-    p_radius_km: null,
+    p_latitude: input.latitude ?? null,
+    p_longitude: input.longitude ?? null,
+    p_radius_km: input.radiusKm ?? null,
     p_limit: 20,
     p_offset: 0,
   });

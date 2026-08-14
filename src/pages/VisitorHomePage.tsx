@@ -174,7 +174,13 @@ export default function VisitorHomePage() {
     Promise.all([
       doctorRequest,
       getPublicProviders({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 8 }),
-      searchAmbulances({ districtId: selectedDistrict }),
+      searchAmbulances({
+        districtId: selectedDistrict,
+        upazilaId: selectedUpazila,
+        latitude: currentLocation?.latitude ?? null,
+        longitude: currentLocation?.longitude ?? null,
+        radiusKm: currentLocation ? 100 : null,
+      }),
     ]).then(([doctors, providerRows, ambulanceRows]) => {
       if (!active) return;
       setNearbyDoctors(doctors);

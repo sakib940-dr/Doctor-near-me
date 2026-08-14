@@ -21,12 +21,14 @@ import VisitorBottomNav from '../components/VisitorBottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
+  findNearestDoctors,
   getDistricts,
   getHomepageConfiguration,
   getPublicProviders,
   getUpazilas,
   searchAmbulances,
   searchDoctors,
+  saveMyCurrentLocation,
 } from '../services/discovery';
 import type {
   AmbulanceSearchRow,
@@ -67,7 +69,20 @@ export default function VisitorHomePage() {
   const [ambulances, setAmbulances] = useState<AmbulanceSearchRow[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [locationState, setLocationState] = useState<'idle' | 'asking' | 'granted' | 'denied'>('idle');
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number; accuracy: number | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('sirajganj-current-location');
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
+      if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
+        setCurrentLocation({ latitude: saved.latitude, longitude: saved.longitude, accuracy: saved.accuracy ?? null });
+        setLocationState('granted');
+      }
+    } catch { /* ignore unavailable/invalid local storage */ }
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -103,8 +118,18 @@ export default function VisitorHomePage() {
     if (!isSupabaseConfigured) return;
     const selectedDistrict = districtId ? Number(districtId) : null;
     const selectedUpazila = upazilaId ? Number(upazilaId) : null;
+    const doctorRequest = currentLocation
+      ? findNearestDoctors({
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          districtId: selectedDistrict,
+          upazilaId: selectedUpazila,
+          radiusKm: 100,
+          limit: 8,
+        })
+      : searchDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 6, sort: 'name' });
     Promise.all([
-      searchDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 6, sort: 'name' }),
+      doctorRequest,
       getPublicProviders({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 8 }),
       searchAmbulances({ districtId: selectedDistrict }),
     ]).then(([doctors, providerRows, ambulanceRows]) => {
@@ -112,7 +137,7 @@ export default function VisitorHomePage() {
       setProviders(providerRows);
       setAmbulances(ambulanceRows.slice(0, 4));
     }).catch((loadError) => setError(messageFrom(loadError)));
-  }, [districtId, upazilaId]);
+  }, [districtId, upazilaId, currentLocation]);
 
   const topics = homepage.topics.length ? homepage.topics : fallbackTopics;
   const siteName = useMemo(() => {
@@ -147,9 +172,31 @@ export default function VisitorHomePage() {
     }
     setLocationState('asking');
     navigator.geolocation.getCurrentPosition(
-      () => setLocationState('granted'),
+      (position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+        };
+        setCurrentLocation(location);
+        setLocationState('granted');
+        // Anonymous visitors cannot write a user-owned Supabase row. Keep the
+        // consented point locally so it can be persisted immediately after login.
+        try {
+          localStorage.setItem('sirajganj-current-location', JSON.stringify({ ...location, capturedAt: Date.now() }));
+        } catch { /* storage can be unavailable in private browsing */ }
+        if (user) {
+          void saveMyCurrentLocation({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracyMeters: location.accuracy,
+            districtId: districtId ? Number(districtId) : null,
+            upazilaId: upazilaId ? Number(upazilaId) : null,
+          }).catch(() => undefined);
+        }
+      },
       () => setLocationState('denied'),
-      { enableHighAccuracy: false, timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   }
 
@@ -193,7 +240,7 @@ export default function VisitorHomePage() {
 
         <section className="visitor-section">
           <div className="container">
-            <div className="visitor-section-head"><div><span>আপনার নির্বাচিত এলাকার যাচাইকৃত ডাক্তার</span><h2><MapPin /> আপনার এলাকার ডাক্তার</h2></div><Link to={`/doctors${viewAllParams.size ? `?${viewAllParams}` : ''}`}>সব দেখুন <ArrowRight /></Link></div>
+            <div className="visitor-section-head"><div><span>{currentLocation ? 'আপনার বর্তমান অবস্থান থেকে দূরত্ব অনুযায়ী' : 'আপনার নির্বাচিত এলাকার যাচাইকৃত ডাক্তার'}</span><h2><MapPin /> আপনার এলাকার ডাক্তার</h2></div><Link to={`/doctors${viewAllParams.size ? `?${viewAllParams}` : ''}`}>সব দেখুন <ArrowRight /></Link></div>
             {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ডাক্তার লোড হচ্ছে…</div> : nearbyDoctors.length ? <div className="doctor-horizontal-scroll">{nearbyDoctors.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : <div className="visitor-empty">এই এলাকায় এখনো কোনো অনুমোদিত ডাক্তার পাওয়া যায়নি।</div>}
           </div>
         </section>

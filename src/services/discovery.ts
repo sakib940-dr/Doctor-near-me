@@ -155,6 +155,115 @@ export async function getDoctorPublicProfile(doctorId: string) {
   return (data ?? null) as DoctorPublicProfile | null;
 }
 
+
+
+interface NearestDoctorRpcRow {
+  doctor_id: string;
+  provider_id: string;
+  doctor_name: string;
+  degree: string | null;
+  designation: string | null;
+  consultation_fee: number | null;
+  provider_name: string;
+  provider_type: string;
+  address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  distance_km: number;
+}
+
+export async function findNearestDoctors(input: {
+  latitude: number;
+  longitude: number;
+  radiusKm?: number;
+  districtId?: number | null;
+  upazilaId?: number | null;
+  limit?: number;
+  offset?: number;
+}) {
+  const { data, error } = await requireSupabase().rpc('nearest_doctors', {
+    p_lat: input.latitude,
+    p_lon: input.longitude,
+    p_radius_km: input.radiusKm ?? 50,
+    p_district_id: input.districtId ?? null,
+    p_upazila_id: input.upazilaId ?? null,
+    p_limit: Math.min((input.limit ?? 20) * 4, 100),
+    p_offset: input.offset ?? 0,
+  });
+  if (error) throw error;
+  const rawRows = (data ?? []) as NearestDoctorRpcRow[];
+  // One doctor can have multiple approved chambers. The RPC is distance-sorted,
+  // so keep only the first row per doctor = that doctor's nearest chamber.
+  const seen = new Set<string>();
+  const rows = rawRows.filter((row) => {
+    if (seen.has(row.doctor_id)) return false;
+    seen.add(row.doctor_id);
+    return true;
+  }).slice(0, input.limit ?? 20);
+
+  // The location RPC intentionally returns only location-safe core fields.
+  // Reuse the existing public-profile RPC to hydrate photo/specialty/BMDC
+  // without changing any SQL or exposing private profile data.
+  return Promise.all(rows.map(async (row): Promise<DoctorSearchRow> => {
+    let profile: DoctorPublicProfile | null = null;
+    try { profile = await getDoctorPublicProfile(row.doctor_id); } catch { profile = null; }
+    return {
+      doctor_id: row.doctor_id,
+      doctor_name: profile?.doctor.name || row.doctor_name,
+      avatar_url: profile?.doctor.avatar_url ?? null,
+      degree: profile?.doctor.degree ?? row.degree,
+      designation: profile?.doctor.designation ?? row.designation,
+      professional_title: profile?.doctor.professional_title ?? null,
+      bmdc_registration_no: profile?.doctor.bmdc_registration_no ?? null,
+      consultation_fee: profile?.doctor.consultation_fee ?? row.consultation_fee,
+      experience_years: profile?.doctor.experience_years ?? null,
+      district_id: row.district_id,
+      district_name_bn: null,
+      upazila_id: row.upazila_id,
+      upazila_name_bn: null,
+      specialties: (profile?.specialties ?? []).map((item, index) => ({
+        id: item.id,
+        name_bn: item.name_bn,
+        name_en: item.name_en,
+        slug: '',
+        is_primary: index === 0,
+      })),
+      available_today: false,
+      total_count: rows.length,
+      distance_km: row.distance_km,
+      nearest_provider_id: row.provider_id,
+      nearest_provider_name: row.provider_name,
+      nearest_provider_type: row.provider_type,
+      nearest_provider_address: row.address,
+      nearest_provider_latitude: row.latitude,
+      nearest_provider_longitude: row.longitude,
+    };
+  }));
+}
+
+export async function saveMyCurrentLocation(input: {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+  districtId?: number | null;
+  upazilaId?: number | null;
+  saveHistory?: boolean;
+}) {
+  const { data, error } = await requireSupabase().rpc('update_my_current_location', {
+    p_latitude: input.latitude,
+    p_longitude: input.longitude,
+    p_district_id: input.districtId ?? null,
+    p_upazila_id: input.upazilaId ?? null,
+    p_accuracy_meters: input.accuracyMeters ?? null,
+    p_source: 'gps',
+    p_save_history: input.saveHistory ?? true,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
 export async function searchAmbulances(input: {
   districtId?: number | null;
 }) {

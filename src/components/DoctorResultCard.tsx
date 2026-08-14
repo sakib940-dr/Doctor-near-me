@@ -10,7 +10,8 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
   const [imageFailed, setImageFailed] = useState(false);
   const avatar = getImageUrl(resolvedPhoto, 'avatars');
   const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
-  const location = [doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ');
+  const location = doctor.nearest_provider_name || [doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ');
+  const distanceText = doctor.distance_km != null ? `${doctor.distance_km.toFixed(1)} km দূরে` : null;
 
   useEffect(() => {
     let active = true;
@@ -45,7 +46,7 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
           {(doctor.designation || doctor.professional_title) && (
             <p className="visitor-doctor-designation">{doctor.designation || doctor.professional_title}</p>
           )}
-          <p className="visitor-doctor-location"><MapPin /> {location || 'এলাকার তথ্য নেই'}</p>
+          <p className="visitor-doctor-location"><MapPin /><span>{location || 'এলাকার তথ্য নেই'}{distanceText && <b className="visitor-doctor-distance"> · {distanceText}</b>}</span></p>
         </div>
       </Link>
     </article>

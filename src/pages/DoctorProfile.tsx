@@ -55,9 +55,13 @@ export default function DoctorProfile() {
 
   const primarySpecialty = profile?.specialties[0]?.name_bn || 'বিশেষজ্ঞ চিকিৎসক';
   const primaryChamber = profile?.chambers[0] ?? null;
-  const contactPhone = profile?.doctor.phone || profile?.doctor.whatsapp || primaryChamber?.phone || null;
+  const directPhone = profile?.doctor.phone || null;
+  const directWhatsapp = profile?.doctor.whatsapp || null;
+  const chamberPhone = primaryChamber?.phone || null;
+  const contactPhone = directPhone || chamberPhone;
   const callPhone = contactPhone ? cleanPhone(contactPhone) : null;
-  const whatsapp = profile?.doctor.whatsapp || contactPhone;
+  const whatsapp = directWhatsapp || directPhone || null;
+  const contactSource = directPhone || directWhatsapp ? 'assistant' : chamberPhone ? 'chamber' : null;
   const facebook = profile?.doctor.facebook_url || null;
   const locationText = primaryChamber?.address || null;
   const hasContactOptions = Boolean(callPhone || whatsapp || facebook);
@@ -122,14 +126,26 @@ export default function DoctorProfile() {
               <small>ভিজিট ফি</small>
               <strong>{profile.doctor.consultation_fee != null ? `৳${profile.doctor.consultation_fee}` : 'যোগাযোগ করুন'}</strong>
             </div>
-            <button
-              type="button"
-              className="profile-appointment-button"
-              disabled={!profile.doctor.accepting_appointments && !hasContactOptions}
-              onClick={() => setContactOpen(true)}
-            >
-              <CalendarDays /> অ্যাপয়েন্টমেন্ট নিন
-            </button>
+            <div className="profile-direct-actions">
+              {callPhone && (
+                <a className="profile-contact-button call" href={`tel:${callPhone}`} title={contactSource === 'assistant' ? 'ডাক্তারের সহকারীকে কল করুন' : 'চেম্বারে কল করুন'}>
+                  <Phone /><span>{contactSource === 'assistant' ? 'সহকারী' : 'কল'}</span>
+                </a>
+              )}
+              {whatsapp && (
+                <a className="profile-contact-button whatsapp" href={`https://wa.me/${whatsappNumber(whatsapp)}`} target="_blank" rel="noreferrer" title="WhatsApp">
+                  <MessageCircle /><span>WhatsApp</span>
+                </a>
+              )}
+              <button
+                type="button"
+                className="profile-appointment-button"
+                disabled={!profile.doctor.accepting_appointments && !hasContactOptions}
+                onClick={() => setContactOpen(true)}
+              >
+                <CalendarDays /> অ্যাপয়েন্টমেন্ট নিন
+              </button>
+            </div>
           </section>
 
           <section className="profile-section visitor-about-section">

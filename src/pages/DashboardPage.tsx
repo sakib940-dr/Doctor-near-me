@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
+import { saveMyCurrentLocation } from '../services/discovery';
 import type { DashboardContext, UserRole } from '../types';
 
 const roleLabels: Record<UserRole, string> = { patient: 'রোগী', doctor: 'ডাক্তার', chamber: 'চেম্বার', hospital: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স সেবা', verification_officer: 'ভেরিফিকেশন অফিসার', admin: 'অ্যাডমিন', super_admin: 'সুপার অ্যাডমিন' };
@@ -18,6 +19,41 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!account) { setContextLoading(false); return; }
     getRoleDashboardContext().then(setContext).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'Dashboard লোড করা যায়নি।')).finally(() => setContextLoading(false));
+  }, [account]);
+
+  useEffect(() => {
+    if (!account) return;
+
+    const persist = (latitude: number, longitude: number, accuracy: number | null) => {
+      void saveMyCurrentLocation({ latitude, longitude, accuracyMeters: accuracy, saveHistory: true })
+        .then(() => { try { localStorage.removeItem('sirajganj-current-location'); } catch { /* ignore */ } })
+        .catch(() => undefined);
+    };
+
+    // If the visitor granted location before logging in, persist that exact
+    // consented location as soon as an authenticated session exists.
+    try {
+      const raw = localStorage.getItem('sirajganj-current-location');
+      if (raw) {
+        const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
+        if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
+          persist(saved.latitude, saved.longitude, saved.accuracy ?? null);
+          return;
+        }
+      }
+    } catch { /* ignore invalid local storage */ }
+
+    // Never trigger a surprise permission prompt on dashboard. If permission
+    // was already granted earlier, refresh and save the current GPS point.
+    if (!navigator.geolocation || !navigator.permissions?.query) return;
+    void navigator.permissions.query({ name: 'geolocation' }).then((permission) => {
+      if (permission.state !== 'granted') return;
+      navigator.geolocation.getCurrentPosition(
+        (position) => persist(position.coords.latitude, position.coords.longitude, Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null),
+        () => undefined,
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      );
+    }).catch(() => undefined);
   }, [account]);
 
   if (!loading && account && !account.profile_completed) return <Navigate to="/onboarding" replace />;

@@ -157,6 +157,13 @@ export interface DoctorSearchRow {
   specialties: DoctorSpecialty[];
   available_today: boolean;
   total_count: number;
+  distance_km?: number | null;
+  nearest_provider_id?: string | null;
+  nearest_provider_name?: string | null;
+  nearest_provider_type?: string | null;
+  nearest_provider_address?: string | null;
+  nearest_provider_latitude?: number | null;
+  nearest_provider_longitude?: number | null;
 }
 
 

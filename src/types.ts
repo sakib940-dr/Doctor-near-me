@@ -147,6 +147,7 @@ export interface DoctorSearchRow {
   degree: string | null;
   designation: string | null;
   professional_title: string | null;
+  bmdc_registration_no?: string | null;
   consultation_fee: number | null;
   experience_years: number | null;
   district_id: number | null;
@@ -156,6 +157,25 @@ export interface DoctorSearchRow {
   specialties: DoctorSpecialty[];
   available_today: boolean;
   total_count: number;
+}
+
+
+export interface ProviderDirectoryRow {
+  id: string;
+  provider_type: 'hospital' | 'chamber';
+  name_bn: string;
+  name_en: string | null;
+  slug: string;
+  logo_url: string | null;
+  banner_url: string | null;
+  phone: string | null;
+  address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  map_url: string | null;
+  verified: boolean;
 }
 
 export interface AmbulanceSearchRow {
@@ -181,37 +201,6 @@ export interface AmbulanceSearchRow {
   total_count: number;
 }
 
-export interface ProviderPublicRow {
-  id: string;
-  provider_type: 'chamber' | 'hospital';
-  name_bn: string;
-  name_en: string | null;
-  short_description: string | null;
-  logo_url: string | null;
-  banner_url: string | null;
-  phone: string | null;
-  address: string | null;
-  district_id: number | null;
-  upazila_id: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  google_maps_url: string | null;
-  map_url: string | null;
-  emergency_available: boolean;
-  verified: boolean;
-}
-
-export interface ProviderPublicDoctorRow {
-  doctor_id: string;
-  doctor_name: string;
-  avatar_url: string | null;
-  degree: string | null;
-  designation: string | null;
-  bmdc_registration_no: string | null;
-  consultation_fee: number | null;
-  specialty_names_bn: string[];
-}
-
 export interface DoctorPublicProfile {
   doctor: {
     id: string;
@@ -227,6 +216,12 @@ export interface DoctorPublicProfile {
     bio: string | null;
     languages: string[] | null;
     accepting_appointments: boolean;
+    // Optional forward-compatible public contact/profile fields. Existing
+    // deployments may omit them; the UI hides absent values.
+    phone?: string | null;
+    whatsapp?: string | null;
+    facebook_url?: string | null;
+    medical_college?: string | null;
   };
   specialties: Array<{
     id: number;

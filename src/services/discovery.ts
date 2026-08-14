@@ -5,8 +5,7 @@ import type {
   DoctorSearchRow,
   DoctorPublicProfile,
   HomepageConfiguration,
-  ProviderPublicDoctorRow,
-  ProviderPublicRow,
+  ProviderDirectoryRow,
   Specialty,
   Upazila,
 } from '../types';
@@ -94,7 +93,57 @@ export async function searchDoctors(input: {
     },
   );
   if (error) throw error;
-  return (data ?? []) as DoctorSearchRow[];
+  const rows = (data ?? []) as DoctorSearchRow[];
+  if (!rows.length) return rows;
+
+  const ids = rows.map((row) => row.doctor_id);
+  const { data: directoryRows } = await requireSupabase()
+    .from('public_doctor_directory')
+    .select('doctor_id,bmdc_registration_no')
+    .in('doctor_id', ids);
+  const bmdcByDoctor = new Map((directoryRows ?? []).map((row) => [String(row.doctor_id), row.bmdc_registration_no as string | null]));
+  return rows.map((row) => ({ ...row, bmdc_registration_no: bmdcByDoctor.get(row.doctor_id) ?? null }));
+
+}
+
+export async function getPublicProviders(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  limit?: number;
+} = {}) {
+  let query = requireSupabase()
+    .from('public_provider_directory')
+    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
+    .order('name_bn')
+    .limit(input.limit ?? 20);
+  if (input.districtId) query = query.eq('district_id', input.districtId);
+  if (input.upazilaId) query = query.eq('upazila_id', input.upazilaId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as ProviderDirectoryRow[];
+}
+
+export async function getPublicProvider(providerId: string) {
+  const { data, error } = await requireSupabase()
+    .from('public_provider_directory')
+    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
+    .eq('id', providerId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as ProviderDirectoryRow | null;
+}
+
+export async function getDoctorsForProvider(providerId: string) {
+  const doctors = await searchDoctors({ limit: 100, sort: 'name' });
+  const profiles = await Promise.all(doctors.map(async (doctor) => {
+    try {
+      const profile = await getDoctorPublicProfile(doctor.doctor_id);
+      return profile?.chambers.some((chamber) => chamber.id === providerId) ? doctor : null;
+    } catch {
+      return null;
+    }
+  }));
+  return profiles.filter((doctor): doctor is DoctorSearchRow => Boolean(doctor));
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {
@@ -106,164 +155,19 @@ export async function getDoctorPublicProfile(doctorId: string) {
   return (data ?? null) as DoctorPublicProfile | null;
 }
 
-// providers টেবিলে anon-এর জন্য "status = approved" রো সরাসরি select করার
-// RLS পলিসি আগে থেকেই আছে (providers_public_approved_select), তাই এখানে
-// নতুন কোনো RPC/স্কিমা ছাড়াই সরাসরি টেবিল query করা হচ্ছে।
-export async function searchProviders(input: {
-  providerType?: 'chamber' | 'hospital' | null;
-  districtId?: number | null;
-  upazilaId?: number | null;
-  query?: string;
-  limit?: number;
-  offset?: number;
-}) {
-  let request = requireSupabase()
-    .from('providers')
-    .select(
-      'id,provider_type,name_bn,name_en,short_description,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,google_maps_url,map_url,emergency_available,verified',
-      { count: 'exact' },
-    )
-    .eq('status', 'approved');
-
-  if (input.providerType) request = request.eq('provider_type', input.providerType);
-  if (input.districtId) request = request.eq('district_id', input.districtId);
-  if (input.upazilaId) request = request.eq('upazila_id', input.upazilaId);
-  if (input.query?.trim()) {
-    request = request.or(
-      `name_bn.ilike.%${input.query.trim()}%,name_en.ilike.%${input.query.trim()}%,address.ilike.%${input.query.trim()}%`,
-    );
-  }
-
-  const from = input.offset ?? 0;
-  const to = from + (input.limit ?? 20) - 1;
-  const { data, error, count } = await request
-    .order('verified', { ascending: false })
-    .order('name_bn')
-    .range(from, to);
-  if (error) throw error;
-  return { rows: (data ?? []) as ProviderPublicRow[], total: count ?? 0 };
-}
-
-export async function getProviderById(providerId: string) {
-  const { data, error } = await requireSupabase()
-    .from('providers')
-    .select(
-      'id,provider_type,name_bn,name_en,short_description,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,google_maps_url,map_url,emergency_available,verified',
-    )
-    .eq('id', providerId)
-    .eq('status', 'approved')
-    .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as ProviderPublicRow | null;
-}
-
-// get_provider_doctors() আগে থেকেই বিদ্যমান একটি RPC (security invoker)।
-// লগইন ছাড়া ভিজিটরদের (anon role) জন্য profiles টেবিলে SELECT আগে থেকেই
-// বন্ধ করা আছে (Step 12), তাই এই কলটি অ্যানোনিমাস ভিজিটরে ব্যর্থ হতে পারে —
-// সেক্ষেত্রে খালি লিস্ট রিটার্ন করে UI-কে গ্রেসফুলি ফলব্যাক করানো হচ্ছে।
-export async function getProviderDoctors(providerId: string) {
-  const { data, error } = await requireSupabase().rpc('get_provider_doctors', {
-    p_provider_id: providerId,
-  });
-  if (error) {
-    if (error.code === '42501' || /permission denied/i.test(error.message)) return [];
-    throw error;
-  }
-  return (data ?? []) as ProviderPublicDoctorRow[];
-}
-
-// nearest_doctors() আগে থেকেই বিদ্যমান একটি RPC (security invoker, profiles জয়েন করে)।
-// অ্যানোনিমাস ভিজিটরের জন্য এটি ব্যর্থ হতে পারে (Step 12-এর profiles RLS-এর কারণে);
-// সেক্ষেত্রে caller (UI) সাধারণ জেলা/উপজেলা-ভিত্তিক সার্চে ফলব্যাক করবে।
-export async function getNearestDoctors(input: {
-  latitude: number;
-  longitude: number;
-  radiusKm?: number;
-  districtId?: number | null;
-  upazilaId?: number | null;
-  limit?: number;
-}) {
-  const { data, error } = await requireSupabase().rpc('nearest_doctors', {
-    p_lat: input.latitude,
-    p_lon: input.longitude,
-    p_radius_km: input.radiusKm ?? 50,
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_limit: input.limit ?? 20,
-    p_offset: 0,
-  });
-  if (error) {
-    if (error.code === '42501' || /permission denied/i.test(error.message)) return [];
-    throw error;
-  }
-  return (data ?? []) as Array<{
-    doctor_id: string;
-    provider_id: string;
-    doctor_name: string;
-    degree: string | null;
-    designation: string | null;
-    consultation_fee: number | null;
-    provider_name: string;
-    provider_type: string;
-    address: string | null;
-    district_id: number | null;
-    upazila_id: number | null;
-    latitude: number | null;
-    longitude: number | null;
-    distance_km: number;
-  }>;
-}
-
-// search_blood_donors() আগে থেকেই বিদ্যমান একটি RPC (security invoker, profiles
-// জয়েন করে)। get_provider_doctors()-এর মতো এটিও অ্যানোনিমাস ভিজিটরের জন্য
-// ব্যর্থ হতে পারে (backend-এর বিদ্যমান RLS ডিজাইন, Step 12) — সেক্ষেত্রে
-// UI-কে খালি লিস্ট দিয়ে গ্রেসফুলি ফলব্যাক করানো হচ্ছে।
-export async function searchBloodDonors(input: {
-  bloodGroup: string;
-  districtId?: number | null;
-  upazilaId?: number | null;
-  limit?: number;
-  offset?: number;
-}) {
-  const { data, error } = await requireSupabase().rpc('search_blood_donors', {
-    p_blood_group: input.bloodGroup,
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_limit: input.limit ?? 20,
-    p_offset: input.offset ?? 0,
-  });
-  if (error) {
-    if (error.code === '42501' || /permission denied/i.test(error.message)) return [];
-    throw error;
-  }
-  return (data ?? []) as Array<{
-    donor_id: string;
-    donor_name: string;
-    phone: string | null;
-    blood_group: string;
-    district_id: number | null;
-    upazila_id: number | null;
-    last_donation_date: string | null;
-  }>;
-}
-
 export async function searchAmbulances(input: {
   districtId?: number | null;
-  upazilaId?: number | null;
-  availableOnly?: boolean;
-  limit?: number;
-  offset?: number;
 }) {
   const { data, error } = await requireSupabase().rpc('search_ambulances', {
     p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
+    p_upazila_id: null,
     p_vehicle_types: null,
-    p_available_only: input.availableOnly ?? false,
+    p_available_only: true,
     p_latitude: null,
     p_longitude: null,
     p_radius_km: null,
-    p_limit: input.limit ?? 20,
-    p_offset: input.offset ?? 0,
+    p_limit: 20,
+    p_offset: 0,
   });
   if (error) throw error;
   return (data ?? []) as AmbulanceSearchRow[];

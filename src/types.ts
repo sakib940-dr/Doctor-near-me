@@ -499,6 +499,12 @@ export interface AdminOperationalSummary {
   role_counts: Partial<Record<UserRole, number>>;
 }
 
+export interface AdminOperationalTrendRow {
+  day: string;
+  new_users: number;
+  appointments: number;
+}
+
 export interface AdminUserRow {
   user_id: string;
   full_name: string | null;

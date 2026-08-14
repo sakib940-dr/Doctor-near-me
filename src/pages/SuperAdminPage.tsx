@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Activity, ArrowLeft, Ban, CalendarDays, Copy, Crown, Edit3, ExternalLink, FileCheck2, LoaderCircle, MapPin, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCog, Users, X } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
-import PublicHeader from '../components/PublicHeader';
+import { Activity, Ban, CalendarDays, Copy, Crown, Edit3, ExternalLink, FileCheck2, LoaderCircle, MapPin, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCog, Users, X } from 'lucide-react';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getDistricts, getUpazilas } from '../services/discovery';
 import { cancelPrivilegedAccountInvite, changeSuperAdminUserRole, createPrivilegedAccountInvite, deleteSuperAdminUser, getPrivilegedAccountInvites, getSuperAdminUserDetail, getSuperAdminUserDirectory, setSuperAdminUserStatus, updateSuperAdminUserProfile } from '../services/superAdmin';
@@ -22,7 +21,9 @@ interface EditProfile {
 
 export default function SuperAdminPage() {
   const { account } = useAuth();
-  const [tab, setTab] = useState<Tab>('users');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab') as Tab | null;
+  const [tab, setTab] = useState<Tab>(requestedTab && ['users', 'invites', 'controls'].includes(requestedTab) ? requestedTab : 'users');
   const [users, setUsers] = useState<SuperAdminUserRow[]>([]);
   const [invites, setInvites] = useState<PrivilegedAccountInvite[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -60,6 +61,11 @@ export default function SuperAdminPage() {
     } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
   }
   useEffect(() => { if (account?.role === 'super_admin') void load(); }, [account]);
+  useEffect(() => {
+    const next = searchParams.get('tab') as Tab | null;
+    if (next && ['users', 'invites', 'controls'].includes(next) && next !== tab) setTab(next);
+    if (!next && tab !== 'users') setTab('users');
+  }, [searchParams]);
   useEffect(() => { if (!districtId) { setUpazilas([]); setUpazilaId(null); return; } getUpazilas(districtId).then(setUpazilas).catch(() => setUpazilas([])); }, [districtId]);
   useEffect(() => { if (!edit?.districtId) { setEditUpazilas([]); return; } getUpazilas(edit.districtId).then(setEditUpazilas).catch(() => setEditUpazilas([])); }, [edit?.districtId]);
   if (account && account.role !== 'super_admin') return <Navigate to="/dashboard" replace />;
@@ -109,7 +115,7 @@ export default function SuperAdminPage() {
   }
   async function cancelInvite(id: string) { if (!window.confirm('এই invitation cancel করবেন?')) return; setWorking(true); try { await cancelPrivilegedAccountInvite(id); await load(); setNotice('Invitation cancel হয়েছে।'); } catch (cancelError) { setError(messageFrom(cancelError)); } finally { setWorking(false); } }
 
-  return <div className="app-shell super-page"><PublicHeader /><main className="super-main container"><Link className="back-link" to="/dashboard"><ArrowLeft /> Dashboard-এ ফিরুন</Link><header className="super-heading"><span><Crown /></span><div><small>Single-owner authority</small><h1>Super Admin Control Center</h1><p>একজন Super Admin—privileged roles, sensitive user data ও irreversible account actions।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="super-tabs">{([['users', Users, 'সব Users'], ['invites', Plus, 'Privileged invites'], ['controls', ShieldCheck, 'Existing controls']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Super Admin data লোড হচ্ছে…</div> : <>
+  return <div className="app-shell super-page"><main className="super-main container"><header className="super-heading"><span><Crown /></span><div><small>Single-owner authority</small><h1>Super Admin Control Center</h1><p>একজন Super Admin—privileged roles, sensitive user data ও irreversible account actions।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="super-tabs">{([['users', Users, 'সব Users'], ['invites', Plus, 'Privileged invites'], ['controls', ShieldCheck, 'Existing controls']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setSearchParams(value === 'users' ? {} : { tab: value }); }}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Super Admin data লোড হচ্ছে…</div> : <>
 
   {tab === 'users' && <section className="super-users"><form className="super-filters" onSubmit={submitSearch}><label><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="নাম, email বা phone" /></label><select value={role} onChange={(e) => setRole(e.target.value as UserRole | 'all')}><option value="all">সব role</option>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><select value={districtId ?? ''} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : null)}><option value="">সব জেলা</option>{districts.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select disabled={!districtId} value={upazilaId ?? ''} onChange={(e) => setUpazilaId(e.target.value ? Number(e.target.value) : null)}><option value="">সব উপজেলা</option>{upazilas.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><button>Filter</button></form><header className="super-list-title"><div><h2>User directory</h2><p>কোনো row-তে click করলে full account popup খুলবে এবং access audit হবে।</p></div><b>{users[0]?.total_count ?? 0} users</b></header><div className="super-user-list">{users.map((user) => <button key={user.user_id} onClick={() => void openUser(user.user_id)}><span className={`super-avatar role-${user.role}`}>{(user.full_name || user.email || 'U').slice(0, 1).toUpperCase()}</span><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'} {user.role === 'super_admin' && <Crown />}</strong><small>{user.email || 'Email নেই'} • {user.phone || 'Phone নেই'}</small><p><MapPin /> {[user.upazila_name, user.district_name].filter(Boolean).join(', ') || 'Location দেওয়া নেই'}</p></div><b>{roleLabels[user.role]}</b><span className={`super-status ${user.account_status}`}>{user.account_status}</span><time>Login: {dateLabel(user.last_sign_in_at)}</time></button>)}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div></section>}
 
@@ -134,4 +140,18 @@ export default function SuperAdminPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="super-field"><span>{label}</span>{children}</label>; }
 function Info({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
-function JsonSection({ title, value }: { title: string; value: unknown }) { return <section><h3>{title}</h3>{value == null || (Array.isArray(value) && !value.length) ? <p className="empty-inline">Data নেই।</p> : <dl>{Object.entries(Array.isArray(value) ? { records: value } : value as Record<string, unknown>).map(([key, item]) => <div key={key}><dt>{key.replaceAll('_', ' ')}</dt><dd>{typeof item === 'object' ? JSON.stringify(item) : String(item ?? '—')}</dd></div>)}</dl>}</section>; }
+function JsonSection({ title, value }: { title: string; value: unknown }) {
+  if (value == null || (Array.isArray(value) && !value.length)) {
+    return <section><h3>{title}</h3><p className="empty-inline">Data নেই।</p></section>;
+  }
+
+  if (Array.isArray(value)) {
+    return <section className="super-json-section"><h3>{title}</h3><div className="super-json-records">{value.map((record, index) => {
+      const fields = record && typeof record === 'object' ? Object.entries(record as Record<string, unknown>) : [['value', record] as [string, unknown]];
+      return <article className="super-json-record" key={index}><b>Record {index + 1}</b><dl>{fields.map(([key, item]) => <div key={key}><dt>{key.replaceAll('_', ' ')}</dt><dd>{item && typeof item === 'object' ? JSON.stringify(item) : String(item ?? '—')}</dd></div>)}</dl></article>;
+    })}</div></section>;
+  }
+
+  const fields = typeof value === 'object' ? Object.entries(value as Record<string, unknown>) : [['value', value] as [string, unknown]];
+  return <section className="super-json-section"><h3>{title}</h3><dl>{fields.map(([key, item]) => <div key={key}><dt>{key.replaceAll('_', ' ')}</dt><dd>{item && typeof item === 'object' ? JSON.stringify(item) : String(item ?? '—')}</dd></div>)}</dl></section>;
+}

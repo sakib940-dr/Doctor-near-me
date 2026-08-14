@@ -1,10 +1,16 @@
 import { requireSupabase } from '../lib/supabase';
-import type { AdminActivityRow, AdminAppointmentRow, AdminOperationalSummary, AdminUserRow, AppointmentStatus, UserRole } from '../types';
+import type { AdminActivityRow, AdminAppointmentRow, AdminOperationalSummary, AdminOperationalTrendRow, AdminUserRow, AppointmentStatus, UserRole } from '../types';
 
 export async function getAdminOperationalSummary() {
   const { data, error } = await requireSupabase().rpc('get_admin_operational_summary');
   if (error) throw error;
   return data as AdminOperationalSummary;
+}
+
+export async function getAdminOperationalTrends() {
+  const { data, error } = await requireSupabase().rpc('get_admin_operational_trends');
+  if (error) throw error;
+  return (data ?? []) as AdminOperationalTrendRow[];
 }
 
 export async function getAdminUserDirectory(filters: {

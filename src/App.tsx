@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardShell from './components/DashboardShell';
+import type { DashboardRole } from './components/DashboardBottomNav';
 import { useAuth } from './contexts/AuthContext';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -50,17 +52,17 @@ export default function App() {
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/invitations" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorInvitationsPage /></DashboardShell></ProtectedRoute>} />
-      <Route path="/provider/profile" element={<ProtectedRoute><ProviderProfilePage /></ProtectedRoute>} />
-      <Route path="/provider/doctors" element={<ProtectedRoute><ProviderDoctorsPage /></ProtectedRoute>} />
-      <Route path="/provider/appointments" element={<ProtectedRoute><ProviderAppointmentsPage /></ProtectedRoute>} />
-      <Route path="/provider/ambulances" element={<ProtectedRoute><ProviderAmbulanceLinksPage /></ProtectedRoute>} />
-      <Route path="/ambulance/services" element={<ProtectedRoute><AmbulanceServicesPage /></ProtectedRoute>} />
-      <Route path="/ambulance/hospitals" element={<ProtectedRoute><AmbulanceHospitalLinksPage /></ProtectedRoute>} />
+      <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/provider/appointments" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderAppointmentsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/provider/ambulances" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital']}><ProviderAmbulanceLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/ambulance/services" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceServicesPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/ambulance/hospitals" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceHospitalLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/verification/evidence" element={<ProtectedRoute><VerificationEvidencePage /></ProtectedRoute>} />
-      <Route path="/verification/reviews" element={<ProtectedRoute><VerificationOfficerPage /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
-      <Route path="/admin/cms" element={<ProtectedRoute><AdminCmsPage /></ProtectedRoute>} />
-      <Route path="/super-admin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
+      <Route path="/verification/reviews" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['verification_officer', 'admin', 'super_admin']}><VerificationOfficerPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDashboardPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/admin/cms" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminCmsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/super-admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['super_admin']}><SuperAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -70,4 +72,11 @@ function DoctorDirectoryRoute() {
   const { account, loading } = useAuth();
   if (!loading && account?.role === 'patient') return <DashboardShell role="patient"><DoctorDirectory /></DashboardShell>;
   return <DoctorDirectory />;
+}
+
+function RoleAwareDashboardShell({ allowed, children }: { allowed: DashboardRole[]; children: ReactNode }) {
+  const { account, loading } = useAuth();
+  if (loading) return null;
+  if (!account || !allowed.includes(account.role as DashboardRole)) return <Navigate to="/dashboard" replace />;
+  return <DashboardShell role={account.role as DashboardRole}>{children}</DashboardShell>;
 }

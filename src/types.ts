@@ -175,13 +175,20 @@ export interface ProviderDirectoryRow {
   slug: string;
   logo_url: string | null;
   banner_url: string | null;
+  short_description?: string | null;
   phone: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  facebook_url?: string | null;
+  website_url?: string | null;
   address: string | null;
   district_id: number | null;
   upazila_id: number | null;
   latitude: number | null;
   longitude: number | null;
   map_url: string | null;
+  opening_note?: string | null;
+  emergency_available?: boolean;
   verified: boolean;
 }
 
@@ -327,7 +334,12 @@ export interface ProviderDashboardItem {
   short_description: string | null;
   logo_url: string | null;
   banner_url: string | null;
+  short_description?: string | null;
   phone: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  facebook_url?: string | null;
+  website_url?: string | null;
   whatsapp: string | null;
   email: string | null;
   facebook_url: string | null;

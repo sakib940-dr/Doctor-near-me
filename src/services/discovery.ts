@@ -123,6 +123,16 @@ export async function getPublicProviders(input: {
   return (data ?? []) as ProviderDirectoryRow[];
 }
 
+export async function getPublicProviderBySlug(slug: string) {
+  const { data, error } = await requireSupabase()
+    .from('public_provider_directory')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as ProviderDirectoryRow | null;
+}
+
 export async function getPublicProvider(providerId: string) {
   const { data, error } = await requireSupabase()
     .from('public_provider_directory')
@@ -133,17 +143,50 @@ export async function getPublicProvider(providerId: string) {
   return (data ?? null) as ProviderDirectoryRow | null;
 }
 
+interface PublicProviderDoctorRpcRow {
+  doctor_id: string;
+  doctor_name: string;
+  avatar_url: string | null;
+  degree: string | null;
+  designation: string | null;
+  professional_title: string | null;
+  bmdc_registration_no: string | null;
+  consultation_fee: number | null;
+  experience_years: number | null;
+  district_id: number | null;
+  district_name_bn: string | null;
+  upazila_id: number | null;
+  upazila_name_bn: string | null;
+  specialties: DoctorSearchRow['specialties'] | null;
+  available_today: boolean;
+}
+
 export async function getDoctorsForProvider(providerId: string) {
-  const doctors = await searchDoctors({ limit: 100, sort: 'name' });
-  const profiles = await Promise.all(doctors.map(async (doctor) => {
-    try {
-      const profile = await getDoctorPublicProfile(doctor.doctor_id);
-      return profile?.chambers.some((chamber) => chamber.id === providerId) ? doctor : null;
-    } catch {
-      return null;
-    }
+  const { data, error } = await requireSupabase().rpc(
+    'get_public_provider_doctors',
+    { p_provider_id: providerId },
+  );
+  if (error) throw error;
+
+  const rows = (data ?? []) as PublicProviderDoctorRpcRow[];
+  return rows.map((row): DoctorSearchRow => ({
+    doctor_id: row.doctor_id,
+    doctor_name: row.doctor_name,
+    avatar_url: row.avatar_url,
+    degree: row.degree,
+    designation: row.designation,
+    professional_title: row.professional_title,
+    bmdc_registration_no: row.bmdc_registration_no,
+    consultation_fee: row.consultation_fee,
+    experience_years: row.experience_years,
+    district_id: row.district_id,
+    district_name_bn: row.district_name_bn,
+    upazila_id: row.upazila_id,
+    upazila_name_bn: row.upazila_name_bn,
+    specialties: row.specialties ?? [],
+    available_today: row.available_today,
+    total_count: rows.length,
   }));
-  return profiles.filter((doctor): doctor is DoctorSearchRow => Boolean(doctor));
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {

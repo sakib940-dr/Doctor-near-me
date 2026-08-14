@@ -1,10 +1,10 @@
-import { ArrowRight, BadgeCheck, Building2, Hospital, MapPin } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Building2, Globe2, Hospital, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../lib/storage';
 import type { ProviderDirectoryRow } from '../types';
 
 export default function ProviderCard({ provider }: { provider: ProviderDirectoryRow }) {
-  const logo = getImageUrl(provider.logo_url, 'provider-media');
+  const logo = getImageUrl(provider.logo_url, 'public-images');
   const TypeIcon = provider.provider_type === 'hospital' ? Hospital : Building2;
   return (
     <article className="visitor-provider-card">
@@ -17,7 +17,10 @@ export default function ProviderCard({ provider }: { provider: ProviderDirectory
         {provider.verified && <span className="verified-mini"><BadgeCheck /> যাচাইকৃত</span>}
         <p><MapPin /> {provider.address || 'ঠিকানা যোগ করা হয়নি'}</p>
       </div>
-      <Link className="provider-card-arrow" to={`/providers/${provider.id}`} aria-label={`${provider.name_bn} দেখুন`}><ArrowRight /></Link>
+      <div className="provider-card-actions">
+        <Link className="provider-card-website" to={`/providers/${provider.slug}/website`} aria-label={`${provider.name_bn} website`}><Globe2 /> Website</Link>
+        <Link className="provider-card-arrow" to={`/providers/${provider.id}`} aria-label={`${provider.name_bn} profile`}><ArrowRight /></Link>
+      </div>
     </article>
   );
 }

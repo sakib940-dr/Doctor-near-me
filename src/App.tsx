@@ -21,6 +21,7 @@ import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
 import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
 import ProviderProfilePage from './pages/ProviderProfilePage';
 import PublicProviderProfilePage from './pages/PublicProviderProfilePage';
+import ProviderWebsitePage from './pages/ProviderWebsitePage';
 import PublicProvidersPage from './pages/PublicProvidersPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/doctors" element={<DoctorDirectory />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
       <Route path="/providers" element={<PublicProvidersPage />} />
+      <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />

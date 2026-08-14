@@ -1,35 +1,19 @@
-import { BadgeCheck, MapPin, Stethoscope } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { MapPin, Stethoscope, WalletCards } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../lib/storage';
-import { getDoctorPublicProfile } from '../services/discovery';
 import type { DoctorSearchRow } from '../types';
+import VerifiedBadge from './VerifiedBadge';
 
 export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }) {
-  const [resolvedPhoto, setResolvedPhoto] = useState<string | null>(doctor.avatar_url);
   const [imageFailed, setImageFailed] = useState(false);
-  const avatar = getImageUrl(resolvedPhoto, 'avatars');
+  const avatar = getImageUrl(doctor.avatar_url, 'avatars');
   const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
   const location = doctor.nearest_provider_name || [doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ');
   const distanceText = doctor.distance_km != null ? `${doctor.distance_km.toFixed(1)} km দূরে` : null;
 
-  useEffect(() => {
-    let active = true;
-    setResolvedPhoto(doctor.avatar_url);
-    setImageFailed(false);
-    // The search RPC returns the legacy profiles.avatar_url. The existing
-    // public-profile RPC already coalesces doctors.profile_photo_url first,
-    // so use it to show the doctor's real professional profile photo here.
-    getDoctorPublicProfile(doctor.doctor_id)
-      .then((profile) => {
-        if (active && profile?.doctor.avatar_url) setResolvedPhoto(profile.doctor.avatar_url);
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, [doctor.doctor_id, doctor.avatar_url]);
-
   return (
-    <article className="directory-doctor-card visitor-doctor-card">
+    <article className="directory-doctor-card visitor-doctor-card marketplace-card">
       <Link className="visitor-doctor-main" to={`/doctors/${doctor.doctor_id}`}>
         <div className="directory-avatar visitor-doctor-avatar">
           {avatar && !imageFailed ? (
@@ -37,16 +21,17 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
           ) : (
             <div className="doctor-photo-fallback" aria-hidden="true"><Stethoscope /></div>
           )}
+          <VerifiedBadge className="verified-badge" label="যাচাইকৃত" />
         </div>
         <div className="visitor-doctor-copy">
-          <span className="verified-line"><BadgeCheck /> যাচাইকৃত চিকিৎসক</span>
           <h2>{doctor.doctor_name}</h2>
-          {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
           <strong>{primarySpecialty?.name_bn || doctor.designation || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
-          {(doctor.designation || doctor.professional_title) && (
-            <p className="visitor-doctor-designation">{doctor.designation || doctor.professional_title}</p>
-          )}
+          {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
+          {(doctor.designation || doctor.professional_title) && <p className="visitor-doctor-designation">{doctor.designation || doctor.professional_title}</p>}
           <p className="visitor-doctor-location"><MapPin /><span>{location || 'এলাকার তথ্য নেই'}{distanceText && <b className="visitor-doctor-distance"> · {distanceText}</b>}</span></p>
+          {doctor.consultation_fee != null && (
+            <div className="doctor-fee-highlight"><WalletCards /><span>কনসালটেশন</span><strong>৳{Number(doctor.consultation_fee).toLocaleString('bn-BD')}</strong></div>
+          )}
         </div>
       </Link>
     </article>

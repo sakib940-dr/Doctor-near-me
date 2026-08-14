@@ -1,11 +1,14 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import {
   Ambulance,
   ArrowRight,
   BadgeCheck,
   Building2,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  X,
   HeartPulse,
   LocateFixed,
   LoaderCircle,
@@ -54,6 +57,31 @@ const fallbackTopics: DiscoveryTopic[] = [
 const emptyHomepage: HomepageConfiguration = { sections: [], banners: [], topics: [], settings: {} };
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'তথ্য লোড করা যায়নি।';
 
+
+function SpecialtyDoctorRow({ topic, doctors, href }: { topic: DiscoveryTopic; doctors: DoctorSearchRow[]; href: string }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const scroll = (direction: -1 | 1) => {
+    rowRef.current?.scrollBy({ left: direction * Math.min(rowRef.current.clientWidth * 0.82, 760), behavior: 'smooth' });
+  };
+  return (
+    <section className="specialty-doctor-section">
+      <header className="specialty-doctor-head">
+        <div className="specialty-doctor-title"><span className="specialty-topic-icon" aria-hidden="true">{topic.icon || '🩺'}</span><div><small>বিশেষজ্ঞ চিকিৎসক</small><h3>{topic.name_bn} বিশেষজ্ঞ</h3></div></div>
+        <div className="specialty-head-actions">
+          <div className="specialty-scroll-arrows" aria-label={`${topic.name_bn} ডাক্তার স্ক্রল করুন`}>
+            <button type="button" onClick={() => scroll(-1)} aria-label="বামে দেখুন"><ChevronLeft /></button>
+            <button type="button" onClick={() => scroll(1)} aria-label="ডানে দেখুন"><ChevronRight /></button>
+          </div>
+          <Link className="marketplace-see-all" to={href}>সব দেখুন <ArrowRight /></Link>
+        </div>
+      </header>
+      <div className="doctor-horizontal-scroll marketplace-doctor-row" ref={rowRef}>
+        {doctors.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}
+      </div>
+    </section>
+  );
+}
+
 export default function VisitorHomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -65,23 +93,36 @@ export default function VisitorHomePage() {
   const [query, setQuery] = useState('');
   const [nearbyDoctors, setNearbyDoctors] = useState<DoctorSearchRow[]>([]);
   const [allDoctors, setAllDoctors] = useState<DoctorSearchRow[]>([]);
+  const [specialtyDoctors, setSpecialtyDoctors] = useState<Record<number, DoctorSearchRow[]>>({});
+  const [specialtyLoading, setSpecialtyLoading] = useState(false);
   const [providers, setProviders] = useState<ProviderDirectoryRow[]>([]);
   const [ambulances, setAmbulances] = useState<AmbulanceSearchRow[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [locationState, setLocationState] = useState<'idle' | 'asking' | 'granted' | 'denied'>('idle');
+  const [locationHydrated, setLocationHydrated] = useState(false);
+  const [locationPromptVisible, setLocationPromptVisible] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState<'district' | 'upazila' | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number; accuracy: number | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let hasSavedLocation = false;
     try {
       const raw = localStorage.getItem('sirajganj-current-location');
-      if (!raw) return;
-      const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
-      if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
-        setCurrentLocation({ latitude: saved.latitude, longitude: saved.longitude, accuracy: saved.accuracy ?? null });
-        setLocationState('granted');
+      if (raw) {
+        const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
+        if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
+          hasSavedLocation = true;
+          setCurrentLocation({ latitude: saved.latitude, longitude: saved.longitude, accuracy: saved.accuracy ?? null });
+          setLocationState('granted');
+        }
       }
     } catch { /* ignore unavailable/invalid local storage */ }
+    finally {
+      setLocationHydrated(true);
+      setLocationPromptVisible(!hasSavedLocation);
+    }
   }, []);
 
   useEffect(() => {
@@ -128,15 +169,20 @@ export default function VisitorHomePage() {
           limit: 8,
         })
       : searchDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 6, sort: 'name' });
+    let active = true;
+    setResultsLoading(true);
     Promise.all([
       doctorRequest,
       getPublicProviders({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 8 }),
       searchAmbulances({ districtId: selectedDistrict }),
     ]).then(([doctors, providerRows, ambulanceRows]) => {
+      if (!active) return;
       setNearbyDoctors(doctors);
       setProviders(providerRows);
       setAmbulances(ambulanceRows.slice(0, 4));
-    }).catch((loadError) => setError(messageFrom(loadError)));
+      setError(null);
+    }).catch((loadError) => active && setError(messageFrom(loadError))).finally(() => active && setResultsLoading(false));
+    return () => { active = false; };
   }, [districtId, upazilaId, currentLocation]);
 
   const topics = homepage.topics.length ? homepage.topics : fallbackTopics;
@@ -144,6 +190,40 @@ export default function VisitorHomePage() {
     const brand = homepage.settings.site_brand;
     return brand && typeof brand === 'object' && 'site_name_bn' in brand ? String(brand.site_name_bn) : 'সিরাজগঞ্জ ডাক্তার';
   }, [homepage.settings]);
+
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || loading) return;
+    const featuredTopics = topics.slice(0, 6);
+    if (!featuredTopics.length) {
+      setSpecialtyDoctors({});
+      return;
+    }
+    let active = true;
+    setSpecialtyLoading(true);
+    Promise.all(featuredTopics.map(async (topic) => {
+      const doctors = await searchDoctors({
+        query: topic.specialty_ids.length ? undefined : topic.name_bn,
+        specialtyIds: topic.specialty_ids,
+        districtId: districtId ? Number(districtId) : null,
+        upazilaId: upazilaId ? Number(upazilaId) : null,
+        limit: 8,
+        sort: 'name',
+      });
+      return [topic.id, doctors] as const;
+    }))
+      .then((entries) => {
+        if (!active) return;
+        const next: Record<number, DoctorSearchRow[]> = {};
+        entries.forEach(([topicId, doctors]) => { next[topicId] = doctors; });
+        setSpecialtyDoctors(next);
+      })
+      .catch(() => {
+        if (active) setSpecialtyDoctors({});
+      })
+      .finally(() => active && setSpecialtyLoading(false));
+    return () => { active = false; };
+  }, [topics, loading, districtId, upazilaId]);
 
   if (!authLoading && user) return <Navigate to="/dashboard" replace />;
 
@@ -156,18 +236,19 @@ export default function VisitorHomePage() {
     navigate(`/doctors${params.size ? `?${params}` : ''}`);
   }
 
-  function chooseTopic(topic: DiscoveryTopic) {
+  function topicHref(topic: DiscoveryTopic) {
     const params = new URLSearchParams();
     if (topic.specialty_ids.length) params.set('specialties', topic.specialty_ids.join(','));
     else params.set('q', topic.name_bn);
     if (districtId) params.set('district', districtId);
     if (upazilaId) params.set('upazila', upazilaId);
-    navigate(`/doctors?${params}`);
+    return `/doctors?${params}`;
   }
 
   function requestLocation() {
     if (!navigator.geolocation) {
       setLocationState('denied');
+      setLocationPromptVisible(false);
       return;
     }
     setLocationState('asking');
@@ -180,6 +261,7 @@ export default function VisitorHomePage() {
         };
         setCurrentLocation(location);
         setLocationState('granted');
+        window.setTimeout(() => setLocationPromptVisible(false), 280);
         // Anonymous visitors cannot write a user-owned Supabase row. Keep the
         // consented point locally so it can be persisted immediately after login.
         try {
@@ -195,7 +277,7 @@ export default function VisitorHomePage() {
           }).catch(() => undefined);
         }
       },
-      () => setLocationState('denied'),
+      () => { setLocationState('denied'); setLocationPromptVisible(false); },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   }
@@ -203,6 +285,9 @@ export default function VisitorHomePage() {
   const viewAllParams = new URLSearchParams();
   if (districtId) viewAllParams.set('district', districtId);
   if (upazilaId) viewAllParams.set('upazila', upazilaId);
+  const selectedDistrictName = districts.find((district) => String(district.id) === districtId)?.name_bn || 'জেলা নির্বাচন';
+  const selectedUpazilaName = upazilas.find((upazila) => String(upazila.id) === upazilaId)?.name_bn || 'উপজেলা নির্বাচন';
+  const showLocationPrompt = locationHydrated && locationPromptVisible && locationState !== 'denied';
 
   return (
     <div className="app-shell visitor-home">
@@ -210,38 +295,89 @@ export default function VisitorHomePage() {
 
       <main>
         <section className="visitor-search-hero">
-          <div className="container">
+          <div className="visitor-hero-pattern" aria-hidden="true" />
+          <div className="container visitor-hero-stack">
+            {showLocationPrompt && (
+              <div className={`visitor-location-onboarding ${locationState === 'asking' ? 'is-asking' : ''} ${locationState === 'granted' ? 'is-granted' : ''}`}>
+                <div className="visitor-location-visual"><LocateFixed /></div>
+                <div className="visitor-location-copy">
+                  <span>লোকেশন চালু করলে ফলাফল আরও প্রাসঙ্গিক হবে</span>
+                  <h2>আপনার কাছের সেরা ডাক্তার খুঁজে দিন</h2>
+                  <p>এক ট্যাপে আপনার বর্তমান অবস্থান ব্যবহার করে কাছের যাচাইকৃত ডাক্তার, হাসপাতাল ও সেবা সাজিয়ে দেখাব।</p>
+                </div>
+                <button type="button" onClick={requestLocation} disabled={locationState === 'asking'}>
+                  {locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}
+                  {locationState === 'asking' ? 'লোকেশন নেওয়া হচ্ছে…' : 'আমার লোকেশন ব্যবহার করুন'}
+                </button>
+              </div>
+            )}
+
             <div className="visitor-hero-copy">
               <span><HeartPulse /> সিরাজগঞ্জ ডাক্তার — স্বাস্থ্যের বিশ্বস্ত ঠিকানা</span>
-              <h1>আপনার এলাকার বিশ্বস্ত ডাক্তার খুঁজুন</h1>
-              <p>জেলা ও উপজেলা বেছে নিন, অথবা আপনার অবস্থান ব্যবহার করে কাছের ডাক্তার দেখুন।</p>
+              <h1>বিশ্বস্ত চিকিৎসা, এখন আপনার আরও কাছে</h1>
+              <p>ডাক্তার, রোগ বা স্পেশালিটি খুঁজুন—লোকেশন বা এলাকা অনুযায়ী দ্রুত সেরা অপশন দেখুন।</p>
             </div>
+
             <form className="visitor-search-box" onSubmit={submitSearch}>
-              <select aria-label="জেলা নির্বাচন" value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}>
-                <option value="">জেলা</option>
-                {districts.map((district) => <option value={district.id} key={district.id}>{district.name_bn}</option>)}
-              </select>
-              <select aria-label="উপজেলা নির্বাচন" value={upazilaId} onChange={(event) => setUpazilaId(event.target.value)} disabled={!districtId}>
-                <option value="">উপজেলা</option>
-                {upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{upazila.name_bn}</option>)}
-              </select>
-              <button className={`location-permission ${locationState}`} type="button" onClick={requestLocation} title="Location permission">
-                {locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}
-                <span>{locationState === 'granted' ? 'লোকেশন চালু' : locationState === 'denied' ? 'লোকেশন বন্ধ' : 'আমার লোকেশন'}</span>
-              </button>
+              <div className="visitor-location-selects desktop-location-selects">
+                <select aria-label="জেলা নির্বাচন" value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}>
+                  <option value="">জেলা নির্বাচন</option>
+                  {districts.map((district) => <option value={district.id} key={district.id}>{district.name_bn}</option>)}
+                </select>
+                <select aria-label="উপজেলা নির্বাচন" value={upazilaId} onChange={(event) => setUpazilaId(event.target.value)} disabled={!districtId}>
+                  <option value="">উপজেলা নির্বাচন</option>
+                  {upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{upazila.name_bn}</option>)}
+                </select>
+              </div>
+
+              <div className={`visitor-location-selects mobile-location-selects ${locationState === 'denied' ? 'fallback-highlight' : ''}`}>
+                <button type="button" onClick={() => setPickerOpen('district')}><MapPin /><span>{selectedDistrictName}</span><ChevronDown /></button>
+                <button type="button" onClick={() => districtId && setPickerOpen('upazila')} disabled={!districtId}><MapPin /><span>{selectedUpazilaName}</span><ChevronDown /></button>
+              </div>
+
               <label className="visitor-search-input"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ডাক্তার, রোগ বা স্পেশালিটি খুঁজুন..." /></label>
               <button className="visitor-search-submit" type="submit">খুঁজুন <Search /></button>
+              <button className={`location-permission ${locationState}`} type="button" onClick={requestLocation} title="Location permission">
+                {locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}
+                <span>{locationState === 'granted' ? 'লোকেশন চালু' : locationState === 'denied' ? 'লোকেশন আবার চেষ্টা করুন' : 'আমার লোকেশন'}</span>
+              </button>
             </form>
+
+            {locationState === 'denied' && (
+              <div className="visitor-location-fallback"><MapPin /><span>লোকেশন অনুমতি না দিলেও সমস্যা নেই—জেলা ও উপজেলা বেছে নিয়ে কাছের ডাক্তার খুঁজুন।</span></div>
+            )}
             {!isSupabaseConfigured && <div className="visitor-preview-note"><ShieldCheck /> UI preview চলছে—লাইভ ডেটার জন্য Supabase environment variables দিন।</div>}
           </div>
         </section>
+
+        {pickerOpen && (
+          <div className="visitor-picker-backdrop" role="presentation" onClick={() => setPickerOpen(null)}>
+            <section className="visitor-picker-sheet" role="dialog" aria-modal="true" aria-label={pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'} onClick={(event) => event.stopPropagation()}>
+              <div className="visitor-picker-handle" />
+              <div className="visitor-picker-head">
+                <div><span>এলাকা বেছে নিন</span><h2>{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'}</h2></div>
+                <button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button>
+              </div>
+              <div className="visitor-picker-options">
+                {(pickerOpen === 'district' ? districts : upazilas).map((item) => {
+                  const active = pickerOpen === 'district' ? String(item.id) === districtId : String(item.id) === upazilaId;
+                  return <button type="button" className={active ? 'active' : ''} key={item.id} onClick={() => {
+                    if (pickerOpen === 'district') { setDistrictId(String(item.id)); setUpazilaId(''); }
+                    else setUpazilaId(String(item.id));
+                    setPickerOpen(null);
+                  }}><span>{item.name_bn}</span>{active && <BadgeCheck />}</button>;
+                })}
+              </div>
+            </section>
+          </div>
+        )}
 
         {error && <div className="container"><div className="error-box" role="alert">{error}</div></div>}
 
         <section className="visitor-section">
           <div className="container">
             <div className="visitor-section-head"><div><span>{currentLocation ? 'আপনার বর্তমান অবস্থান থেকে দূরত্ব অনুযায়ী' : 'আপনার নির্বাচিত এলাকার যাচাইকৃত ডাক্তার'}</span><h2><MapPin /> আপনার এলাকার ডাক্তার</h2></div><Link to={`/doctors${viewAllParams.size ? `?${viewAllParams}` : ''}`}>সব দেখুন <ArrowRight /></Link></div>
-            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ডাক্তার লোড হচ্ছে…</div> : nearbyDoctors.length ? <div className="doctor-horizontal-scroll">{nearbyDoctors.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : <div className="visitor-empty">এই এলাকায় এখনো কোনো অনুমোদিত ডাক্তার পাওয়া যায়নি।</div>}
+            {loading || resultsLoading ? <div className="visitor-card-skeleton-row">{Array.from({ length: 3 }).map((_, index) => <div className="visitor-doctor-skeleton" key={index}><span /><div><i /><i /><i /></div></div>)}</div> : nearbyDoctors.length ? <div className="doctor-horizontal-scroll">{nearbyDoctors.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : <div className="visitor-empty">এই এলাকায় এখনো কোনো অনুমোদিত ডাক্তার পাওয়া যায়নি।</div>}
           </div>
         </section>
 
@@ -252,12 +388,20 @@ export default function VisitorHomePage() {
           </div>
         </section>
 
-        <section className="visitor-section">
+        <section className="visitor-section specialty-marketplace">
           <div className="container">
-            <div className="visitor-section-head"><div><span>রোগ ও প্রয়োজন অনুযায়ী বিশেষজ্ঞ খুঁজুন</span><h2><HeartPulse /> স্পেশালিটি অনুযায়ী খুঁজুন</h2></div><Link to="/doctors">সব দেখুন <ArrowRight /></Link></div>
-            <div className="speciality-chip-grid">
-              {topics.slice(0, 10).map((topic) => <button type="button" key={topic.id} onClick={() => chooseTopic(topic)}><span>{topic.icon || '🩺'}</span><strong>{topic.name_bn}</strong><ChevronRight /></button>)}
-            </div>
+            <div className="visitor-section-head marketplace-discovery-head"><div><span>স্পেশালিটি ধরে দ্রুত সেরা চিকিৎসক বেছে নিন</span><h2><HeartPulse /> আপনার প্রয়োজনের বিশেষজ্ঞ</h2></div><Link to="/doctors">সব স্পেশালিটি <ArrowRight /></Link></div>
+            {specialtyLoading ? (
+              <div className="specialty-marketplace-skeleton">{Array.from({ length: 2 }).map((_, sectionIndex) => <div key={sectionIndex}><i /><div className="visitor-card-skeleton-row">{Array.from({ length: 3 }).map((__, index) => <div className="visitor-doctor-skeleton" key={index}><span /><div><i /><i /><i /></div></div>)}</div></div>)}</div>
+            ) : (
+              <div className="specialty-marketplace-list">
+                {topics.slice(0, 6).map((topic) => {
+                  const doctors = specialtyDoctors[topic.id] ?? [];
+                  if (!doctors.length) return null;
+                  return <SpecialtyDoctorRow key={topic.id} topic={topic} doctors={doctors} href={topicHref(topic)} />;
+                })}
+              </div>
+            )}
           </div>
         </section>
 

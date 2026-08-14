@@ -1,25 +1,28 @@
-import { ArrowRight, BadgeCheck, Building2, Globe2, Hospital, MapPin } from 'lucide-react';
+import { ArrowRight, Building2, Globe2, Hospital, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../lib/storage';
 import type { ProviderDirectoryRow } from '../types';
+import VerifiedBadge from './VerifiedBadge';
 
 export default function ProviderCard({ provider }: { provider: ProviderDirectoryRow }) {
   const logo = getImageUrl(provider.logo_url, 'public-images');
   const TypeIcon = provider.provider_type === 'hospital' ? Hospital : Building2;
   return (
-    <article className="visitor-provider-card">
-      <div className="provider-logo">
-        {logo ? <img src={logo} alt={provider.name_bn} /> : <TypeIcon />}
-      </div>
-      <div className="provider-card-copy">
-        <span className="provider-type-label">{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'}</span>
-        <h3>{provider.name_bn}</h3>
-        {provider.verified && <span className="verified-mini"><BadgeCheck /> যাচাইকৃত</span>}
-        <p><MapPin /> {provider.address || 'ঠিকানা যোগ করা হয়নি'}</p>
-      </div>
+    <article className="visitor-provider-card marketplace-card">
+      <Link className="provider-card-primary" to={`/providers/${provider.id}`}>
+        <div className="provider-logo">
+          {logo ? <img src={logo} alt={provider.name_bn} loading="lazy" /> : <TypeIcon />}
+          {provider.verified && <VerifiedBadge className="provider-verified-badge" label="যাচাইকৃত" />}
+        </div>
+        <div className="provider-card-copy">
+          <span className="provider-type-label">{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'}</span>
+          <h3>{provider.name_bn}</h3>
+          <p><MapPin /> <span>{provider.address || 'ঠিকানা যোগ করা হয়নি'}</span></p>
+        </div>
+      </Link>
       <div className="provider-card-actions">
         <Link className="provider-card-website" to={`/providers/${provider.slug}/website`} aria-label={`${provider.name_bn} website`}><Globe2 /> Website</Link>
-        <Link className="provider-card-arrow" to={`/providers/${provider.id}`} aria-label={`${provider.name_bn} profile`}><ArrowRight /></Link>
+        <Link className="provider-card-arrow" to={`/providers/${provider.id}`} aria-label={`${provider.name_bn} profile`}><span>দেখুন</span><ArrowRight /></Link>
       </div>
     </article>
   );

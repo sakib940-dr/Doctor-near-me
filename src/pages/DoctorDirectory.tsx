@@ -1,13 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, LoaderCircle, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import DoctorResultCard from '../components/DoctorResultCard';
+import DoctorHorizontalCard from '../components/DoctorHorizontalCard';
 import PublicHeader from '../components/PublicHeader';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
 import type { District, DoctorSearchRow, Specialty, Upazila } from '../types';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
 const degreeOptions = ['MBBS', 'BDS', 'FCPS', 'MD', 'MS'];
 const designationOptions = ['Consultant', 'Junior Consultant', 'Assistant Professor', 'Associate Professor', 'Professor'];
 
@@ -154,7 +154,7 @@ export default function DoctorDirectory() {
             <div className="directory-toolbar"><div><strong>{loading ? 'ডাক্তার খোঁজা হচ্ছে…' : `${total} জন ডাক্তার পাওয়া গেছে`}</strong><small>শুধু অনুমোদিত ও সক্রিয় প্রোফাইল</small></div><select aria-label="ফলাফল সাজান" value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">নাম অনুযায়ী</option><option value="newest">নতুন আগে</option><option value="fee_low">কম ফি আগে</option><option value="fee_high">বেশি ফি আগে</option></select></div>
             {!isSupabaseConfigured && <div className="directory-notice">লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার UI preview করা যাচ্ছে।</div>}
             {error && <div className="error-box" role="alert">{error}</div>}
-            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
+            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="doctor-vertical-list">{rows.map((doctor) => <DoctorHorizontalCard doctor={doctor} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
             {!loading && totalPages > 1 && <nav className="pagination" aria-label="ফলাফলের পৃষ্ঠা"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>পৃষ্ঠা {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
           </div>
         </section>

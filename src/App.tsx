@@ -1,40 +1,57 @@
+import { LoaderCircle } from 'lucide-react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminCmsPage from './pages/AdminCmsPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
-import AmbulanceServicesPage from './pages/AmbulanceServicesPage';
-import AppointmentsPage from './pages/AppointmentsPage';
-import AuthPage from './pages/AuthPage';
-import BookingPage from './pages/BookingPage';
-import DashboardPage from './pages/DashboardPage';
-import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
+import { useAuth } from './contexts/AuthContext';
+import HomePage from './pages/HomePage';
 import DoctorDirectory from './pages/DoctorDirectory';
-import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
-import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
 import DoctorProfile from './pages/DoctorProfile';
-import DoctorSchedulePage from './pages/DoctorSchedulePage';
+import HospitalsListPage from './pages/HospitalsListPage';
+import HospitalProfilePage from './pages/HospitalProfilePage';
+import BloodBankPage from './pages/BloodBankPage';
+import AmbulancePage from './pages/AmbulancePage';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import AppointmentsPage from './pages/AppointmentsPage';
+import BookingPage from './pages/BookingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
-import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
-import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
-import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
+import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
+import DoctorSchedulePage from './pages/DoctorSchedulePage';
+import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
 import ProviderProfilePage from './pages/ProviderProfilePage';
-import PublicProviderProfilePage from './pages/PublicProviderProfilePage';
-import PublicProvidersPage from './pages/PublicProvidersPage';
-import SuperAdminPage from './pages/SuperAdminPage';
+import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
+import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
+import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
+import AmbulanceServicesPage from './pages/AmbulanceServicesPage';
+import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
+import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
 import VerificationOfficerPage from './pages/VerificationOfficerPage';
-import VisitorHomePage from './pages/VisitorHomePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminCmsPage from './pages/AdminCmsPage';
+import SuperAdminPage from './pages/SuperAdminPage';
 
-export default function App() {
+// লগইন থাকলে ভিজিটর ল্যান্ডিং পেজের বদলে নিজের role-এর dashboard-এ পাঠানো হয়
+// (DashboardPage নিজেই প্রোফাইল অসম্পূর্ণ থাকলে /onboarding-এ রিডাইরেক্ট করে)।
+// লগআউট করলে dashboard থেকে '/'-এ ফিরিয়ে আনা হয়, তখন account না থাকায়
+// এখানে আবার visitor HomePage দেখানো হবে।
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="route-state"><LoaderCircle className="spin" /> লোড হচ্ছে…</div>;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <HomePage />;
+}
+
+function App() {
   return (
     <Routes>
-      <Route path="/" element={<VisitorHomePage />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="/doctors" element={<DoctorDirectory />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
-      <Route path="/providers" element={<PublicProvidersPage />} />
-      <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
+      <Route path="/hospitals" element={<HospitalsListPage />} />
+      <Route path="/hospitals/:providerId" element={<HospitalProfilePage />} />
+      <Route path="/blood-bank" element={<BloodBankPage />} />
+      <Route path="/ambulance" element={<AmbulancePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
@@ -60,3 +77,5 @@ export default function App() {
     </Routes>
   );
 }
+
+export default App;

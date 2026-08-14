@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
-import DoctorDashboardShell from './components/DoctorDashboardShell';
+import DashboardShell from './components/DashboardShell';
+import { useAuth } from './contexts/AuthContext';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
@@ -33,7 +34,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<VisitorHomePage />} />
-      <Route path="/doctors" element={<DoctorDirectory />} />
+      <Route path="/doctors" element={<DoctorDirectoryRoute />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
       <Route path="/providers" element={<PublicProvidersPage />} />
       <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
@@ -41,13 +42,14 @@ export default function App() {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><PatientProfilePage /></ProtectedRoute>} />
-      <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
-      <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
-      <Route path="/doctor/profile" element={<ProtectedRoute><DoctorDashboardShell><DoctorProfessionalProfilePage /></DoctorDashboardShell></ProtectedRoute>} />
-      <Route path="/doctor/schedules" element={<ProtectedRoute><DoctorDashboardShell><DoctorSchedulePage /></DoctorDashboardShell></ProtectedRoute>} />
-      <Route path="/doctor/appointments" element={<ProtectedRoute><DoctorDashboardShell><DoctorAppointmentsPage /></DoctorDashboardShell></ProtectedRoute>} />
-      <Route path="/doctor/invitations" element={<ProtectedRoute><DoctorDashboardShell><DoctorInvitationsPage /></DoctorDashboardShell></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/invitations" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorInvitationsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><ProviderProfilePage /></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><ProviderDoctorsPage /></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><ProviderAppointmentsPage /></ProtectedRoute>} />
@@ -62,4 +64,10 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+function DoctorDirectoryRoute() {
+  const { account, loading } = useAuth();
+  if (!loading && account?.role === 'patient') return <DashboardShell role="patient"><DoctorDirectory /></DashboardShell>;
+  return <DoctorDirectory />;
 }

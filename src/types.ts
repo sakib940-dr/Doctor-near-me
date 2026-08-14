@@ -334,12 +334,7 @@ export interface ProviderDashboardItem {
   short_description: string | null;
   logo_url: string | null;
   banner_url: string | null;
-  short_description?: string | null;
   phone: string | null;
-  whatsapp?: string | null;
-  email?: string | null;
-  facebook_url?: string | null;
-  website_url?: string | null;
   whatsapp: string | null;
   email: string | null;
   facebook_url: string | null;

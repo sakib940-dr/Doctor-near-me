@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, FileCheck2, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
+import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, FileCheck2, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound, UsersRound, Activity, CalendarClock } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
+import DoctorDashboardShell from '../components/DoctorDashboardShell';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
 import { saveMyCurrentLocation } from '../services/discovery';
-import type { DashboardContext, UserRole } from '../types';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { getMyAppointments } from '../services/appointments';
+import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
+import type { AppointmentRow, DashboardContext, UserRole } from '../types';
 
 const roleLabels: Record<UserRole, string> = { patient: 'রোগী', doctor: 'ডাক্তার', chamber: 'চেম্বার', hospital: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স সেবা', verification_officer: 'ভেরিফিকেশন অফিসার', admin: 'অ্যাডমিন', super_admin: 'সুপার অ্যাডমিন' };
 
@@ -14,11 +18,43 @@ export default function DashboardPage() {
   const [context, setContext] = useState<DashboardContext | null>(null);
   const [contextLoading, setContextLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [doctorAnalytics, setDoctorAnalytics] = useState<DoctorAnalytics | null>(null);
+  const [recentAppointments, setRecentAppointments] = useState<AppointmentRow[]>([]);
+  const [doctorDashboardLoading, setDoctorDashboardLoading] = useState(false);
+  const [doctorDashboardError, setDoctorDashboardError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!account) { setContextLoading(false); return; }
     getRoleDashboardContext().then(setContext).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'Dashboard লোড করা যায়নি।')).finally(() => setContextLoading(false));
+  }, [account]);
+
+  useEffect(() => {
+    if (!account || account.role !== 'doctor') {
+      setDoctorAnalytics(null);
+      setRecentAppointments([]);
+      setDoctorDashboardLoading(false);
+      return;
+    }
+
+    let active = true;
+    setDoctorDashboardLoading(true);
+    setDoctorDashboardError(null);
+    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null)])
+      .then(([analytics, appointments]) => {
+        if (!active) return;
+        setDoctorAnalytics(analytics);
+        setRecentAppointments([...appointments]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5));
+      })
+      .catch((loadError: unknown) => {
+        if (!active) return;
+        setDoctorDashboardError(loadError instanceof Error ? loadError.message : 'ডাক্তার dashboard data লোড করা যায়নি।');
+      })
+      .finally(() => { if (active) setDoctorDashboardLoading(false); });
+
+    return () => { active = false; };
   }, [account]);
 
   useEffect(() => {
@@ -75,5 +111,39 @@ export default function DashboardPage() {
               ? [{ icon: Settings, title: 'Admin operations', detail: 'Users, appointments ও activity oversight', path: '/admin' }, { icon: ShieldCheck, title: 'Verification queue', detail: 'Pending application review', path: '/verification/reviews' }]
               : [{ icon: Crown, title: 'Super Admin control', detail: 'Users, roles, privileged invites ও sensitive controls', path: '/super-admin' }, { icon: Settings, title: 'Admin operations', detail: 'Operational dashboard ও full audit', path: '/admin' }, { icon: ShieldCheck, title: 'Verification queue', detail: 'সব verification oversight', path: '/verification/reviews' }];
 
-  return <div className="app-shell dashboard-page"><PublicHeader /><main className="dashboard-main container">{(loading || contextLoading) && <div className="loading-box"><LoaderCircle className="spin" /> Dashboard লোড হচ্ছে…</div>}{(error || accountError) && <div className="error-box" role="alert">{error || accountError}</div>}{!loading && !contextLoading && account && <><section className="dashboard-welcome"><div><span>{roleLabels[role]} Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ব্যবহারকারী'}</h1><p>আপনার স্বাস্থ্যসেবা কার্যক্রম এক জায়গা থেকে পরিচালনা করুন।</p></div><div className="dashboard-profile-icon"><UserRound /></div></section><section className="dashboard-grid">{cards.map(({ icon: Icon, title, detail, path }) => <button type="button" key={title} onClick={() => path !== '#' && navigate(path)}><span><Icon /></span><div><strong>{title}</strong><small>{detail}</small></div><ChevronRight /></button>)}<button type="button"><span><Bell /></span><div><strong>নোটিফিকেশন</strong><small>আপনার সর্বশেষ update</small></div><ChevronRight /></button><button type="button" onClick={() => role === 'patient' ? navigate('/profile') : role === 'doctor' ? navigate('/doctor/profile') : ['hospital', 'chamber'].includes(role) ? navigate('/provider/profile') : role === 'ambulance' && navigate('/ambulance/services')}><span><Settings /></span><div><strong>অ্যাকাউন্ট সেটিংস</strong><small>ব্যক্তিগত তথ্য ও নিরাপত্তা</small></div><ChevronRight /></button></section><button className="logout-button" type="button" onClick={() => void logout()}><LogOut size={18} /> লগআউট</button></>}</main></div>;
+  const weeklyTotal = doctorAnalytics?.last7Days.reduce((sum, day) => sum + day.count, 0) ?? 0;
+  const busiestDay = doctorAnalytics?.last7Days.reduce((best, day) => day.count > best.count ? day : best, doctorAnalytics.last7Days[0] ?? { date: '', count: 0 });
+  const chartData = (doctorAnalytics?.last7Days ?? []).map((day) => ({
+    ...day,
+    label: new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${day.date}T12:00:00`)),
+  }));
+
+  const doctorDashboardContent = <div className="app-shell doctor-analytics-dashboard"><PublicHeader /><main className="doctor-analytics-main container">
+    {(doctorDashboardError || error || accountError) && <div className="error-box" role="alert">{doctorDashboardError || error || accountError}</div>}
+    {(loading || contextLoading || doctorDashboardLoading) ? <DoctorDashboardSkeleton /> : account && <>{/* heading */}
+      <section className="doctor-analytics-heading"><div><span>Doctor Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ডাক্তার'}</h1><p>আজকের appointment, patient activity এবং গত ৭ দিনের trend এক নজরে দেখুন।</p></div><button type="button" onClick={() => navigate('/doctor/appointments')}><CalendarDays /> সব অ্যাপয়েন্টমেন্ট</button></section>
+      <section className="doctor-stat-grid">
+        <DoctorStatCard icon={CalendarDays} label="আজকের অ্যাপয়েন্টমেন্ট" value={doctorAnalytics?.todayAppointments ?? 0} detail="আজ নির্ধারিত মোট appointment" />
+        <DoctorStatCard icon={UsersRound} label="এই মাসের patient" value={doctorAnalytics?.monthlyUniquePatients ?? 0} detail="ইউনিক patient" />
+        <DoctorStatCard icon={CalendarClock} label="Pending" value={doctorAnalytics?.pendingAppointments ?? 0} detail="আপনার action অপেক্ষায়" />
+        <DoctorStatCard icon={Activity} label="Weekly trend" value={weeklyTotal} detail={busiestDay?.date ? `সর্বোচ্চ ${new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${busiestDay.date}T12:00:00`))}: ${busiestDay.count}` : 'গত ৭ দিন'} />
+      </section>
+      <section className="doctor-dashboard-panels">
+        <article className="doctor-chart-card"><header><div><small>গত ৭ দিন</small><h2>Appointment trend</h2></div><span>{weeklyTotal} total</span></header><div className="doctor-chart-wrap">{chartData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ top: 10, right: 6, left: -22, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip cursor={{ fill: 'rgba(15, 118, 110, 0.06)' }} formatter={(value) => [`${value}`, 'Appointments']} /><Bar dataKey="count" radius={[7, 7, 0, 0]} /></BarChart></ResponsiveContainer> : <div className="doctor-chart-empty">গত ৭ দিনে appointment নেই।</div>}</div></article>
+        <article className="doctor-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক ৫টি অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/doctor/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="doctor-recent-list">{recentAppointments.length ? recentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/doctor/appointments')}><span className="doctor-recent-date"><b>{new Intl.DateTimeFormat('bn-BD', { day: '2-digit' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</b><small>{new Intl.DateTimeFormat('bn-BD', { month: 'short' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</small></span><span className="doctor-recent-info"><strong>{appointment.patient_name || 'রোগী'}</strong><small>{appointment.provider_name || 'চেম্বার নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`doctor-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
+      </section>
+    </>}
+  </main></div>;
+
+  const dashboardContent = <div className="app-shell dashboard-page"><PublicHeader /><main className="dashboard-main container">{(loading || contextLoading) && <div className="loading-box"><LoaderCircle className="spin" /> Dashboard লোড হচ্ছে…</div>}{(error || accountError) && <div className="error-box" role="alert">{error || accountError}</div>}{!loading && !contextLoading && account && <><section className="dashboard-welcome"><div><span>{roleLabels[role]} Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ব্যবহারকারী'}</h1><p>আপনার স্বাস্থ্যসেবা কার্যক্রম এক জায়গা থেকে পরিচালনা করুন।</p></div><div className="dashboard-profile-icon"><UserRound /></div></section><section className="dashboard-grid">{cards.map(({ icon: Icon, title, detail, path }) => <button type="button" key={title} onClick={() => path !== '#' && navigate(path)}><span><Icon /></span><div><strong>{title}</strong><small>{detail}</small></div><ChevronRight /></button>)}<button type="button"><span><Bell /></span><div><strong>নোটিফিকেশন</strong><small>আপনার সর্বশেষ update</small></div><ChevronRight /></button><button type="button" onClick={() => role === 'patient' ? navigate('/profile') : role === 'doctor' ? navigate('/doctor/profile') : ['hospital', 'chamber'].includes(role) ? navigate('/provider/profile') : role === 'ambulance' && navigate('/ambulance/services')}><span><Settings /></span><div><strong>অ্যাকাউন্ট সেটিংস</strong><small>ব্যক্তিগত তথ্য ও নিরাপত্তা</small></div><ChevronRight /></button></section><button className="logout-button" type="button" onClick={() => void logout()}><LogOut size={18} /> লগআউট</button></>}</main></div>;
+
+  return role === 'doctor' ? <DoctorDashboardShell>{doctorDashboardContent}</DoctorDashboardShell> : dashboardContent;
+}
+
+function DoctorStatCard({ icon: Icon, label, value, detail }: { icon: typeof CalendarDays; label: string; value: number; detail: string }) {
+  return <article className="doctor-stat-card"><span><Icon /></span><div><small>{label}</small><strong>{value.toLocaleString('bn-BD')}</strong><p>{detail}</p></div></article>;
+}
+
+function DoctorDashboardSkeleton() {
+  return <div className="doctor-dashboard-skeleton" aria-label="Dashboard loading"><div className="skeleton-line wide" /><div className="skeleton-line medium" /><section className="doctor-stat-grid">{Array.from({ length: 4 }, (_, index) => <article className="doctor-stat-card skeleton-card" key={index}><span className="skeleton-circle" /><div><i /><i /><i /></div></article>)}</section><section className="doctor-dashboard-panels"><article className="doctor-chart-card skeleton-panel"><i /><i /></article><article className="doctor-recent-card skeleton-panel"><i /><i /><i /><i /><i /></article></section></div>;
 }

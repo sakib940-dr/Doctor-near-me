@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import DoctorDashboardShell from './components/DoctorDashboardShell';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
@@ -43,10 +44,10 @@ export default function App() {
       <Route path="/profile" element={<ProtectedRoute><PatientProfilePage /></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
-      <Route path="/doctor/profile" element={<ProtectedRoute><DoctorProfessionalProfilePage /></ProtectedRoute>} />
-      <Route path="/doctor/schedules" element={<ProtectedRoute><DoctorSchedulePage /></ProtectedRoute>} />
-      <Route path="/doctor/appointments" element={<ProtectedRoute><DoctorAppointmentsPage /></ProtectedRoute>} />
-      <Route path="/doctor/invitations" element={<ProtectedRoute><DoctorInvitationsPage /></ProtectedRoute>} />
+      <Route path="/doctor/profile" element={<ProtectedRoute><DoctorDashboardShell><DoctorProfessionalProfilePage /></DoctorDashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/schedules" element={<ProtectedRoute><DoctorDashboardShell><DoctorSchedulePage /></DoctorDashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/appointments" element={<ProtectedRoute><DoctorDashboardShell><DoctorAppointmentsPage /></DoctorDashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/invitations" element={<ProtectedRoute><DoctorDashboardShell><DoctorInvitationsPage /></DoctorDashboardShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><ProviderProfilePage /></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><ProviderDoctorsPage /></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><ProviderAppointmentsPage /></ProtectedRoute>} />

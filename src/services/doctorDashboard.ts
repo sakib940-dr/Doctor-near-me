@@ -32,6 +32,91 @@ export async function getMyDoctorProfile() {
   return (data ?? null) as MyDoctorProfile | null;
 }
 
+
+export interface DoctorAnalyticsDay {
+  date: string;
+  count: number;
+}
+
+export interface DoctorAnalytics {
+  todayAppointments: number;
+  monthlyUniquePatients: number;
+  pendingAppointments: number;
+  last7Days: DoctorAnalyticsDay[];
+}
+
+function toLocalDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export async function getDoctorAnalytics(doctorId: string): Promise<DoctorAnalytics> {
+  const supabase = requireSupabase();
+  const now = new Date();
+  const today = toLocalDateString(now);
+  const monthStart = toLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+  const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+  const sevenDaysStart = toLocalDateString(sevenDaysAgo);
+
+  const [todayResult, monthlyPatientsResult, pendingResult, last7DaysResult] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('doctor_id', doctorId)
+      .eq('appointment_date', today),
+    supabase
+      .from('appointments')
+      .select('patient_id')
+      .eq('doctor_id', doctorId)
+      .gte('appointment_date', monthStart)
+      .lte('appointment_date', today),
+    supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('doctor_id', doctorId)
+      .eq('status', 'pending'),
+    supabase
+      .from('appointments')
+      .select('appointment_date')
+      .eq('doctor_id', doctorId)
+      .gte('appointment_date', sevenDaysStart)
+      .lte('appointment_date', today),
+  ]);
+
+  if (todayResult.error) throw todayResult.error;
+  if (monthlyPatientsResult.error) throw monthlyPatientsResult.error;
+  if (pendingResult.error) throw pendingResult.error;
+  if (last7DaysResult.error) throw last7DaysResult.error;
+
+  const uniquePatients = new Set(
+    (monthlyPatientsResult.data ?? []).map((row) => row.patient_id).filter(Boolean),
+  );
+
+  const dailyCounts = new Map<string, number>();
+  for (const row of last7DaysResult.data ?? []) {
+    dailyCounts.set(row.appointment_date, (dailyCounts.get(row.appointment_date) ?? 0) + 1);
+  }
+
+  const last7Days: DoctorAnalyticsDay[] = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(
+      sevenDaysAgo.getFullYear(),
+      sevenDaysAgo.getMonth(),
+      sevenDaysAgo.getDate() + index,
+    );
+    const dateKey = toLocalDateString(date);
+    return { date: dateKey, count: dailyCounts.get(dateKey) ?? 0 };
+  });
+
+  return {
+    todayAppointments: todayResult.count ?? 0,
+    monthlyUniquePatients: uniquePatients.size,
+    pendingAppointments: pendingResult.count ?? 0,
+    last7Days,
+  };
+}
+
 export async function updateMyDoctorProfile(input: DoctorProfileUpdate) {
   const { data, error } = await requireSupabase().rpc('update_my_doctor_profile', {
     p_full_name: input.fullName,

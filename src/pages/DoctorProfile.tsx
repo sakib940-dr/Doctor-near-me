@@ -4,7 +4,7 @@ import {
   BadgeCheck,
   CalendarDays,
   Clock3,
-  Facebook,
+  ExternalLink,
   GraduationCap,
   Languages,
   LoaderCircle,
@@ -187,7 +187,7 @@ export default function DoctorProfile() {
             <div className="appointment-contact-grid">
               {callPhone && <a href={`tel:${callPhone}`}><span><Phone /></span><strong>কল করুন</strong></a>}
               {whatsapp && <a href={`https://wa.me/${whatsappNumber(whatsapp)}`} target="_blank" rel="noreferrer"><span><MessageCircle /></span><strong>WhatsApp</strong></a>}
-              {facebook && <a href={facebook} target="_blank" rel="noreferrer"><span><Facebook /></span><strong>Facebook Page</strong></a>}
+              {facebook && <a href={facebook} target="_blank" rel="noreferrer"><span><ExternalLink /></span><strong>Facebook Page</strong></a>}
             </div>
             {!hasContactOptions && profile.doctor.accepting_appointments && (
               <Link className="appointment-online-link" to={`/doctors/${profile.doctor.id}/book`}>অনলাইন অ্যাপয়েন্টমেন্ট ফর্ম খুলুন</Link>

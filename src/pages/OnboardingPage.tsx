@@ -4,13 +4,12 @@ import {
   GraduationCap, LoaderCircle, Mail, MapPin, Phone, Save, ShieldCheck,
   Stethoscope, Trash2, UserRound,
 } from 'lucide-react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { formatAuthPhoneForDisplay, normalizeAuthPhone } from '../lib/authIdentifiers';
 import { captureCurrentCoordinates, validateCoordinates } from '../lib/geolocation';
 import { completeAccountOnboarding, finishMyRoleOnboarding, setMyOnboardingStep } from '../services/account';
-import { startPhoneIdentityLink, verifyPhoneIdentityLink } from '../services/authAccount';
 import {
   getMyDoctorProfile, saveMyChamberSchedule, saveMyDoctorChamber,
   updateMyDoctorVisitingCard, uploadDoctorPhoto,
@@ -43,8 +42,6 @@ function isProfessionalRole(role: PublicRegistrationRole | string): role is 'doc
 export default function OnboardingPage() {
   const { user, account, loading, refreshAccount } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const phoneLinkOnly = searchParams.get('mode') === 'phone-link';
   const metadataRole = user?.user_metadata.intended_role;
   const initialRole = allowedRoles.includes(account?.role as PublicRegistrationRole)
     ? account?.role as PublicRegistrationRole
@@ -60,7 +57,7 @@ export default function OnboardingPage() {
     if (account?.onboarding_step) setStep(Math.max(1, Math.min(5, account.onboarding_step)));
   }, [account?.role, account?.onboarding_step]);
 
-  if (!loading && account?.onboarding_completed && !phoneLinkOnly) return <Navigate to="/dashboard" replace />;
+  if (!loading && account?.onboarding_completed) return <Navigate to="/dashboard" replace />;
   if (!loading && !user) return <Navigate to="/auth" replace />;
 
   async function goStep(next: number) {
@@ -87,13 +84,6 @@ export default function OnboardingPage() {
     <div className="app-shell onboarding-page professional-onboarding-page">
       <PublicHeader />
       <main className="onboarding-main container">
-        {phoneLinkOnly && account?.onboarding_completed ? (
-          <section className="onboarding-phone-link-shell">
-            <div className="onboarding-intro"><span>Account security</span><h1>Phone verification</h1><p>Phone verification এখন optional। SMS provider configure হলে এই একই account-এ phone identity link করতে পারবেন। Verification না করলেও onboarding, dashboard এবং existing features ব্যবহার করা যাবে।</p></div>
-            <PhoneIdentityPanel initialPhone={account.phone || user?.user_metadata.phone || ''} onVerified={async () => { await refreshAccount(); navigate('/dashboard', { replace: true }); }} />
-            <button className="secondary-action" type="button" onClick={() => navigate('/dashboard', { replace: true })}>এখন নয় — Dashboard-এ যান</button>
-          </section>
-        ) : <>
           <section className="onboarding-intro professional-onboarding-intro">
             <span>{isProfessionalRole(role) ? `${role === 'doctor' ? 'Doctor' : 'Hospital'} registration` : 'Account setup'}</span>
             <h1>{isProfessionalRole(role) ? 'ধাপে ধাপে onboarding সম্পূর্ণ করুন' : 'আপনার প্রোফাইল সম্পূর্ণ করুন'}</h1>
@@ -106,7 +96,6 @@ export default function OnboardingPage() {
 
           {step === 1 && <BasicStep
             userEmail={user?.email || account?.email || ''}
-            authPhone={user?.phone || null}
             initialName={account?.full_name || user?.user_metadata.full_name || ''}
             initialPhone={account?.phone || user?.user_metadata.phone || ''}
             initialRole={role}
@@ -131,7 +120,6 @@ export default function OnboardingPage() {
           {role === 'hospital' && step === 3 && <HospitalLocationStep onError={setError} onNext={() => goStep(4)} onPrevious={() => goStep(2)} />}
           {role === 'hospital' && step === 4 && <HospitalVerificationStep onError={setError} onNext={() => goStep(5)} onPrevious={() => goStep(3)} />}
           {role === 'hospital' && step === 5 && <CompleteStep role="hospital" working={working === 'finish'} onFinish={() => void finish()} onPrevious={() => void goStep(4)} />}
-        </>}
       </main>
     </div>
   );
@@ -144,39 +132,8 @@ function ProgressSteps({ labels, current }: { labels: string[]; current: number 
   })}</ol>;
 }
 
-function PhoneIdentityPanel({ initialPhone, onVerified }: { initialPhone: string; onVerified?: (phone: string) => Promise<void> | void }) {
-  const [phone, setPhone] = useState(formatAuthPhoneForDisplay(initialPhone));
-  const [token, setToken] = useState('');
-  const [sentPhone, setSentPhone] = useState<string | null>(null);
-  const [working, setWorking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  async function sendCode() {
-    setWorking(true); setError(null); setNotice(null);
-    try {
-      const normalized = await startPhoneIdentityLink(phone);
-      setSentPhone(normalized);
-      setNotice('SMS verification code পাঠানো হয়েছে। Code দিয়ে phone identity confirm করুন।');
-    } catch (sendError) { setError(messageFrom(sendError)); }
-    finally { setWorking(false); }
-  }
-
-  async function verifyCode() {
-    setWorking(true); setError(null); setNotice(null);
-    try {
-      const verified = await verifyPhoneIdentityLink(sentPhone || phone, token);
-      setNotice('Phone verified। এখন এই নম্বর দিয়ে একই account-এ login করা যাবে।');
-      await onVerified?.(verified.phone);
-    } catch (verifyError) { setError(messageFrom(verifyError)); }
-    finally { setWorking(false); }
-  }
-
-  return <section className="onboarding-card phone-identity-card"><header><Phone /><div><h2>Phone login verification</h2><p>Phone provider/SMS configured থাকলে Supabase এই নম্বরে OTP পাঠাবে।</p></div></header><label className="auth-field"><span>Phone Number</span><div><Phone /><input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="01XXXXXXXXX" /></div></label><button className="secondary-action" type="button" disabled={working} onClick={() => void sendCode()}>{working ? <LoaderCircle className="spin" /> : <Phone />} Verification code পাঠান</button>{sentPhone && <div className="phone-otp-row"><label className="auth-field"><span>৬ সংখ্যার Code</span><div><ShieldCheck /><input inputMode="numeric" maxLength={6} value={token} onChange={(event) => setToken(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" /></div></label><button className="auth-submit" type="button" disabled={working || token.length !== 6} onClick={() => void verifyCode()}>{working ? <LoaderCircle className="spin" /> : <Check />} Verify Phone</button></div>}{error && <div className="auth-message error">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}</section>;
-}
-
-function BasicStep({ userEmail, authPhone, initialName, initialPhone, initialRole, roleLocked, initialDistrictId, initialUpazilaId, onRole, onError, onSaved }: {
-  userEmail: string; authPhone: string | null; initialName: string; initialPhone: string; initialRole: PublicRegistrationRole; roleLocked: boolean; initialDistrictId: number | null; initialUpazilaId: number | null;
+function BasicStep({ userEmail, initialName, initialPhone, initialRole, roleLocked, initialDistrictId, initialUpazilaId, onRole, onError, onSaved }: {
+  userEmail: string; initialName: string; initialPhone: string; initialRole: PublicRegistrationRole; roleLocked: boolean; initialDistrictId: number | null; initialUpazilaId: number | null;
   onRole: (role: PublicRegistrationRole) => void; onError: (message: string | null) => void; onSaved: (role: PublicRegistrationRole) => Promise<void>;
 }) {
   const [fullName, setFullName] = useState(initialName);
@@ -187,11 +144,6 @@ function BasicStep({ userEmail, authPhone, initialName, initialPhone, initialRol
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
   const [working, setWorking] = useState(false);
-  const [verifiedPhone, setVerifiedPhone] = useState(authPhone);
-  const phoneVerified = Boolean(verifiedPhone && normalizeAuthPhone(phone) === normalizeAuthPhone(verifiedPhone));
-
-  useEffect(() => { setVerifiedPhone(authPhone); }, [authPhone]);
-
   useEffect(() => { getDistricts().then(setDistricts).catch((e) => onError(messageFrom(e))); }, []);
   useEffect(() => { if (!districtId) { setUpazilas([]); return; } getUpazilas(Number(districtId)).then(setUpazilas).catch((e) => onError(messageFrom(e))); }, [districtId]);
 
@@ -206,7 +158,7 @@ function BasicStep({ userEmail, authPhone, initialName, initialPhone, initialRol
     finally { setWorking(false); }
   }
 
-  return <div className="onboarding-step-stack"><form className="onboarding-card professional-step-card" onSubmit={submit}><header><UserRound /><div><small>Step 1</small><h2>Account / Basic Information</h2></div></header><div className="patient-form-grid"><label className="auth-field"><span>পূর্ণ নাম</span><div><UserRound /><input required minLength={2} value={fullName} onChange={(e) => setFullName(e.target.value)} /></div></label><label className="auth-field"><span>Email Address</span><div><Mail /><input readOnly value={userEmail} /></div></label><label className="auth-field"><span>Phone Number</span><div><Phone /><input required inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></div></label><label className="auth-field"><span>Account Type</span><div><UserRound /><select value={role} disabled={roleLocked} onChange={(e) => { const next=e.target.value as PublicRegistrationRole; setRole(next); onRole(next); }}>{allowedRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></div>{roleLocked && <small className="field-helper">Professional account type signup-এর পরে self-change করা যায় না।</small>}</label></div><div className="onboarding-locations"><label className="auth-field"><span>জেলা</span><div><MapPin /><select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); }}><option value="">জেলা নির্বাচন করুন</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name_bn}</option>)}</select></div></label><label className="auth-field"><span>উপজেলা</span><div><MapPin /><select disabled={!districtId} value={upazilaId} onChange={(e) => setUpazilaId(e.target.value)}><option value="">উপজেলা নির্বাচন করুন</option>{upazilas.map((u) => <option key={u.id} value={u.id}>{u.name_bn}</option>)}</select></div></label></div>{isProfessionalRole(role) && <div className={`identity-status ${phoneVerified ? 'verified' : 'pending'}`}><ShieldCheck /><span><strong>{phoneVerified ? 'Phone verified' : 'Phone saved — verification deferred'}</strong><small>{phoneVerified ? 'Email এবং Phone দুটোই একই Supabase Auth account-এর identity.' : 'Phone Number required এবং account-এ save হবে। SMS provider যোগ করার পর verification/linking চালু করা যাবে; এখন Next করা যাবে।'}</small></span></div>}<button className="auth-submit" disabled={working}>{working ? <LoaderCircle className="spin" /> : <>Save & Continue <ArrowRight /></>}</button></form></div>;
+  return <div className="onboarding-step-stack"><form className="onboarding-card professional-step-card" onSubmit={submit}><header><UserRound /><div><small>Step 1</small><h2>Account / Basic Information</h2></div></header><div className="patient-form-grid"><label className="auth-field"><span>পূর্ণ নাম</span><div><UserRound /><input required minLength={2} value={fullName} onChange={(e) => setFullName(e.target.value)} /></div></label><label className="auth-field"><span>Email Address</span><div><Mail /><input readOnly value={userEmail} /></div></label><label className="auth-field"><span>Phone Number</span><div><Phone /><input required inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></div></label><label className="auth-field"><span>Account Type</span><div><UserRound /><select value={role} disabled={roleLocked} onChange={(e) => { const next=e.target.value as PublicRegistrationRole; setRole(next); onRole(next); }}>{allowedRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></div>{roleLocked && <small className="field-helper">Professional account type signup-এর পরে self-change করা যায় না।</small>}</label></div><div className="onboarding-locations"><label className="auth-field"><span>জেলা</span><div><MapPin /><select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); }}><option value="">জেলা নির্বাচন করুন</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name_bn}</option>)}</select></div></label><label className="auth-field"><span>উপজেলা</span><div><MapPin /><select disabled={!districtId} value={upazilaId} onChange={(e) => setUpazilaId(e.target.value)}><option value="">উপজেলা নির্বাচন করুন</option>{upazilas.map((u) => <option key={u.id} value={u.id}>{u.name_bn}</option>)}</select></div></label></div>{isProfessionalRole(role) && <div className="identity-status pending"><ShieldCheck /><span><strong>Phone verification temporarily disabled</strong><small>Valid Phone Number save হলেই এখন Next করা যাবে। SMS provider যোগ করার পরে verification restriction আবার enable করা যাবে।</small></span></div>}<button className="auth-submit" disabled={working}>{working ? <LoaderCircle className="spin" /> : <>Save & Continue <ArrowRight /></>}</button></form></div>;
 }
 
 function StepActions({ onPrevious, saving, label='Save & Continue' }: { onPrevious: () => void; saving: boolean; label?: string }) {

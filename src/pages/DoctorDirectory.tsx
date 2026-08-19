@@ -55,6 +55,19 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   }, []);
 
   useEffect(() => {
+    setQuery(params.get('q') ?? '');
+    setDistrictId(params.get('district') ?? '');
+    setUpazilaId(params.get('upazila') ?? '');
+    setSpecialtyIds(listParam(params.get('specialties')));
+    setDegrees(listParam(params.get('degrees')));
+    setDesignations(listParam(params.get('designations')));
+    setMinFee(params.get('minFee') ?? '');
+    setMaxFee(params.get('maxFee') ?? '');
+    setToday(params.get('today') === '1');
+    setSort(params.get('sort') ?? 'name');
+  }, [params]);
+
+  useEffect(() => {
     if (!districtId || !isSupabaseConfigured) {
       setUpazilas([]);
       return;

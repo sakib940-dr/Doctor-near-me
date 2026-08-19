@@ -20,7 +20,7 @@ export async function saveAdminSpecialty(item: Omit<AdminCmsSpecialty, 'id'> & {
 export async function saveAdminTopic(item: Omit<AdminCmsTopic, 'id'> & { id?: number | null }) {
   const { data, error } = await requireSupabase().rpc('save_admin_discovery_topic', {
     p_id: item.id ?? null, p_name_bn: item.name_bn, p_name_en: item.name_en || null,
-    p_slug: item.slug, p_icon: item.icon || null, p_description_bn: item.description_bn || null,
+    p_slug: item.slug, p_icon: null, p_description_bn: item.description_bn || null,
     p_search_keywords: item.search_keywords, p_specialty_ids: item.specialty_ids,
     p_is_active: item.is_active, p_sort_order: item.sort_order,
   });
@@ -83,4 +83,26 @@ export async function saveAdminPublicSetting(key: string, value: Record<string, 
   });
   if (error) throw error;
   return Boolean(data);
+}
+
+const specialtyImagePathPattern = /^[0-9a-f-]+\/cms\/specialties\//i;
+
+export async function uploadAdminSpecialtyImage(file: File) {
+  if (file.size > 5 * 1024 * 1024) throw new Error('Specialty image সর্বোচ্চ ৫ MB হতে পারবে।');
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('JPG, PNG, WebP বা AVIF image দিন।');
+  const client = requireSupabase();
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError || !userData.user) throw userError || new Error('Authentication required');
+  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${userData.user.id}/cms/specialties/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage.from('public-images').upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+export async function deleteAdminSpecialtyImage(path: string | null | undefined) {
+  if (!path || /^https?:\/\//i.test(path) || !specialtyImagePathPattern.test(path)) return false;
+  const { error } = await requireSupabase().storage.from('public-images').remove([path]);
+  if (error) throw error;
+  return true;
 }

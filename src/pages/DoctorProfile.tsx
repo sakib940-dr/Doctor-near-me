@@ -74,6 +74,7 @@ export default function DoctorProfile() {
       { label: 'বিশেষজ্ঞ', value: profile.specialties.map((item) => item.name_bn).join(', ') || null, icon: Stethoscope },
       { label: 'পদবি', value: profile.doctor.designation || profile.doctor.professional_title, icon: BadgeCheck },
       { label: 'মেডিকেল কলেজ', value: profile.doctor.medical_college, icon: GraduationCap },
+      { label: 'বর্তমান কর্মস্থল', value: profile.doctor.present_job, icon: Stethoscope },
       { label: 'বিএমডিসি রেজি. নং', value: profile.doctor.bmdc_registration_no, icon: ShieldCheck },
       { label: 'চেম্বার/হাসপাতাল', value: primaryChamber?.name_bn || null, icon: Stethoscope },
       { label: 'ঠিকানা', value: locationText, icon: MapPin },

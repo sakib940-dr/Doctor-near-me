@@ -83,11 +83,25 @@ export interface Upazila {
   slug: string;
 }
 
+export interface LocationResolution {
+  district_id: number;
+  district_name_bn: string;
+  district_name_en: string;
+  district_slug: string;
+  upazila_id: number | null;
+  upazila_name_bn: string | null;
+  upazila_name_en: string | null;
+  upazila_slug: string | null;
+  resolution_source: 'upazila_centroid_cluster' | 'district_centroid';
+  distance_km: number;
+}
+
 export interface Specialty {
   id: number;
   name_bn: string;
   name_en: string;
   slug: string;
+  icon_url: string | null;
   sort_order: number;
 }
 
@@ -148,6 +162,8 @@ export interface DoctorSearchRow {
   designation: string | null;
   professional_title: string | null;
   bmdc_registration_no?: string | null;
+  medical_college?: string | null;
+  present_job?: string | null;
   consultation_fee: number | null;
   experience_years: number | null;
   district_id: number | null;
@@ -224,6 +240,8 @@ export interface DoctorPublicProfile {
     designation: string | null;
     professional_title: string | null;
     bmdc_registration_no: string | null;
+    medical_college?: string | null;
+    present_job?: string | null;
     experience_years: number | null;
     consultation_fee: number | null;
     headline: string | null;
@@ -235,7 +253,6 @@ export interface DoctorPublicProfile {
     phone?: string | null;
     whatsapp?: string | null;
     facebook_url?: string | null;
-    medical_college?: string | null;
   };
   specialties: Array<{
     id: number;
@@ -280,6 +297,12 @@ export interface DoctorDashboardChamber {
   provider_type: 'chamber' | 'hospital';
   address: string | null;
   phone: string | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  map_url?: string | null;
+  owned_by_doctor?: boolean;
   link_status: 'pending' | 'approved' | 'rejected' | 'removed';
   provider_status: 'pending' | 'approved' | 'rejected' | 'suspended';
   verified: boolean;
@@ -298,6 +321,8 @@ export interface MyDoctorProfile {
     degree: string | null;
     designation: string | null;
     bmdc_registration_no: string | null;
+    medical_college: string | null;
+    present_job: string | null;
     bmdc_verified: boolean;
     bio: string | null;
     consultation_fee: number | null;
@@ -553,7 +578,6 @@ export interface AdminActivityRow {
 }
 
 export interface AdminCmsSpecialty extends Specialty {
-  icon_url: string | null;
   is_active: boolean;
 }
 

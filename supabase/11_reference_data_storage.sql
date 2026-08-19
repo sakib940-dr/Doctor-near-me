@@ -673,22 +673,22 @@ insert into public.discovery_topics(
   name_bn,name_en,slug,icon,search_keywords,sort_order,is_active
 )
 values
-  ('হৃদরোগ','Heart','heart','🫀',array['হার্ট','হৃদপিণ্ড','বুক ধড়ফড়','cardiac']::text[],10,true),
-  ('চোখ','Eye','eye','👁️',array['চক্ষু','চোখের ডাক্তার','দৃষ্টি','eye doctor']::text[],20,true),
-  ('দাঁত','Dental','dental','🦷',array['দন্ত','দাঁতের ডাক্তার','মাড়ি','tooth']::text[],30,true),
-  ('মস্তিষ্ক ও স্নায়ু','Brain & Nerve','brain-nerve','🧠',array['নিউরো','মাথাব্যথা','স্ট্রোক','নার্ভ']::text[],40,true),
-  ('হাড় ও জয়েন্ট','Bone & Joint','bone-joint','🦴',array['অর্থোপেডিক','বাত','জয়েন্ট','হাড়']::text[],50,true),
-  ('শিশু','Child','child','👶',array['বাচ্চার ডাক্তার','শিশুরোগ','pediatric']::text[],60,true),
-  ('নারী ও গর্ভাবস্থা','Women & Pregnancy','women-pregnancy','🤰',array['গাইনি','প্রসূতি','গর্ভাবস্থা','নারী রোগ']::text[],70,true),
-  ('ত্বক','Skin','skin','🧴',array['চর্ম','এলার্জি','চুলকানি','skin']::text[],80,true),
-  ('কিডনি ও মূত্র','Kidney & Urine','kidney-urine','🫘',array['কিডনি','ইউরোলজি','প্রস্রাব']::text[],90,true),
-  ('পেট ও লিভার','Stomach & Liver','stomach-liver','🫃',array['গ্যাস্ট্রিক','লিভার','পাকস্থলী','হজম']::text[],100,true),
-  ('ফুসফুস ও শ্বাসকষ্ট','Lung & Breathing','lung-breathing','🫁',array['বক্ষব্যাধি','হাঁপানি','শ্বাসকষ্ট','চেস্ট']::text[],110,true),
-  ('ডায়াবেটিস ও হরমোন','Diabetes & Hormone','diabetes-hormone','🩸',array['ডায়াবেটিস','থাইরয়েড','হরমোন']::text[],120,true),
-  ('মানসিক স্বাস্থ্য','Mental Health','mental-health','🧘',array['মনোরোগ','উদ্বেগ','ডিপ্রেশন','মানসিক']::text[],130,true),
-  ('ক্যান্সার','Cancer','cancer','🎗️',array['টিউমার','অনকোলজি','ক্যান্সার']::text[],140,true),
-  ('রক্তরোগ','Blood','blood','🩸',array['হেমাটোলজি','রক্তস্বল্পতা','থ্যালাসেমিয়া']::text[],150,true),
-  ('জ্বর ও সাধারণ রোগ','General Medicine','general-medicine','🩺',array['মেডিসিন','জ্বর','সাধারণ রোগ','medicine']::text[],160,true)
+  ('হৃদরোগ','Heart','heart',null,array['হার্ট','হৃদপিণ্ড','বুক ধড়ফড়','cardiac']::text[],10,true),
+  ('চোখ','Eye','eye',null,array['চক্ষু','চোখের ডাক্তার','দৃষ্টি','eye doctor']::text[],20,true),
+  ('দাঁত','Dental','dental',null,array['দন্ত','দাঁতের ডাক্তার','মাড়ি','tooth']::text[],30,true),
+  ('মস্তিষ্ক ও স্নায়ু','Brain & Nerve','brain-nerve',null,array['নিউরো','মাথাব্যথা','স্ট্রোক','নার্ভ']::text[],40,true),
+  ('হাড় ও জয়েন্ট','Bone & Joint','bone-joint',null,array['অর্থোপেডিক','বাত','জয়েন্ট','হাড়']::text[],50,true),
+  ('শিশু','Child','child',null,array['বাচ্চার ডাক্তার','শিশুরোগ','pediatric']::text[],60,true),
+  ('নারী ও গর্ভাবস্থা','Women & Pregnancy','women-pregnancy',null,array['গাইনি','প্রসূতি','গর্ভাবস্থা','নারী রোগ']::text[],70,true),
+  ('ত্বক','Skin','skin',null,array['চর্ম','এলার্জি','চুলকানি','skin']::text[],80,true),
+  ('কিডনি ও মূত্র','Kidney & Urine','kidney-urine',null,array['কিডনি','ইউরোলজি','প্রস্রাব']::text[],90,true),
+  ('পেট ও লিভার','Stomach & Liver','stomach-liver',null,array['গ্যাস্ট্রিক','লিভার','পাকস্থলী','হজম']::text[],100,true),
+  ('ফুসফুস ও শ্বাসকষ্ট','Lung & Breathing','lung-breathing',null,array['বক্ষব্যাধি','হাঁপানি','শ্বাসকষ্ট','চেস্ট']::text[],110,true),
+  ('ডায়াবেটিস ও হরমোন','Diabetes & Hormone','diabetes-hormone',null,array['ডায়াবেটিস','থাইরয়েড','হরমোন']::text[],120,true),
+  ('মানসিক স্বাস্থ্য','Mental Health','mental-health',null,array['মনোরোগ','উদ্বেগ','ডিপ্রেশন','মানসিক']::text[],130,true),
+  ('ক্যান্সার','Cancer','cancer',null,array['টিউমার','অনকোলজি','ক্যান্সার']::text[],140,true),
+  ('রক্তরোগ','Blood','blood',null,array['হেমাটোলজি','রক্তস্বল্পতা','থ্যালাসেমিয়া']::text[],150,true),
+  ('জ্বর ও সাধারণ রোগ','General Medicine','general-medicine',null,array['মেডিসিন','জ্বর','সাধারণ রোগ','medicine']::text[],160,true)
 on conflict(slug) do update
 set name_bn=excluded.name_bn,name_en=excluded.name_en,icon=excluded.icon,
     search_keywords=excluded.search_keywords,sort_order=excluded.sort_order,is_active=true;

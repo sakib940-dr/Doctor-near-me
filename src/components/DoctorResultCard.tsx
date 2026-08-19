@@ -1,4 +1,4 @@
-import { MapPin, Stethoscope, WalletCards } from 'lucide-react';
+import { Building2, GraduationCap, MapPin, Stethoscope, WalletCards } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../lib/storage';
@@ -14,7 +14,7 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
 
   return (
     <article className="directory-doctor-card visitor-doctor-card marketplace-card">
-      <Link className="visitor-doctor-main" to={`/doctors/${doctor.doctor_id}`}>
+      <Link className="visitor-doctor-main" to={`/doctors/${doctor.doctor_id}`} aria-label={`${doctor.doctor_name} Doctor Details দেখুন`}>
         <div className="directory-avatar visitor-doctor-avatar">
           {avatar && !imageFailed ? (
             <img src={avatar} alt={doctor.doctor_name} loading="lazy" onError={() => setImageFailed(true)} />
@@ -25,9 +25,13 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
         </div>
         <div className="visitor-doctor-copy">
           <h2>{doctor.doctor_name}</h2>
-          <strong>{primarySpecialty?.name_bn || doctor.designation || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
+          <strong>{primarySpecialty?.name_bn || doctor.professional_title || doctor.designation || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
           {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
-          {(doctor.designation || doctor.professional_title) && <p className="visitor-doctor-designation">{doctor.designation || doctor.professional_title}</p>}
+          {doctor.designation && <p className="visitor-doctor-designation">{doctor.designation}</p>}
+          <div className="visitor-doctor-professional-meta">
+            {doctor.medical_college && <span title="Medical College"><GraduationCap /> {doctor.medical_college}</span>}
+            {doctor.present_job && <span title="Present Job / Hospital"><Building2 /> {doctor.present_job}</span>}
+          </div>
           <p className="visitor-doctor-location"><MapPin /><span>{location || 'এলাকার তথ্য নেই'}{distanceText && <b className="visitor-doctor-distance"> · {distanceText}</b>}</span></p>
           {doctor.consultation_fee != null && (
             <div className="doctor-fee-highlight"><WalletCards /><span>কনসালটেশন</span><strong>৳{Number(doctor.consultation_fee).toLocaleString('bn-BD')}</strong></div>

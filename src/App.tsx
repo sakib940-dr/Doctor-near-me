@@ -13,12 +13,14 @@ import AuthPage from './pages/AuthPage';
 import BookingPage from './pages/BookingPage';
 import DashboardPage from './pages/DashboardPage';
 import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
+import DoctorChamberDetailsPage from './pages/DoctorChamberDetailsPage';
 import DoctorDirectory from './pages/DoctorDirectory';
 import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
 import DoctorProfile from './pages/DoctorProfile';
 import DoctorPrescriptionPage from './pages/DoctorPrescriptionPage';
 import DoctorSchedulePage from './pages/DoctorSchedulePage';
+import DoctorVisitingCardPage from './pages/DoctorVisitingCardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
@@ -52,6 +54,8 @@ export default function App() {
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/visiting-card" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVisitingCardPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/chambers" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorChamberDetailsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/invitations" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorInvitationsPage /></DashboardShell></ProtectedRoute>} />
@@ -99,6 +103,8 @@ function useRouteDocumentTitle() {
     else if (path.startsWith('/doctors/')) page = 'Doctor Profile';
     else if (path === '/providers') page = 'হাসপাতাল ও চেম্বার';
     else if (path.startsWith('/providers/')) page = 'Provider Profile';
+    else if (path === '/doctor/visiting-card') page = 'Visiting Card';
+    else if (path === '/doctor/chambers') page = 'Chamber Details';
     else if (path.startsWith('/doctor/')) page = 'Doctor';
     else if (path.startsWith('/provider/')) page = 'Hospital';
     else if (path.startsWith('/ambulance/')) page = 'Ambulance';

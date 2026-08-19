@@ -141,6 +141,35 @@ export async function updateMyDoctorProfile(input: DoctorProfileUpdate) {
   return data as DoctorProfileUpdateResult;
 }
 
+
+export interface DoctorVisitingCardUpdate {
+  fullName: string;
+  profilePhotoUrl: string | null;
+  professionalTitle: string | null;
+  degree: string | null;
+  designation: string | null;
+  bmdcRegistrationNo: string | null;
+  medicalCollege: string | null;
+  presentJob: string | null;
+  specialtyIds: number[];
+}
+
+export async function updateMyDoctorVisitingCard(input: DoctorVisitingCardUpdate) {
+  const { data, error } = await requireSupabase().rpc('update_my_doctor_visiting_card', {
+    p_full_name: input.fullName,
+    p_profile_photo_url: input.profilePhotoUrl,
+    p_professional_title: input.professionalTitle,
+    p_degree: input.degree,
+    p_designation: input.designation,
+    p_bmdc_registration_no: input.bmdcRegistrationNo,
+    p_medical_college: input.medicalCollege,
+    p_present_job: input.presentJob,
+    p_specialty_ids: input.specialtyIds,
+  });
+  if (error) throw error;
+  return data as DoctorProfileUpdateResult;
+}
+
 export async function uploadDoctorPhoto(file: File, userId: string) {
   if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
     throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
@@ -155,6 +184,33 @@ export async function uploadDoctorPhoto(file: File, userId: string) {
   });
   if (error) throw error;
   return path;
+}
+
+
+export interface DoctorChamberInput {
+  providerId: string | null;
+  nameBn: string;
+  address: string;
+  districtId: number | null;
+  upazilaId: number | null;
+  phone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export async function saveMyDoctorChamber(input: DoctorChamberInput) {
+  const { data, error } = await requireSupabase().rpc('save_my_doctor_chamber', {
+    p_provider_id: input.providerId,
+    p_name_bn: input.nameBn,
+    p_address: input.address,
+    p_district_id: input.districtId,
+    p_upazila_id: input.upazilaId,
+    p_phone: input.phone,
+    p_latitude: input.latitude,
+    p_longitude: input.longitude,
+  });
+  if (error) throw error;
+  return data as { provider_id: string; verification_reset: boolean };
 }
 
 export async function saveMyChamberSchedule(input: {

@@ -1,0 +1,258 @@
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  BadgeCheck,
+  Building2,
+  Camera,
+  ExternalLink,
+  GraduationCap,
+  LoaderCircle,
+  Save,
+  ShieldAlert,
+  Stethoscope,
+  UserCircle,
+} from 'lucide-react';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { getImageUrl } from '../lib/storage';
+import {
+  getMyDoctorProfile,
+  updateMyDoctorVisitingCard,
+  uploadDoctorPhoto,
+} from '../services/doctorDashboard';
+import { getSpecialties } from '../services/discovery';
+import type { MyDoctorProfile, Specialty } from '../types';
+
+const statusLabels = {
+  pending: 'যাচাই অপেক্ষমাণ',
+  approved: 'অনুমোদিত',
+  rejected: 'প্রত্যাখ্যাত',
+  expired: 'মেয়াদ শেষ',
+};
+
+const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'Visiting Card সংরক্ষণ করা যায়নি।';
+
+export default function DoctorVisitingCardPage() {
+  const { account, user, refreshAccount } = useAuth();
+  const [profile, setProfile] = useState<MyDoctorProfile | null>(null);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([getMyDoctorProfile(), getSpecialties()])
+      .then(([doctorProfile, specialtyRows]) => {
+        setProfile(doctorProfile);
+        setSpecialties(specialtyRows);
+      })
+      .catch((loadError: unknown) => setError(messageFrom(loadError)))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
+
+  const avatarUrl = useMemo(
+    () => preview || getImageUrl(profile?.doctor.profile_photo_url, 'avatars'),
+    [preview, profile?.doctor.profile_photo_url],
+  );
+
+  const selectedSpecialties = useMemo(() => {
+    if (!profile) return [];
+    const selected = new Set(profile.specialty_ids);
+    return specialties.filter((item) => selected.has(item.id));
+  }, [profile, specialties]);
+
+  if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
+
+  function setDoctor<K extends keyof MyDoctorProfile['doctor']>(key: K, value: MyDoctorProfile['doctor'][K]) {
+    setProfile((current) => current ? { ...current, doctor: { ...current.doctor, [key]: value } } : current);
+  }
+
+  function toggleSpecialty(id: number) {
+    setProfile((current) => current ? {
+      ...current,
+      specialty_ids: current.specialty_ids.includes(id)
+        ? current.specialty_ids.filter((specialtyId) => specialtyId !== id)
+        : [...current.specialty_ids, id],
+    } : current);
+  }
+
+  function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+    setPhoto(file);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(URL.createObjectURL(file));
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile || !user) return;
+    if (!profile.specialty_ids.length) {
+      setError('কমপক্ষে একটি বিশেষত্ব নির্বাচন করুন।');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      let photoPath = profile.doctor.profile_photo_url;
+      if (photo) photoPath = await uploadDoctorPhoto(photo, user.id);
+
+      const result = await updateMyDoctorVisitingCard({
+        fullName: profile.doctor.full_name || '',
+        profilePhotoUrl: photoPath,
+        professionalTitle: profile.doctor.professional_title,
+        degree: profile.doctor.degree,
+        designation: profile.doctor.designation,
+        bmdcRegistrationNo: profile.doctor.bmdc_registration_no,
+        medicalCollege: profile.doctor.medical_college,
+        presentJob: profile.doctor.present_job,
+        specialtyIds: profile.specialty_ids,
+      });
+
+      setProfile((current) => current ? {
+        ...current,
+        doctor: {
+          ...current.doctor,
+          profile_photo_url: photoPath,
+          verification_status: result.verification_status,
+          bmdc_verified: result.credentials_changed ? false : current.doctor.bmdc_verified,
+        },
+      } : current);
+      setPhoto(null);
+      setPreview(null);
+      await refreshAccount();
+      setNotice(result.credentials_changed
+        ? 'Visiting Card সংরক্ষিত হয়েছে। Degree, designation বা BMDC পরিবর্তনের কারণে পুনরায় verification প্রয়োজন।'
+        : 'Visiting Card সফলভাবে সংরক্ষণ হয়েছে।');
+    } catch (saveError) {
+      setError(messageFrom(saveError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="app-shell doctor-dashboard-page visiting-card-page">
+      <main className="doctor-dashboard-main container">
+        <div className="doctor-page-heading visiting-card-heading">
+          <span><UserCircle /></span>
+          <div>
+            <small>Doctor public identity</small>
+            <h1>Visiting Card</h1>
+            <p>Public doctor cards-এ দেখানো সংক্ষিপ্ত পেশাগত তথ্য পরিচালনা করুন। বিস্তারিত Doctor Details page অপরিবর্তিত থাকবে।</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="loading-box"><LoaderCircle className="spin" /> Visiting Card লোড হচ্ছে…</div>
+        ) : !profile ? (
+          <div className="error-box">ডাক্তার প্রোফাইল পাওয়া যায়নি।</div>
+        ) : (
+          <form className="visiting-card-layout" onSubmit={submit}>
+            <aside className="visiting-card-preview-panel">
+              <div className={`verification-banner compact ${profile.doctor.verification_status}`}>
+                <div>
+                  {profile.doctor.verification_status === 'approved' ? <BadgeCheck /> : <ShieldAlert />}
+                  <span>
+                    <strong>{statusLabels[profile.doctor.verification_status]}</strong>
+                    <small>{profile.doctor.bmdc_verified ? 'BMDC যাচাইকৃত' : 'BMDC verification pending'}</small>
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                className={`doctor-visiting-card-preview ${profile.doctor.verification_status !== 'approved' ? 'preview-disabled' : ''}`}
+                to={profile.doctor.verification_status === 'approved' ? `/doctors/${profile.doctor.id}` : '/doctor/visiting-card'}
+                aria-disabled={profile.doctor.verification_status !== 'approved'}
+                onClick={(event) => {
+                  if (profile.doctor.verification_status !== 'approved') event.preventDefault();
+                }}
+              >
+                <div className="doctor-visiting-card-photo">
+                  {avatarUrl ? <img src={avatarUrl} alt={profile.doctor.full_name || 'Doctor'} /> : <Stethoscope />}
+                  {profile.doctor.verification_status === 'approved' && <span><BadgeCheck /> Verified</span>}
+                </div>
+                <div className="doctor-visiting-card-copy">
+                  <small>docbd.info</small>
+                  <h2>{profile.doctor.full_name || 'Doctor Name'}</h2>
+                  <strong>{selectedSpecialties[0]?.name_bn || profile.doctor.professional_title || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
+                  {profile.doctor.degree && <p><GraduationCap /> {profile.doctor.degree}</p>}
+                  {profile.doctor.designation && <p><BadgeCheck /> {profile.doctor.designation}</p>}
+                  {profile.doctor.medical_college && <p><GraduationCap /> {profile.doctor.medical_college}</p>}
+                  {profile.doctor.present_job && <p><Building2 /> {profile.doctor.present_job}</p>}
+                  {profile.doctor.bmdc_registration_no && <em>BMDC: {profile.doctor.bmdc_registration_no}</em>}
+                </div>
+              </Link>
+
+              {profile.doctor.verification_status === 'approved' ? (
+                <Link className="visiting-card-public-link" to={`/doctors/${profile.doctor.id}`} target="_blank">
+                  Existing Public Profile দেখুন <ExternalLink />
+                </Link>
+              ) : (
+                <p className="visiting-card-preview-note">Verification approved হলে public search ও visitor cards-এ তথ্য দেখা যাবে।</p>
+              )}
+            </aside>
+
+            <div className="visiting-card-editor">
+              <section className="visiting-card-section">
+                <div className="section-title">
+                  <div><h2>পরিচয় ও ছবি</h2><p>এই তথ্য public doctor card এবং existing Doctor Details page-এ reuse হবে।</p></div>
+                </div>
+                <div className="visiting-card-photo-editor">
+                  <div className="doctor-photo-preview">
+                    {avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" /> : <Stethoscope />}
+                  </div>
+                  <label><Camera /> Profile Photo<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
+                  <small>JPG/PNG/WebP/AVIF, সর্বোচ্চ ৩ MB</small>
+                </div>
+                <div className="patient-form-grid visiting-card-form-grid">
+                  <label className="auth-field"><span>Doctor Name</span><div><input required minLength={2} value={profile.doctor.full_name || ''} onChange={(event) => setDoctor('full_name', event.target.value)} /></div></label>
+                  <label className="auth-field"><span>Professional Title</span><div><input value={profile.doctor.professional_title || ''} onChange={(event) => setDoctor('professional_title', event.target.value)} placeholder="যেমন: Consultant Cardiologist" /></div></label>
+                </div>
+              </section>
+
+              <section className="visiting-card-section">
+                <h2>Professional Information</h2>
+                <div className="patient-form-grid visiting-card-form-grid">
+                  <label className="auth-field"><span>Degree</span><div><input value={profile.doctor.degree || ''} onChange={(event) => setDoctor('degree', event.target.value)} placeholder="MBBS, FCPS" /></div></label>
+                  <label className="auth-field"><span>Designation</span><div><input value={profile.doctor.designation || ''} onChange={(event) => setDoctor('designation', event.target.value)} placeholder="যেমন: Associate Professor" /></div></label>
+                  <label className="auth-field"><span>BMDC Number</span><div><input value={profile.doctor.bmdc_registration_no || ''} onChange={(event) => setDoctor('bmdc_registration_no', event.target.value)} /></div></label>
+                  <label className="auth-field"><span>Medical College</span><div><input value={profile.doctor.medical_college || ''} onChange={(event) => setDoctor('medical_college', event.target.value)} placeholder="Medical college / institute" /></div></label>
+                  <label className="auth-field visiting-card-wide-field"><span>Present Job / Hospital</span><div><input value={profile.doctor.present_job || ''} onChange={(event) => setDoctor('present_job', event.target.value)} placeholder="Current hospital, clinic or academic position" /></div></label>
+                </div>
+              </section>
+
+              <section className="visiting-card-section">
+                <h2>Specialty</h2>
+                <fieldset className="specialty-picker visiting-card-specialty-picker">
+                  <legend>কমপক্ষে একটি specialty নির্বাচন করুন</legend>
+                  {specialties.map((specialty) => (
+                    <label className={profile.specialty_ids.includes(specialty.id) ? 'selected' : ''} key={specialty.id}>
+                      <input type="checkbox" checked={profile.specialty_ids.includes(specialty.id)} onChange={() => toggleSpecialty(specialty.id)} />
+                      <span>{specialty.name_bn}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              </section>
+
+              <p className="visiting-card-security-note">Degree, designation বা BMDC নম্বর পরিবর্তন করলে existing verification policy অনুযায়ী status আবার pending হবে।</p>
+              {error && <div className="auth-message error" role="alert">{error}</div>}
+              {notice && <div className="auth-message success">{notice}</div>}
+              <button className="auth-submit doctor-save visiting-card-save" type="submit" disabled={saving}>
+                {saving ? <LoaderCircle className="spin" /> : <><Save /> Visiting Card সংরক্ষণ করুন</>}
+              </button>
+            </div>
+          </form>
+        )}
+      </main>
+    </div>
+  );
+}

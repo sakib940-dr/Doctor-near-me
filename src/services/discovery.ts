@@ -5,6 +5,7 @@ import type {
   DoctorSearchRow,
   DoctorPublicProfile,
   HomepageConfiguration,
+  LocationResolution,
   ProviderDirectoryRow,
   Specialty,
   Upazila,
@@ -47,14 +48,65 @@ export async function getUpazilas(districtId: number) {
   return (data ?? []) as Upazila[];
 }
 
+export async function resolveLocationContext(latitude: number, longitude: number) {
+  const { data, error } = await requireSupabase().rpc('resolve_location_context', {
+    p_lat: latitude,
+    p_lon: longitude,
+  });
+  if (error) throw error;
+  const rows = (data ?? []) as LocationResolution[];
+  return rows[0] ?? null;
+}
+
 export async function getSpecialties() {
   const { data, error } = await requireSupabase()
     .from('specialties')
-    .select('id,name_bn,name_en,slug,sort_order')
+    .select('id,name_bn,name_en,slug,icon_url,sort_order')
     .eq('is_active', true)
     .order('sort_order');
   if (error) throw error;
   return (data ?? []) as Specialty[];
+}
+
+
+interface PublicDoctorVisitingCardRow {
+  doctor_id: string;
+  doctor_name: string;
+  avatar_url: string | null;
+  degree: string | null;
+  professional_title: string | null;
+  designation: string | null;
+  bmdc_registration_no: string | null;
+  medical_college: string | null;
+  present_job: string | null;
+}
+
+async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
+  if (!rows.length) return rows;
+  const ids = Array.from(new Set(rows.map((row) => row.doctor_id)));
+  const { data, error } = await requireSupabase().rpc('get_public_doctor_visiting_cards', {
+    p_doctor_ids: ids,
+  });
+  // Keep the existing search usable during a staggered frontend/migration deploy.
+  if (error) return rows;
+  const byDoctor = new Map(
+    ((data ?? []) as PublicDoctorVisitingCardRow[]).map((row) => [row.doctor_id, row]),
+  );
+  return rows.map((row) => {
+    const card = byDoctor.get(row.doctor_id);
+    if (!card) return row;
+    return {
+      ...row,
+      doctor_name: card.doctor_name || row.doctor_name,
+      avatar_url: card.avatar_url,
+      degree: card.degree,
+      professional_title: card.professional_title,
+      designation: card.designation,
+      bmdc_registration_no: card.bmdc_registration_no,
+      medical_college: card.medical_college,
+      present_job: card.present_job,
+    };
+  });
 }
 
 export async function searchDoctors(input: {
@@ -94,15 +146,7 @@ export async function searchDoctors(input: {
   );
   if (error) throw error;
   const rows = (data ?? []) as DoctorSearchRow[];
-  if (!rows.length) return rows;
-
-  const ids = rows.map((row) => row.doctor_id);
-  const { data: directoryRows } = await requireSupabase()
-    .from('public_doctor_directory')
-    .select('doctor_id,bmdc_registration_no')
-    .in('doctor_id', ids);
-  const bmdcByDoctor = new Map((directoryRows ?? []).map((row) => [String(row.doctor_id), row.bmdc_registration_no as string | null]));
-  return rows.map((row) => ({ ...row, bmdc_registration_no: bmdcByDoctor.get(row.doctor_id) ?? null }));
+  return hydrateDoctorVisitingCards(rows);
 
 }
 
@@ -169,7 +213,7 @@ export async function getDoctorsForProvider(providerId: string) {
   if (error) throw error;
 
   const rows = (data ?? []) as PublicProviderDoctorRpcRow[];
-  return rows.map((row): DoctorSearchRow => ({
+  const mapped = rows.map((row): DoctorSearchRow => ({
     doctor_id: row.doctor_id,
     doctor_name: row.doctor_name,
     avatar_url: row.avatar_url,
@@ -187,6 +231,7 @@ export async function getDoctorsForProvider(providerId: string) {
     available_today: row.available_today,
     total_count: rows.length,
   }));
+  return hydrateDoctorVisitingCards(mapped);
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {
@@ -260,6 +305,8 @@ export async function findNearestDoctors(input: {
       designation: profile?.doctor.designation ?? row.designation,
       professional_title: profile?.doctor.professional_title ?? null,
       bmdc_registration_no: profile?.doctor.bmdc_registration_no ?? null,
+      medical_college: profile?.doctor.medical_college ?? null,
+      present_job: profile?.doctor.present_job ?? null,
       consultation_fee: profile?.doctor.consultation_fee ?? row.consultation_fee,
       experience_years: profile?.doctor.experience_years ?? null,
       district_id: row.district_id,

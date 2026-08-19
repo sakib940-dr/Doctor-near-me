@@ -143,6 +143,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Chamber Details', path: '/doctor/chambers', icon: Building2 },
           { label: 'Schedule', path: '/doctor/schedules', icon: Clock },
           { label: 'Visiting Card', path: '/doctor/visiting-card', icon: UserCircle },
+          { label: 'Verification', path: '/doctor/verification', icon: ShieldCheck },
           { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
           { label: 'Providers / Invitations', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
           { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },

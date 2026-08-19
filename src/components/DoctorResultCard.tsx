@@ -11,6 +11,7 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
   const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
   const location = doctor.nearest_provider_name || [doctor.upazila_name_bn, doctor.district_name_bn].filter(Boolean).join(', ');
   const distanceText = doctor.distance_km != null ? `${doctor.distance_km.toFixed(1)} km দূরে` : null;
+  const isVerified = doctor.verification_status === 'approved';
 
   return (
     <article className="directory-doctor-card visitor-doctor-card marketplace-card">
@@ -21,7 +22,7 @@ export default function DoctorResultCard({ doctor }: { doctor: DoctorSearchRow }
           ) : (
             <div className="doctor-photo-fallback" aria-hidden="true"><Stethoscope /></div>
           )}
-          <VerifiedBadge className="verified-badge" label="যাচাইকৃত" />
+          <VerifiedBadge className="verified-badge" verified={isVerified} label={isVerified ? "Verified" : "Not verified yet"} />
         </div>
         <div className="visitor-doctor-copy">
           <h2>{doctor.doctor_name}</h2>

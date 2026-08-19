@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
+import VerifiedBadge from '../components/VerifiedBadge';
 import { makePageTitle } from '../lib/brand';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -66,6 +67,8 @@ export default function DoctorProfile() {
   const facebook = profile?.doctor.facebook_url || null;
   const locationText = primaryChamber?.address || null;
   const hasContactOptions = Boolean(callPhone || whatsapp || facebook);
+  const isVerified = profile?.doctor.verification_status === 'approved';
+  const canOnlineBook = Boolean(isVerified && profile?.doctor.accepting_appointments);
 
   const details = useMemo(() => {
     if (!profile) return [];
@@ -102,7 +105,7 @@ export default function DoctorProfile() {
                 <div className="profile-photo-fallback"><Stethoscope /></div>
               )}
             </div>
-            <span className="profile-verified"><BadgeCheck /> ভেরিফায়েড ডাক্তার</span>
+            <VerifiedBadge className="profile-verified" verified={isVerified} label={isVerified ? "Verified" : "Not verified yet"} />
             <h1>{profile.doctor.name}</h1>
             <p>{primarySpecialty}</p>
           </section>
@@ -142,7 +145,7 @@ export default function DoctorProfile() {
               <button
                 type="button"
                 className="profile-appointment-button"
-                disabled={!profile.doctor.accepting_appointments && !hasContactOptions}
+                disabled={!canOnlineBook && !hasContactOptions}
                 onClick={() => setContactOpen(true)}
               >
                 <CalendarDays /> অ্যাপয়েন্টমেন্ট নিন
@@ -207,9 +210,10 @@ export default function DoctorProfile() {
               {whatsapp && <a href={`https://wa.me/${whatsappNumber(whatsapp)}`} target="_blank" rel="noreferrer"><span><MessageCircle /></span><strong>WhatsApp</strong></a>}
               {facebook && <a href={facebook} target="_blank" rel="noreferrer"><span><ExternalLink /></span><strong>Facebook Page</strong></a>}
             </div>
-            {!hasContactOptions && profile.doctor.accepting_appointments && (
+            {!hasContactOptions && canOnlineBook && (
               <Link className="appointment-online-link" to={`/doctors/${profile.doctor.id}/book`}>অনলাইন অ্যাপয়েন্টমেন্ট ফর্ম খুলুন</Link>
             )}
+            {!isVerified && <p className="profile-unverified-booking-note">Online appointment booking verification approved হওয়ার পর available হবে। সরাসরি contact option থাকলে সেটি ব্যবহার করতে পারেন।</p>}
           </section>
         </div>
       )}

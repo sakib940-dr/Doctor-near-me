@@ -5274,3 +5274,76 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
     grid-row: auto;
   }
 }
+
+/* STEP 32 — Doctor verification publication policy + dashboard */
+.marketplace-verified-badge.unverified {
+  color: #8a5a08;
+  background: rgba(255, 248, 229, .96);
+  border-color: rgba(217, 167, 66, .35);
+}
+.marketplace-verified-badge.unverified svg { color: #b7791f; }
+.profile-verified.marketplace-verified-badge { position: static; width: max-content; margin: 0 auto 10px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.35); color: #d9f7ea; background: rgba(2,76,55,.28); }
+.profile-verified.marketplace-verified-badge.unverified { color: #fff2c2; background: rgba(107,72,9,.42); border-color: rgba(255,231,158,.35); }
+.profile-unverified-booking-note { grid-column: 1 / -1; margin: 8px 0 0; color: #8a5a08; font-size: 12px; line-height: 1.55; }
+
+.super-verification-policy-card { grid-column: 1 / -1; }
+.super-policy-body { display: grid; gap: 12px; margin-top: 14px; }
+.super-policy-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+.super-policy-stats span { min-width: 0; padding: 11px 12px; border: 1px solid #e4e6ee; border-radius: 11px; background: #fafbff; color: #6f7784; font-size: 10px; }
+.super-policy-stats b { display: block; margin-bottom: 2px; color: #211b49; font-size: 18px; }
+.super-toggle-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; padding: 13px 14px; border: 1px solid #e4e6ee; border-radius: 12px; background: #fff; }
+.super-toggle-row strong,.super-toggle-row small { display: block; }
+.super-toggle-row strong { color: #211b49; font-size: 11px; }
+.super-toggle-row small { margin-top: 4px; color: #737d87; font-size: 9px; line-height: 1.55; }
+.super-toggle-row input[role="switch"] { appearance: none; width: 44px; height: 24px; padding: 2px; border: 0; border-radius: 999px; background: #cfd4dc; cursor: pointer; transition: background .18s ease; }
+.super-toggle-row input[role="switch"]::before { content: ''; display: block; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 2px 6px rgba(0,0,0,.18); transition: transform .18s ease; }
+.super-toggle-row input[role="switch"]:checked { background: var(--green-700); }
+.super-toggle-row input[role="switch"]:checked::before { transform: translateX(20px); }
+.super-toggle-row input[role="switch"]:disabled { opacity: .55; cursor: progress; }
+.super-policy-cutoff,.super-policy-note { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 9px; line-height: 1.55; }
+.super-policy-cutoff { color: #51479b; background: #f4f2ff; }
+.super-policy-note { color: #725313; background: #fff9e8; border: 1px solid #f0dfad; }
+
+.doctor-verification-page .doctor-dashboard-main { max-width: 1180px; }
+.doctor-verification-status-card { display: grid; gap: 10px; margin-bottom: 16px; padding: 16px; border: 1px solid #e3e7e5; border-radius: 16px; background: #fff; }
+.doctor-verification-status-card > div:first-child { display: flex; align-items: center; gap: 12px; }
+.doctor-verification-status-card > div:first-child > span:last-child { min-width: 0; }
+.doctor-verification-status-card strong,.doctor-verification-status-card small { display: block; }
+.doctor-verification-status-card strong { margin-bottom: 3px; color: var(--green-950); font-size: 14px; }
+.doctor-verification-status-card small,.doctor-verification-status-card p { color: var(--muted); font-size: 11px; line-height: 1.55; }
+.doctor-verification-status-card p { margin: 0; }
+.doctor-verification-status-card.approved { border-color: rgba(15,118,110,.28); background: #f8fffc; }
+.doctor-verification-status-card.pending { border-color: #ead9a9; background: #fffdf6; }
+.doctor-verification-review-note { padding: 10px 12px; border-radius: 10px; background: #fff4f1; color: #8b3f31; font-size: 11px; }
+.doctor-verification-layout { display: grid; grid-template-columns: minmax(0,.95fr) minmax(0,1.05fr); gap: 16px; align-items: start; }
+.doctor-verification-info-card,.doctor-verification-evidence-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 8px 26px rgba(12,75,58,.04); }
+.doctor-verification-info-card { display: grid; gap: 14px; }
+.doctor-verification-info-card > header,.doctor-verification-evidence-card > header { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.doctor-verification-info-card > header > svg,.doctor-verification-evidence-card > header > svg { width: 22px; min-width: 22px; color: var(--green-700); }
+.doctor-verification-info-card h2,.doctor-verification-evidence-card h2 { margin: 0; color: var(--green-950); font-size: 15px; }
+.doctor-verification-info-card header p,.doctor-verification-evidence-card header p { margin: 3px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.doctor-verification-evidence-card > header > b { margin-left: auto; white-space: nowrap; color: var(--green-700); font-size: 10px; }
+.doctor-verification-form-grid { grid-template-columns: 1fr 1fr; }
+.doctor-verification-form-grid > label:first-child { grid-column: 1 / -1; }
+.doctor-verification-readonly-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.doctor-verification-readonly-grid > div { padding: 11px 12px; border-radius: 11px; background: #f7faf8; border: 1px solid #e5ece8; }
+.doctor-verification-readonly-grid small,.doctor-verification-readonly-grid strong { display: block; }
+.doctor-verification-readonly-grid small { color: var(--muted); font-size: 9px; }
+.doctor-verification-readonly-grid strong { margin-top: 3px; color: var(--green-950); font-size: 11px; overflow-wrap: anywhere; }
+.doctor-verification-security-note { margin: 0; padding: 10px 12px; border: 1px solid #f0dfad; border-radius: 10px; color: #725313; background: #fff9e8; font-size: 10px; line-height: 1.55; }
+.doctor-verification-upload { margin-top: 14px; }
+.doctor-verification-documents { margin-top: 12px; }
+
+@media (max-width: 900px) {
+  .doctor-verification-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .super-policy-stats { grid-template-columns: 1fr; }
+  .super-toggle-row { gap: 10px; padding: 12px; }
+  .super-toggle-row input[role="switch"] { width: 42px; min-width: 42px; }
+  .doctor-verification-info-card,.doctor-verification-evidence-card { padding: 14px; border-radius: 14px; }
+  .doctor-verification-form-grid,.doctor-verification-readonly-grid { grid-template-columns: 1fr; }
+  .doctor-verification-form-grid > label:first-child { grid-column: auto; }
+  .doctor-verification-evidence-card > header { flex-wrap: wrap; }
+  .doctor-verification-evidence-card > header > b { width: 100%; margin-left: 32px; }
+}

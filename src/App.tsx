@@ -21,6 +21,7 @@ import DoctorProfile from './pages/DoctorProfile';
 import DoctorPrescriptionPage from './pages/DoctorPrescriptionPage';
 import DoctorSchedulePage from './pages/DoctorSchedulePage';
 import DoctorVisitingCardPage from './pages/DoctorVisitingCardPage';
+import DoctorVerificationPage from './pages/DoctorVerificationPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
@@ -55,6 +56,7 @@ export default function App() {
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/visiting-card" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVisitingCardPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/verification" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVerificationPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/chambers" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorChamberDetailsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
@@ -105,6 +107,7 @@ function useRouteDocumentTitle() {
     else if (path.startsWith('/providers/')) page = 'Provider Profile';
     else if (path === '/doctor/visiting-card') page = 'Visiting Card';
     else if (path === '/doctor/chambers') page = 'Chamber Details';
+    else if (path === '/doctor/verification') page = 'Verification';
     else if (path.startsWith('/doctor/')) page = 'Doctor';
     else if (path.startsWith('/provider/')) page = 'Hospital';
     else if (path.startsWith('/ambulance/')) page = 'Ambulance';

@@ -105,6 +105,7 @@ export default function DoctorVisitingCardPage() {
       let photoPath = profile.doctor.profile_photo_url;
       if (photo) photoPath = await uploadDoctorPhoto(photo, user.id);
 
+      const previousStatus = profile.doctor.verification_status;
       const result = await updateMyDoctorVisitingCard({
         fullName: profile.doctor.full_name || '',
         profilePhotoUrl: photoPath,
@@ -117,20 +118,17 @@ export default function DoctorVisitingCardPage() {
         specialtyIds: profile.specialty_ids,
       });
 
-      setProfile((current) => current ? {
-        ...current,
-        doctor: {
-          ...current.doctor,
-          profile_photo_url: photoPath,
-          verification_status: result.verification_status,
-          bmdc_verified: result.credentials_changed ? false : current.doctor.bmdc_verified,
-        },
-      } : current);
+      // Step 32 also treats Medical College as verification identity. Re-read
+      // the canonical profile so a DB-triggered reset is reflected immediately.
+      const refreshedProfile = await getMyDoctorProfile();
+      if (refreshedProfile) setProfile(refreshedProfile);
       setPhoto(null);
       setPreview(null);
       await refreshAccount();
-      setNotice(result.credentials_changed
-        ? 'Visiting Card সংরক্ষিত হয়েছে। Degree, designation বা BMDC পরিবর্তনের কারণে পুনরায় verification প্রয়োজন।'
+      const verificationReset = result.credentials_changed
+        || (previousStatus === 'approved' && refreshedProfile?.doctor.verification_status === 'pending');
+      setNotice(verificationReset
+        ? 'Visiting Card সংরক্ষিত হয়েছে। Verification identity পরিবর্তনের কারণে পুনরায় verification প্রয়োজন।'
         : 'Visiting Card সফলভাবে সংরক্ষণ হয়েছে।');
     } catch (saveError) {
       setError(messageFrom(saveError));
@@ -169,16 +167,16 @@ export default function DoctorVisitingCardPage() {
               </div>
 
               <Link
-                className={`doctor-visiting-card-preview ${profile.doctor.verification_status !== 'approved' ? 'preview-disabled' : ''}`}
-                to={profile.doctor.verification_status === 'approved' ? `/doctors/${profile.doctor.id}` : '/doctor/visiting-card'}
-                aria-disabled={profile.doctor.verification_status !== 'approved'}
+                className={`doctor-visiting-card-preview ${['rejected', 'expired'].includes(profile.doctor.verification_status) ? 'preview-disabled' : ''}`}
+                to={['rejected', 'expired'].includes(profile.doctor.verification_status) ? '/doctor/visiting-card' : `/doctors/${profile.doctor.id}`}
+                aria-disabled={['rejected', 'expired'].includes(profile.doctor.verification_status)}
                 onClick={(event) => {
-                  if (profile.doctor.verification_status !== 'approved') event.preventDefault();
+                  if (['rejected', 'expired'].includes(profile.doctor.verification_status)) event.preventDefault();
                 }}
               >
                 <div className="doctor-visiting-card-photo">
                   {avatarUrl ? <img src={avatarUrl} alt={profile.doctor.full_name || 'Doctor'} /> : <Stethoscope />}
-                  {profile.doctor.verification_status === 'approved' && <span><BadgeCheck /> Verified</span>}
+                  <span>{profile.doctor.verification_status === 'approved' ? <BadgeCheck /> : <ShieldAlert />} {profile.doctor.verification_status === 'approved' ? 'Verified' : 'Not verified yet'}</span>
                 </div>
                 <div className="doctor-visiting-card-copy">
                   <small>docbd.info</small>
@@ -192,13 +190,14 @@ export default function DoctorVisitingCardPage() {
                 </div>
               </Link>
 
-              {profile.doctor.verification_status === 'approved' ? (
+              {!['rejected', 'expired'].includes(profile.doctor.verification_status) ? (
                 <Link className="visiting-card-public-link" to={`/doctors/${profile.doctor.id}`} target="_blank">
                   Existing Public Profile দেখুন <ExternalLink />
                 </Link>
               ) : (
-                <p className="visiting-card-preview-note">Verification approved হলে public search ও visitor cards-এ তথ্য দেখা যাবে।</p>
+                <p className="visiting-card-preview-note">Rejected/expired verification status public listing থেকে excluded থাকে।</p>
               )}
+              {profile.doctor.verification_status === 'pending' && <p className="visiting-card-preview-note">Pending doctor Super Admin publication policy অনুযায়ী “Not verified yet” badge সহ public হতে পারে।</p>}
             </aside>
 
             <div className="visiting-card-editor">

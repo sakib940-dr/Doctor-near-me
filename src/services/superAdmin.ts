@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import type { PrivilegedAccountInvite, SuperAdminUserDetail, SuperAdminUserRow, UserRole } from '../types';
+import type { PrivilegedAccountInvite, SuperAdminDoctorVerificationPolicy, SuperAdminUserDetail, SuperAdminUserRow, UserRole } from '../types';
 
 export async function getSuperAdminUserDirectory(filters: {
   role?: UserRole | null; status?: string | null; districtId?: number | null;
@@ -75,4 +75,23 @@ export async function deleteSuperAdminUser(userId: string, confirmation: string,
   const { data, error } = await requireSupabase().rpc('super_admin_delete_user_v2', { p_user_id: userId, p_confirmation: confirmation, p_reason: reason });
   if (error) throw error;
   return Boolean(data);
+}
+
+
+export async function getSuperAdminDoctorVerificationPolicy() {
+  const { data, error } = await requireSupabase().rpc('super_admin_get_doctor_verification_policy');
+  if (error) throw error;
+  return data as SuperAdminDoctorVerificationPolicy;
+}
+
+export async function setSuperAdminDoctorVerificationPolicy(input: {
+  hideUnverifiedDoctors: boolean;
+  newRegistrationRequiresVerification: boolean;
+}) {
+  const { data, error } = await requireSupabase().rpc('super_admin_set_doctor_verification_policy', {
+    p_hide_unverified_doctors: input.hideUnverifiedDoctors,
+    p_new_registration_requires_verification: input.newRegistrationRequiresVerification,
+  });
+  if (error) throw error;
+  return data as SuperAdminDoctorVerificationPolicy;
 }

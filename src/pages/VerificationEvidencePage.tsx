@@ -35,6 +35,7 @@ export default function VerificationEvidencePage() {
   }, [account, user]);
 
   if (account && !['doctor', 'hospital', 'chamber'].includes(account.role)) return <Navigate to="/dashboard" replace />;
+  if (account?.role === 'doctor') return <Navigate to="/doctor/verification" replace />;
   const labels = entityType === 'doctor' ? doctorDocuments : providerDocuments;
   const editable = evidence ? ['pending', 'rejected'].includes(evidence.status) : false;
 

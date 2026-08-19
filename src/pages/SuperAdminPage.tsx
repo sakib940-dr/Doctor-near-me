@@ -3,8 +3,8 @@ import { Activity, Ban, CalendarDays, Copy, Crown, Edit3, ExternalLink, FileChec
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getDistricts, getUpazilas } from '../services/discovery';
-import { cancelPrivilegedAccountInvite, changeSuperAdminUserRole, createPrivilegedAccountInvite, deleteSuperAdminUser, getPrivilegedAccountInvites, getSuperAdminUserDetail, getSuperAdminUserDirectory, setSuperAdminUserStatus, updateSuperAdminUserProfile } from '../services/superAdmin';
-import type { District, PrivilegedAccountInvite, SuperAdminUserDetail, SuperAdminUserRow, Upazila, UserRole } from '../types';
+import { cancelPrivilegedAccountInvite, changeSuperAdminUserRole, createPrivilegedAccountInvite, deleteSuperAdminUser, getPrivilegedAccountInvites, getSuperAdminDoctorVerificationPolicy, getSuperAdminUserDetail, getSuperAdminUserDirectory, setSuperAdminDoctorVerificationPolicy, setSuperAdminUserStatus, updateSuperAdminUserProfile } from '../services/superAdmin';
+import type { District, PrivilegedAccountInvite, SuperAdminDoctorVerificationPolicy, SuperAdminUserDetail, SuperAdminUserRow, Upazila, UserRole } from '../types';
 
 type Tab = 'users' | 'invites' | 'controls';
 type Action = { kind: 'role'; value: Exclude<UserRole, 'super_admin'> } | { kind: 'status'; value: 'active' | 'suspended' | 'banned' } | { kind: 'delete'; value: 'delete' };
@@ -26,6 +26,7 @@ export default function SuperAdminPage() {
   const [tab, setTab] = useState<Tab>(requestedTab && ['users', 'invites', 'controls'].includes(requestedTab) ? requestedTab : 'users');
   const [users, setUsers] = useState<SuperAdminUserRow[]>([]);
   const [invites, setInvites] = useState<PrivilegedAccountInvite[]>([]);
+  const [verificationPolicy, setVerificationPolicy] = useState<SuperAdminDoctorVerificationPolicy | null>(null);
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
   const [editUpazilas, setEditUpazilas] = useState<Upazila[]>([]);
@@ -47,17 +48,19 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [working, setWorking] = useState(false);
+  const [policyWorking, setPolicyWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
     setLoading(true); setError(null);
     try {
-      const [userRows, inviteRows, districtRows] = await Promise.all([
+      const [userRows, inviteRows, districtRows, doctorVerificationPolicy] = await Promise.all([
         getSuperAdminUserDirectory({ role: role === 'all' ? null : role, status: status === 'all' ? null : status, districtId, upazilaId, search }),
         getPrivilegedAccountInvites(), getDistricts(),
+        getSuperAdminDoctorVerificationPolicy(),
       ]);
-      setUsers(userRows); setInvites(inviteRows); setDistricts(districtRows);
+      setUsers(userRows); setInvites(inviteRows); setDistricts(districtRows); setVerificationPolicy(doctorVerificationPolicy);
     } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
   }
   useEffect(() => { if (account?.role === 'super_admin') void load(); }, [account]);
@@ -115,13 +118,64 @@ export default function SuperAdminPage() {
   }
   async function cancelInvite(id: string) { if (!window.confirm('এই invitation cancel করবেন?')) return; setWorking(true); try { await cancelPrivilegedAccountInvite(id); await load(); setNotice('Invitation cancel হয়েছে।'); } catch (cancelError) { setError(messageFrom(cancelError)); } finally { setWorking(false); } }
 
+  async function updateDoctorVerificationPolicy(next: {
+    hideUnverifiedDoctors?: boolean;
+    newRegistrationRequiresVerification?: boolean;
+  }) {
+    if (!verificationPolicy || policyWorking) return;
+    const hideUnverifiedDoctors = next.hideUnverifiedDoctors ?? verificationPolicy.hide_unverified_doctors;
+    const newRegistrationRequiresVerification = next.newRegistrationRequiresVerification ?? verificationPolicy.new_registration_requires_verification;
+
+    if (next.hideUnverifiedDoctors === true && !window.confirm('সব active pending Doctor public listing থেকে temporary hide হবে। Login/dashboard বন্ধ হবে না। Continue?')) return;
+
+    setPolicyWorking(true); setError(null); setNotice(null);
+    try {
+      const updated = await setSuperAdminDoctorVerificationPolicy({
+        hideUnverifiedDoctors,
+        newRegistrationRequiresVerification,
+      });
+      setVerificationPolicy(updated);
+      setNotice('Doctor verification publication policy আপডেট হয়েছে।');
+    } catch (policyError) {
+      setError(messageFrom(policyError));
+    } finally {
+      setPolicyWorking(false);
+    }
+  }
+
   return <div className="app-shell super-page"><main className="super-main container"><header className="super-heading"><span><Crown /></span><div><small>Single-owner authority</small><h1>Super Admin Control Center</h1><p>একজন Super Admin—privileged roles, sensitive user data ও irreversible account actions।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="super-tabs">{([['users', Users, 'সব Users'], ['invites', Plus, 'Privileged invites'], ['controls', ShieldCheck, 'Existing controls']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setSearchParams(value === 'users' ? {} : { tab: value }); }}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Super Admin data লোড হচ্ছে…</div> : <>
 
   {tab === 'users' && <section className="super-users"><form className="super-filters" onSubmit={submitSearch}><label><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="নাম, email বা phone" /></label><select value={role} onChange={(e) => setRole(e.target.value as UserRole | 'all')}><option value="all">সব role</option>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><select value={districtId ?? ''} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : null)}><option value="">সব জেলা</option>{districts.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select disabled={!districtId} value={upazilaId ?? ''} onChange={(e) => setUpazilaId(e.target.value ? Number(e.target.value) : null)}><option value="">সব উপজেলা</option>{upazilas.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><button>Filter</button></form><header className="super-list-title"><div><h2>User directory</h2><p>কোনো row-তে click করলে full account popup খুলবে এবং access audit হবে।</p></div><b>{users[0]?.total_count ?? 0} users</b></header><div className="super-user-list">{users.map((user) => <button key={user.user_id} onClick={() => void openUser(user.user_id)}><span className={`super-avatar role-${user.role}`}>{(user.full_name || user.email || 'U').slice(0, 1).toUpperCase()}</span><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'} {user.role === 'super_admin' && <Crown />}</strong><small>{user.email || 'Email নেই'} • {user.phone || 'Phone নেই'}</small><p><MapPin /> {[user.upazila_name, user.district_name].filter(Boolean).join(', ') || 'Location দেওয়া নেই'}</p></div><b>{roleLabels[user.role]}</b><span className={`super-status ${user.account_status}`}>{user.account_status}</span><time>Login: {dateLabel(user.last_sign_in_at)}</time></button>)}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div></section>}
 
   {tab === 'invites' && <div className="super-invite-grid"><form className="super-card" onSubmit={createInvite}><header><Plus /><div><h2>Admin/Officer account invite</h2><p>Existing user হলে User popup থেকে promote করুন। নতুন user হলে invited email দিয়ে registration করতে হবে।</p></div></header><Field label="পূর্ণ নাম"><input required minLength={2} value={invite.fullName} onChange={(e) => setInvite({ ...invite, fullName: e.target.value })} /></Field><Field label="Email"><input required type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} /></Field><Field label="Phone"><input value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} /></Field><div className="super-form-grid"><Field label="Privileged role"><select value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value as 'admin' | 'verification_officer' })}><option value="verification_officer">Verification Officer</option><option value="admin">Admin</option></select></Field><Field label="মেয়াদ (দিন)"><input type="number" min={1} max={30} value={invite.expiresDays} onChange={(e) => setInvite({ ...invite, expiresDays: Number(e.target.value) })} /></Field></div><button className="super-primary" disabled={working}>{working ? <LoaderCircle className="spin" /> : 'Invitation তৈরি করুন'}</button>{createdLink && <div className="super-created-link"><input readOnly value={createdLink} /><button type="button" onClick={() => void navigator.clipboard.writeText(createdLink)}><Copy /></button></div>}</form><section className="super-card"><header><UserCog /><div><h2>Invitation history</h2><p>Open invite cancel করা যাবে; claimed account User directory-তে পাওয়া যাবে।</p></div></header><div className="super-invite-list">{invites.map((item) => { const open = !item.claimed_at && !item.cancelled_at && new Date(item.expires_at) > new Date(); return <article key={item.invite_id}><div><strong>{item.full_name}</strong><small>{item.email} • {roleLabels[item.target_role]}</small><p>Expires: {dateLabel(item.expires_at)}</p></div><span className={item.claimed_at ? 'claimed' : open ? 'open' : 'closed'}>{item.claimed_at ? 'Claimed' : open ? 'Open' : 'Closed'}</span>{open && <button disabled={working} onClick={() => void cancelInvite(item.invite_id)}>Cancel</button>}</article>; })}{!invites.length && <p className="empty-inline">কোনো invitation নেই।</p>}</div></section></div>}
 
-  {tab === 'controls' && <section className="super-controls"><article><Activity /><h2>Operational Admin</h2><p>Users, appointment override, full audit activity ও daily operations।</p><Link to="/admin">Admin dashboard <ExternalLink /></Link></article><article><FileCheck2 /><h2>Verification</h2><p>Doctor, Provider ও Ambulance approve/reject oversight।</p><Link to="/verification/reviews">Verification queue <ExternalLink /></Link></article><article><Edit3 /><h2>CMS & Reference</h2><p>Specialty, Topic, Sections, Banner, content এবং public settings।</p><Link to="/admin/cms">Admin CMS <ExternalLink /></Link></article></section>}
+  {tab === 'controls' && <section className="super-controls">
+    <article className="super-verification-policy-card">
+      <ShieldCheck />
+      <h2>Doctor publication policy</h2>
+      <p>Existing verification backend বজায় রেখে pending Doctor public visibility নিয়ন্ত্রণ করুন। Hospital/Provider policy পরিবর্তন হবে না।</p>
+      {verificationPolicy ? <div className="super-policy-body">
+        <div className="super-policy-stats">
+          <span><b>{verificationPolicy.active_pending_doctors}</b>Active pending</span>
+          <span><b>{verificationPolicy.currently_public_pending_doctors}</b>Pending public</span>
+          <span><b>{verificationPolicy.approved_active_doctors}</b>Verified</span>
+        </div>
+        <label className="super-toggle-row">
+          <div><strong>Unverified doctors temporary hide</strong><small>ON করলে সব active pending Doctor public search/profile/Near Me থেকে hide হবে; account login/dashboard active থাকবে।</small></div>
+          <input type="checkbox" role="switch" checked={verificationPolicy.hide_unverified_doctors} disabled={policyWorking} onChange={(event) => void updateDoctorVerificationPolicy({ hideUnverifiedDoctors: event.target.checked })} />
+        </label>
+        <label className="super-toggle-row">
+          <div><strong>New Doctor: verification before publish</strong><small>ON করার পর নতুন Doctor registration pending থাকলে approval না হওয়া পর্যন্ত public হবে না। আগে registered pending Doctor unaffected থাকবে, unless উপরের hide toggle ON থাকে।</small></div>
+          <input type="checkbox" role="switch" checked={verificationPolicy.new_registration_requires_verification} disabled={policyWorking} onChange={(event) => void updateDoctorVerificationPolicy({ newRegistrationRequiresVerification: event.target.checked })} />
+        </label>
+        {verificationPolicy.new_registration_requires_verification && <p className="super-policy-cutoff">Rule active from: {dateLabel(verificationPolicy.new_registration_verification_enabled_at)}</p>}
+        <p className="super-policy-note">Default/current temporary mode: pending eligible Doctor “Not verified yet” badge সহ public থাকতে পারে। Rejected/expired, suspended/banned/deleted account public নয়।</p>
+      </div> : <p className="empty-inline">Verification publication policy load হয়নি। Migration 32 apply আছে কিনা check করুন।</p>}
+    </article>
+    <article><Activity /><h2>Operational Admin</h2><p>Users, appointment override, full audit activity ও daily operations।</p><Link to="/admin">Admin dashboard <ExternalLink /></Link></article>
+    <article><FileCheck2 /><h2>Verification</h2><p>Doctor, Provider ও Ambulance approve/reject oversight।</p><Link to="/verification/reviews">Verification queue <ExternalLink /></Link></article>
+    <article><Edit3 /><h2>CMS & Reference</h2><p>Specialty, Topic, Sections, Banner, content এবং public settings।</p><Link to="/admin/cms">Admin CMS <ExternalLink /></Link></article>
+  </section>}
   </>}
 
   {detailLoading && <div className="verification-overlay"><div className="loading-box"><LoaderCircle className="spin" /> Sensitive detail লোড হচ্ছে…</div></div>}{detail && <div className="verification-overlay" role="dialog" aria-modal="true"><section className="super-detail"><header><span className={`super-avatar role-${detail.profile.role}`}>{(detail.profile.full_name || detail.profile.email || 'U').slice(0, 1).toUpperCase()}</span><div><small>{roleLabels[detail.profile.role]}</small><h2>{detail.profile.full_name || 'নাম দেওয়া হয়নি'}</h2><p>{detail.profile.email} • {detail.profile.phone || 'Phone নেই'}</p></div><button onClick={() => setDetail(null)}><X /></button></header><nav>{(['profile', 'data', 'activity'] as const).map((value) => <button key={value} className={detailTab === value ? 'active' : ''} onClick={() => setDetailTab(value)}>{value === 'profile' ? 'Profile & location' : value === 'data' ? 'Role data' : 'Appointments & audit'}</button>)}</nav><div className="super-detail-body">

@@ -79,6 +79,7 @@ interface PublicDoctorVisitingCardRow {
   bmdc_registration_no: string | null;
   medical_college: string | null;
   present_job: string | null;
+  verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
 }
 
 async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
@@ -87,8 +88,9 @@ async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
   const { data, error } = await requireSupabase().rpc('get_public_doctor_visiting_cards', {
     p_doctor_ids: ids,
   });
-  // Keep the existing search usable during a staggered frontend/migration deploy.
-  if (error) return rows;
+  // Never infer a Verified badge client-side. If the canonical status hydration
+  // is temporarily unavailable, fail closed to Not verified yet.
+  if (error) return rows.map((row) => ({ ...row, verification_status: row.verification_status ?? 'pending' }));
   const byDoctor = new Map(
     ((data ?? []) as PublicDoctorVisitingCardRow[]).map((row) => [row.doctor_id, row]),
   );
@@ -105,6 +107,7 @@ async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
       bmdc_registration_no: card.bmdc_registration_no,
       medical_college: card.medical_college,
       present_job: card.present_job,
+      verification_status: card.verification_status,
     };
   });
 }
@@ -329,6 +332,7 @@ export async function findNearestDoctors(input: {
       nearest_provider_address: row.address,
       nearest_provider_latitude: row.latitude,
       nearest_provider_longitude: row.longitude,
+      verification_status: profile?.doctor.verification_status ?? 'pending',
     };
   }));
 }

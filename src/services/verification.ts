@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import type { OwnerVerificationEvidence, VerificationEntityType, VerificationQueueRow, VerificationReviewDetail } from '../types';
+import type { DoctorVerificationProfile, OwnerVerificationEvidence, VerificationEntityType, VerificationQueueRow, VerificationReviewDetail } from '../types';
 
 export async function getMyEntityVerificationEvidence(entityType: 'doctor' | 'provider', entityId: string) {
   const { data, error } = await requireSupabase().rpc('get_my_entity_verification_evidence', { p_entity_type: entityType, p_entity_id: entityId });
@@ -50,4 +50,29 @@ export async function getVerificationReviewDetail(entityType: VerificationEntity
 export async function decideVerificationReview(input: { entityType: VerificationEntityType; entityId: string; status: 'approved' | 'rejected'; reviewNote?: string | null }) {
   const { error } = await requireSupabase().rpc('decide_verification_review', { p_entity_type: input.entityType, p_entity_id: input.entityId, p_status: input.status, p_review_note: input.reviewNote?.trim() || null });
   if (error) throw error;
+}
+
+
+export async function getMyDoctorVerificationProfile() {
+  const { data, error } = await requireSupabase().rpc('get_my_doctor_verification_profile');
+  if (error) throw error;
+  return data as DoctorVerificationProfile;
+}
+
+export async function updateMyDoctorVerificationInfo(input: {
+  medicalCollege: string;
+  medicalSession: string;
+  medicalBatch: string;
+}) {
+  const { data, error } = await requireSupabase().rpc('update_my_doctor_verification_info', {
+    p_medical_college: input.medicalCollege,
+    p_medical_session: input.medicalSession,
+    p_medical_batch: input.medicalBatch,
+  });
+  if (error) throw error;
+  return data as {
+    verification_status: DoctorVerificationProfile['verification_status'];
+    verification_reset: boolean;
+    information_changed: boolean;
+  };
 }

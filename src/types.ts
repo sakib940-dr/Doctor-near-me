@@ -180,6 +180,7 @@ export interface DoctorSearchRow {
   nearest_provider_address?: string | null;
   nearest_provider_latitude?: number | null;
   nearest_provider_longitude?: number | null;
+  verification_status?: 'pending' | 'approved' | 'rejected' | 'expired';
 }
 
 
@@ -240,6 +241,7 @@ export interface DoctorPublicProfile {
     designation: string | null;
     professional_title: string | null;
     bmdc_registration_no: string | null;
+    verification_status?: 'pending' | 'approved' | 'rejected' | 'expired';
     medical_college?: string | null;
     present_job?: string | null;
     experience_years: number | null;
@@ -504,6 +506,28 @@ export interface VerificationReviewDetail {
   verified_at: string | null;
   data: Record<string, unknown>;
   documents: VerificationEvidenceDocument[];
+}
+
+export interface DoctorVerificationProfile {
+  doctor_id: string;
+  medical_college: string | null;
+  medical_session: string | null;
+  medical_batch: string | null;
+  bmdc_registration_no: string | null;
+  degree: string | null;
+  verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
+  verification_note: string | null;
+  bmdc_verified: boolean;
+  verified_at: string | null;
+}
+
+export interface SuperAdminDoctorVerificationPolicy {
+  hide_unverified_doctors: boolean;
+  new_registration_requires_verification: boolean;
+  new_registration_verification_enabled_at: string | null;
+  active_pending_doctors: number;
+  currently_public_pending_doctors: number;
+  approved_active_doctors: number;
 }
 
 export interface AdminOperationalSummary {

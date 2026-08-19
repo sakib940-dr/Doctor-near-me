@@ -6,8 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { downloadPrescriptionPdf } from '../lib/prescriptionPdf';
 import { getMyDoctorProfile } from '../services/doctorDashboard';
 import {
+  DEFAULT_PRESCRIPTION_FOOTER,
   getMyPrescriptions,
   getPrescriptionAppointmentContext,
+  getPrescriptionFooter,
   saveMyPrescription,
   type ClinicalCategory,
   type PrescriptionAppointmentContext,
@@ -77,6 +79,63 @@ function filterLines(lines: string[]) {
   return lines.map((line) => line.trim()).filter(Boolean);
 }
 
+const PRESCRIPTION_WEEKDAYS = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহস্পতি', 'শুক্র', 'শনি'];
+
+const PRESCRIPTION_HEADER_MAX_CHARS = 800;
+const PRESCRIPTION_HEADER_MAX_LINES = 12;
+
+function limitPrescriptionHeader(value: string) {
+  return value.replace(/\r\n/g, '\n').split('\n').slice(0, PRESCRIPTION_HEADER_MAX_LINES).join('\n').slice(0, PRESCRIPTION_HEADER_MAX_CHARS);
+}
+
+function compactTime(value: string) {
+  return value?.slice(0, 5) || '';
+}
+
+function formatChamberVisitingTime(chamber: DoctorDashboardChamber | null) {
+  if (!chamber) return null;
+  const active = chamber.schedules.filter((schedule) => schedule.is_active);
+  if (!active.length) return null;
+  return active.map((schedule) => {
+    const day = PRESCRIPTION_WEEKDAYS[schedule.day_of_week] ?? `Day ${schedule.day_of_week}`;
+    return `${day} ${compactTime(schedule.start_time)}–${compactTime(schedule.end_time)}`;
+  }).join('; ');
+}
+
+function buildDoctorHeaderText(profile: MyDoctorProfile | null) {
+  if (!profile) return '';
+  const specialty = (profile.specialties ?? [])
+    .map((item) => item.name_en || item.name_bn)
+    .filter(Boolean)
+    .join(', ');
+  const doctor = profile.doctor;
+  return [
+    doctor.full_name ? `DR. ${doctor.full_name}` : 'Doctor',
+    specialty || doctor.professional_title,
+    doctor.degree,
+    doctor.designation,
+    doctor.present_job,
+    doctor.bmdc_registration_no ? `BMDC Reg No: ${doctor.bmdc_registration_no}` : null,
+  ].filter(Boolean).join('\n');
+}
+
+function buildChamberHeaderText(
+  chamber: DoctorDashboardChamber | null,
+  appointment: PrescriptionAppointmentContext | null,
+) {
+  const name = chamber?.name_bn ?? appointment?.provider_name ?? null;
+  const address = chamber?.address ?? appointment?.provider_address ?? null;
+  const phone = chamber?.phone ?? appointment?.provider_phone ?? null;
+  const visiting = formatChamberVisitingTime(chamber);
+  return [
+    'Chamber',
+    name,
+    address,
+    phone ? `Mobile: ${phone}` : null,
+    visiting ? `Visiting: ${visiting}` : null,
+  ].filter(Boolean).join('\n');
+}
+
 export default function DoctorPrescriptionPage() {
   const { account } = useAuth();
   const [searchParams] = useSearchParams();
@@ -96,6 +155,9 @@ export default function DoctorPrescriptionPage() {
   const [customAdvice, setCustomAdvice] = useState('');
   const [note, setNote] = useState('');
   const [recent, setRecent] = useState<PrescriptionSummary[]>([]);
+  const [prescriptionFooter, setPrescriptionFooter] = useState(DEFAULT_PRESCRIPTION_FOOTER);
+  const [doctorHeaderText, setDoctorHeaderText] = useState('');
+  const [chamberHeaderText, setChamberHeaderText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pdfWorking, setPdfWorking] = useState(false);
@@ -108,10 +170,15 @@ export default function DoctorPrescriptionPage() {
       setLoading(true);
       setError(null);
       try {
-        const [profile, history] = await Promise.all([getMyDoctorProfile(), getMyPrescriptions(12, 0).catch(() => [])]);
+        const [profile, history, footerText] = await Promise.all([
+          getMyDoctorProfile(),
+          getMyPrescriptions(12, 0).catch(() => []),
+          getPrescriptionFooter().catch(() => DEFAULT_PRESCRIPTION_FOOTER),
+        ]);
         if (!active) return;
         setDoctorProfile(profile);
         setRecent(history);
+        setPrescriptionFooter(footerText);
         const approved = profile?.chambers.filter((chamber) => chamber.link_status === 'approved' && chamber.provider_status === 'approved') ?? [];
         if (approved[0]) setSelectedChamberId(approved[0].id);
 
@@ -141,6 +208,16 @@ export default function DoctorPrescriptionPage() {
   const selectedChamber = useMemo<DoctorDashboardChamber | null>(() => {
     return doctorProfile?.chambers.find((chamber) => chamber.id === selectedChamberId) ?? null;
   }, [doctorProfile?.chambers, selectedChamberId]);
+
+  useEffect(() => {
+    if (!doctorProfile) return;
+    setDoctorHeaderText((current) => current || buildDoctorHeaderText(doctorProfile));
+  }, [doctorProfile]);
+
+  useEffect(() => {
+    if (!doctorProfile) return;
+    setChamberHeaderText(buildChamberHeaderText(selectedChamber, appointmentContext));
+  }, [appointmentContext, doctorProfile, selectedChamber]);
 
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
 
@@ -181,6 +258,9 @@ export default function DoctorPrescriptionPage() {
   function buildPayload(): PrescriptionPayload {
     return {
       appointment_id: appointmentContext?.appointment_id ?? null,
+      provider_id: selectedChamberId || appointmentContext?.provider_id || null,
+      doctor_header_text: (doctorHeaderText.trim() || buildDoctorHeaderText(doctorProfile)).slice(0, PRESCRIPTION_HEADER_MAX_CHARS),
+      chamber_header_text: chamberHeaderText.trim().slice(0, PRESCRIPTION_HEADER_MAX_CHARS),
       patient_name: patientName.trim(),
       patient_age: patientAge.trim(),
       patient_address: patientAddress.trim(),
@@ -235,14 +315,26 @@ export default function DoctorPrescriptionPage() {
     setPdfWorking(true);
     setError(null);
     try {
+      const currentFooter = await getPrescriptionFooter().catch(() => prescriptionFooter);
+      setPrescriptionFooter(currentFooter);
+      const specialty = (doctorProfile.specialties ?? [])
+        .map((item) => item.name_en || item.name_bn)
+        .filter(Boolean)
+        .join(', ');
       await downloadPrescriptionPdf(payload, {
         doctorName: doctorProfile.doctor.full_name || account?.full_name || 'Doctor',
         degree: doctorProfile.doctor.degree,
         designation: doctorProfile.doctor.designation,
+        specialty: specialty || doctorProfile.doctor.professional_title,
         bmdcRegistrationNo: doctorProfile.doctor.bmdc_registration_no,
-        chamberName: appointmentContext?.provider_name ?? selectedChamber?.name_bn ?? null,
-        chamberAddress: appointmentContext?.provider_address ?? selectedChamber?.address ?? null,
-        chamberPhone: appointmentContext?.provider_phone ?? selectedChamber?.phone ?? null,
+        presentJob: doctorProfile.doctor.present_job,
+        chamberName: selectedChamber?.name_bn ?? appointmentContext?.provider_name ?? null,
+        chamberAddress: selectedChamber?.address ?? appointmentContext?.provider_address ?? null,
+        chamberPhone: selectedChamber?.phone ?? appointmentContext?.provider_phone ?? null,
+        chamberVisitingTime: formatChamberVisitingTime(selectedChamber),
+        doctorHeaderText: doctorHeaderText.trim() || buildDoctorHeaderText(doctorProfile),
+        chamberHeaderText: chamberHeaderText.trim(),
+        footerText: currentFooter,
       });
     } catch (pdfError) {
       setError(pdfError instanceof Error ? pdfError.message : 'PDF তৈরি করা যায়নি।');
@@ -279,6 +371,39 @@ export default function DoctorPrescriptionPage() {
 
         {error && <div className="error-box" role="alert">{error}</div>}
         {success && <div className="rx-success-box">{success}</div>}
+
+        <section className="rx-card rx-prescription-header-card">
+          <div className="rx-section-title">
+            <div>
+              <h2>Prescription header</h2>
+              <p>Visiting Card ও Chamber Details থেকে auto-filled। এখানে করা edit শুধু এই prescription/PDF-এর header snapshot-এ থাকবে।</p>
+            </div>
+          </div>
+          <div className="rx-header-editor-grid">
+            <label className="rx-header-editor">
+              <span><strong>Doctor / Visiting Card</strong><small>{doctorHeaderText.length}/{PRESCRIPTION_HEADER_MAX_CHARS}</small></span>
+              <textarea
+                value={doctorHeaderText}
+                maxLength={PRESCRIPTION_HEADER_MAX_CHARS}
+                rows={6}
+                onChange={(event) => setDoctorHeaderText(limitPrescriptionHeader(event.target.value))}
+                placeholder="Doctor name, degree, specialty, designation, BMDC…"
+              />
+              <button type="button" className="rx-reset-header" onClick={() => setDoctorHeaderText(buildDoctorHeaderText(doctorProfile))}>Visiting Card থেকে reset</button>
+            </label>
+            <label className="rx-header-editor">
+              <span><strong>Chamber Details</strong><small>{chamberHeaderText.length}/{PRESCRIPTION_HEADER_MAX_CHARS}</small></span>
+              <textarea
+                value={chamberHeaderText}
+                maxLength={PRESCRIPTION_HEADER_MAX_CHARS}
+                rows={6}
+                onChange={(event) => setChamberHeaderText(limitPrescriptionHeader(event.target.value))}
+                placeholder="Chamber name, address, contact, visiting time…"
+              />
+              <button type="button" className="rx-reset-header" onClick={() => setChamberHeaderText(buildChamberHeaderText(selectedChamber, appointmentContext))}>Chamber Details থেকে reset</button>
+            </label>
+          </div>
+        </section>
 
         <section className="rx-card rx-patient-card">
           <div className="rx-section-title"><FileText /><div><h2>Patient information</h2>{appointmentId && <p>Appointment থেকে তথ্য auto-filled হয়েছে; প্রয়োজনে edit করতে পারবেন।</p>}</div></div>

@@ -106,3 +106,19 @@ export async function deleteAdminSpecialtyImage(path: string | null | undefined)
   if (error) throw error;
   return true;
 }
+
+
+export async function getAdminPrescriptionFooter() {
+  const { data, error } = await requireSupabase().rpc('get_prescription_footer');
+  if (error) throw error;
+  return typeof data === 'string' ? data : '';
+}
+
+export async function saveAdminPrescriptionFooter(text: string) {
+  if (text.length > 500) throw new Error('Prescription footer সর্বোচ্চ 500 characters হতে পারবে।');
+  const { data, error } = await requireSupabase().rpc('save_admin_prescription_footer', {
+    p_text: text,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}

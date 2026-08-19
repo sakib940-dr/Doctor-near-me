@@ -93,7 +93,7 @@ export default function DoctorProfile() {
         {loading && <div className="loading-box"><LoaderCircle className="spin" /> প্রোফাইল লোড হচ্ছে…</div>}
         {error && <div className="error-box" role="alert">{error}</div>}
         {!loading && isSupabaseConfigured && !error && !profile && (
-          <div className="empty-state"><span>🩺</span><h3>ডাক্তার পাওয়া যায়নি</h3><p>প্রোফাইলটি অননুমোদিত, নিষ্ক্রিয় অথবা মুছে ফেলা হয়েছে।</p></div>
+          <div className="empty-state"><span><Stethoscope /></span><h3>ডাক্তার পাওয়া যায়নি</h3><p>প্রোফাইলটি অননুমোদিত, নিষ্ক্রিয় অথবা মুছে ফেলা হয়েছে।</p></div>
         )}
 
         {profile && <>

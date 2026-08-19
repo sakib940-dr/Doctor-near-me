@@ -119,7 +119,7 @@ export default function DashboardPage() {
     }).catch(() => undefined);
   }, [account]);
 
-  if (!loading && account && !account.profile_completed) return <Navigate to="/onboarding" replace />;
+  if (!loading && account && ((['doctor', 'hospital'].includes(account.role) && !account.onboarding_completed) || (!['doctor', 'hospital'].includes(account.role) && !account.profile_completed))) return <Navigate to="/onboarding" replace />;
 
   async function logout() { await signOut(); navigate('/', { replace: true }); }
 

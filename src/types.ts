@@ -1,14 +1,22 @@
 export type SearchMode = 'doctor' | 'ambulance';
 export type PublicRegistrationRole = 'patient' | 'doctor' | 'hospital' | 'ambulance';
 export type UserRole = PublicRegistrationRole | 'chamber' | 'verification_officer' | 'admin' | 'super_admin';
+export type DashboardRole = UserRole;
 
 export interface AccountContext {
   user_id: string;
   role: UserRole;
   account_status: 'active' | 'suspended' | 'banned';
   full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
   avatar_url: string | null;
   profile_completed: boolean;
+  onboarding_step: number;
+  onboarding_completed: boolean;
+  onboarding_completed_at: string | null;
 }
 
 export interface DashboardContext extends AccountContext {
@@ -337,6 +345,11 @@ export interface MyDoctorProfile {
     accepting_appointments: boolean;
   };
   specialty_ids: number[];
+  specialties?: Array<{
+    id: number;
+    name_bn: string;
+    name_en: string | null;
+  }>;
   chambers: DoctorDashboardChamber[];
 }
 

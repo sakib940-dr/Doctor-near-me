@@ -31,5 +31,18 @@ export async function completeAccountOnboarding(input: {
     },
   );
   if (error) throw error;
-  return data as { user_id: string; role: PublicRegistrationRole; profile_completed: boolean };
+  return data as { user_id: string; role: PublicRegistrationRole; profile_completed: boolean; onboarding_step?: number; onboarding_completed?: boolean };
 }
+
+export async function setMyOnboardingStep(step: number) {
+  const { data, error } = await requireSupabase().rpc('set_my_onboarding_step', { p_step: step });
+  if (error) throw error;
+  return Number(data);
+}
+
+export async function finishMyRoleOnboarding() {
+  const { data, error } = await requireSupabase().rpc('finish_my_role_onboarding');
+  if (error) throw error;
+  return data as { completed: boolean; role: PublicRegistrationRole; onboarding_step: number };
+}
+

@@ -2,12 +2,10 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   Ambulance,
-  BarChart3,
   Building2,
   CalendarDays,
   Clock,
   FileCheck2,
-  Globe2,
   HeartPulse,
   LayoutDashboard,
   Link2,
@@ -28,7 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getAdminOperationalSummary } from '../services/adminDashboard';
 import { getMyDoctorProviderInvitations } from '../services/providerDashboard';
 import { getVerificationReviewQueue } from '../services/verification';
-import type { DashboardRole } from './DashboardBottomNav';
+import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
 
 interface DashboardShellProps {
@@ -146,9 +144,6 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Verification', path: '/doctor/verification', icon: ShieldCheck },
           { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
           { label: 'Providers / Invitations', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
-          { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
-          { label: 'My Website', path: '/doctor/website', icon: Globe2 },
-          { label: 'Settings', path: '/doctor/settings', icon: Settings },
         ];
       case 'patient':
         return [

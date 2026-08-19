@@ -6,16 +6,22 @@ export interface PrescriptionPdfHeader {
   doctorName: string;
   degree?: string | null;
   designation?: string | null;
+  specialty?: string | null;
   bmdcRegistrationNo?: string | null;
+  presentJob?: string | null;
   chamberName?: string | null;
   chamberAddress?: string | null;
   chamberPhone?: string | null;
+  chamberVisitingTime?: string | null;
+  doctorHeaderText?: string | null;
+  chamberHeaderText?: string | null;
+  footerText?: string | null;
 }
 
 type FontStyle = 'normal' | 'bold' | 'italic' | 'bolditalic';
 type Align = 'left' | 'right' | 'center';
 
-const BENGALI_FONT_FAMILY = 'DoctorNearMeNotoBengali';
+const BENGALI_FONT_FAMILY = 'DocbdNotoBengali';
 const hasBangla = (value: unknown) => /[\u0980-\u09FF\u0964\u0965]/.test(String(value ?? ''));
 const isBanglaChar = (ch: string) => /[\u0980-\u09FF\u0964\u0965]/.test(ch);
 const isJoiner = (ch: string) => ch === '\u200C' || ch === '\u200D';
@@ -138,6 +144,21 @@ function drawBangla(doc: jsPDF, text: string, x: number, baselineY: number, font
 
 function wrapMixed(doc: jsPDF, value: string, maxWidth: number, style: FontStyle, fontSizePt: number) {
   const lines: string[] = [];
+
+  const pushOversizedToken = (token: string) => {
+    let fragment = '';
+    for (const char of Array.from(token)) {
+      const candidate = fragment + char;
+      if (fragment && measureMixed(doc, candidate, style, fontSizePt) > maxWidth) {
+        lines.push(fragment);
+        fragment = char;
+      } else {
+        fragment = candidate;
+      }
+    }
+    return fragment;
+  };
+
   for (const paragraph of value.split(/\r?\n/)) {
     if (!paragraph) {
       lines.push('');
@@ -147,12 +168,21 @@ function wrapMixed(doc: jsPDF, value: string, maxWidth: number, style: FontStyle
     let line = '';
     for (const token of tokens) {
       const candidate = line + token;
-      if (!line || measureMixed(doc, candidate, style, fontSizePt) <= maxWidth) {
+      if (measureMixed(doc, candidate, style, fontSizePt) <= maxWidth) {
         line = candidate;
         continue;
       }
-      lines.push(line.trimEnd());
-      line = token.trimStart();
+      if (line.trim()) {
+        lines.push(line.trimEnd());
+        line = '';
+      }
+      const trimmed = token.trimStart();
+      if (!trimmed) continue;
+      if (measureMixed(doc, trimmed, style, fontSizePt) <= maxWidth) {
+        line = trimmed;
+      } else {
+        line = pushOversizedToken(trimmed);
+      }
     }
     if (line) lines.push(line.trimEnd());
   }
@@ -197,6 +227,61 @@ function writeText(
   return lines.length;
 }
 
+function headerTextFromStructuredDoctor(header: PrescriptionPdfHeader) {
+  const designationJob = [header.designation, header.presentJob].filter(Boolean).join(' • ');
+  return [
+    header.doctorName ? `DR. ${header.doctorName}` : 'Doctor',
+    header.specialty,
+    header.degree,
+    designationJob || null,
+    header.bmdcRegistrationNo ? `BMDC Reg No: ${header.bmdcRegistrationNo}` : null,
+  ].filter(Boolean).join('\n');
+}
+
+function headerTextFromStructuredChamber(header: PrescriptionPdfHeader) {
+  return [
+    'Chamber',
+    header.chamberName,
+    header.chamberAddress,
+    header.chamberPhone ? `Mobile: ${header.chamberPhone}` : null,
+    header.chamberVisitingTime ? `Visiting: ${header.chamberVisitingTime}` : null,
+  ].filter(Boolean).join('\n');
+}
+
+function normalizedHeaderLines(value: string) {
+  return value.replace(/\r\n/g, '\n').split('\n').map((line) => line.trimEnd());
+}
+
+function headerBlockHeight(doc: jsPDF, value: string, maxWidth: number) {
+  const lines = normalizedHeaderLines(value);
+  let height = 0;
+  lines.forEach((line, index) => {
+    const fontSize = index === 0 ? 14.5 : 9.1;
+    const style: FontStyle = index === 0 ? 'bold' : 'normal';
+    const wrapped = wrapMixed(doc, line || ' ', maxWidth, style, fontSize);
+    height += Math.max(1, wrapped.length) * (index === 0 ? 5.4 : 4.1);
+  });
+  return height;
+}
+
+function drawHeaderBlock(
+  doc: jsPDF,
+  value: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  align: Align,
+) {
+  let cursorY = y;
+  normalizedHeaderLines(value).forEach((line, index) => {
+    const fontSize = index === 0 ? 14.5 : 9.1;
+    const style: FontStyle = index === 0 ? 'bold' : 'normal';
+    doc.setFontSize(fontSize);
+    const wrappedCount = writeText(doc, line || ' ', x, cursorY, { style, align, maxWidth });
+    cursorY += Math.max(1, wrappedCount) * (index === 0 ? 5.4 : 4.1);
+  });
+}
+
 function medicineSecondLine(medicine: PrescriptionMedicineInput) {
   const parts = [medicine.dose, medicine.meal_instruction, medicine.duration_days ? `${medicine.duration_days} দিন` : ''].filter(Boolean);
   return parts.join('   —   ');
@@ -211,9 +296,20 @@ export async function downloadPrescriptionPdf(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 13;
-  const headerHeight = 35;
   const patientHeight = 18;
-  const footerHeight = 12;
+  const footerText = header.footerText ?? 'Generated from docbd.info • Please follow the doctor’s instructions.';
+  const doctorHeaderText = (header.doctorHeaderText?.trim() || headerTextFromStructuredDoctor(header)).trim();
+  const chamberHeaderText = (header.chamberHeaderText?.trim() || headerTextFromStructuredChamber(header)).trim();
+  const headerGap = 10;
+  const headerColumnWidth = (pageWidth - margin * 2 - headerGap) / 2;
+  const headerContentHeight = Math.max(
+    headerBlockHeight(doc, doctorHeaderText, headerColumnWidth),
+    headerBlockHeight(doc, chamberHeaderText, headerColumnWidth),
+  );
+  const headerHeight = Math.max(40, 7 + headerContentHeight);
+  doc.setFontSize(8.5);
+  const footerLineCount = footerText ? wrapMixed(doc, footerText, pageWidth - margin * 2, 'normal', 8.5).length : 0;
+  const footerHeight = Math.max(12, footerText ? 7 + footerLineCount * 4.1 : 8);
   const mainTop = headerHeight + patientHeight;
   const footerTop = pageHeight - footerHeight;
   const dividerX = margin + (pageWidth - margin * 2) * 0.36;
@@ -223,24 +319,8 @@ export async function downloadPrescriptionPdf(
   doc.setFillColor(239, 244, 242);
   doc.rect(0, 0, pageWidth, headerHeight, 'F');
   doc.setTextColor(20, 30, 27);
-  doc.setFontSize(15);
-  writeText(doc, `DR. ${header.doctorName.toUpperCase()}`, margin, 10, { style: 'bold' });
-  doc.setFontSize(9.5);
-  let doctorY = 16;
-  for (const line of [header.designation, header.degree, header.bmdcRegistrationNo ? `BMDC Reg No: ${header.bmdcRegistrationNo}` : null].filter(Boolean) as string[]) {
-    writeText(doc, line, margin, doctorY, { style: doctorY === 16 ? 'bold' : 'normal' });
-    doctorY += 4.5;
-  }
-
-  let chamberY = 9;
-  doc.setFontSize(10.5);
-  writeText(doc, 'Chamber', pageWidth - margin, chamberY, { style: 'bold', align: 'right' });
-  doc.setFontSize(9.2);
-  chamberY += 5;
-  for (const line of [header.chamberName, header.chamberAddress, header.chamberPhone ? `Mobile: ${header.chamberPhone}` : null].filter(Boolean) as string[]) {
-    writeText(doc, line, pageWidth - margin, chamberY, { align: 'right' });
-    chamberY += 4.4;
-  }
+  drawHeaderBlock(doc, doctorHeaderText, margin, 9.5, headerColumnWidth, 'left');
+  drawHeaderBlock(doc, chamberHeaderText, pageWidth - margin, 9.5, headerColumnWidth, 'right');
 
   const patientTop = headerHeight;
   doc.setFontSize(10.5);
@@ -319,9 +399,11 @@ export async function downloadPrescriptionPdf(
 
   doc.setDrawColor(90, 100, 96);
   doc.line(margin, footerTop, pageWidth - margin, footerTop);
-  doc.setTextColor(100, 110, 106);
-  doc.setFontSize(8.5);
-  writeText(doc, 'Generated from docbd.info • Please follow the doctor’s instructions.', pageWidth / 2, footerTop + 7, { style: 'italic', align: 'center' });
+  if (footerText) {
+    doc.setTextColor(100, 110, 106);
+    doc.setFontSize(8.5);
+    writeText(doc, footerText, pageWidth / 2, footerTop + 6, { align: 'center', maxWidth: pageWidth - margin * 2 });
+  }
 
   const safeName = payload.patient_name.trim().replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'patient';
   doc.save(`Prescription_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`);

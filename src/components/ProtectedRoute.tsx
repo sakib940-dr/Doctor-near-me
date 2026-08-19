@@ -4,13 +4,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, account, loading } = useAuth();
   const location = useLocation();
 
   if (!isSupabaseConfigured) {
     return <div className="route-state"><ShieldCheck /><h2>Supabase configuration প্রয়োজন</h2><p>Vercel environment variables যোগ করার পর এই protected page কাজ করবে।</p></div>;
   }
   if (loading) return <div className="route-state"><LoaderCircle className="spin" /> সেশন যাচাই হচ্ছে…</div>;
-  if (!user) return <Navigate to="/auth" replace state={{ from: location.pathname }} />;
+  if (!user) return <Navigate to="/auth" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (account && ['doctor', 'hospital'].includes(account.role) && !account.onboarding_completed && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
   return children;
 }

@@ -1,5 +1,13 @@
 import { requireSupabase } from '../lib/supabase';
 
+export const DEFAULT_PRESCRIPTION_FOOTER = 'Generated from docbd.info • Please follow the doctor’s instructions.';
+
+export async function getPrescriptionFooter() {
+  const { data, error } = await requireSupabase().rpc('get_prescription_footer');
+  if (error) throw error;
+  return typeof data === 'string' ? data : DEFAULT_PRESCRIPTION_FOOTER;
+}
+
 export type ClinicalCategory =
   | 'chief_complaint'
   | 'history'
@@ -59,6 +67,9 @@ export interface PrescriptionMedicineInput {
 
 export interface PrescriptionPayload {
   appointment_id: string | null;
+  provider_id: string | null;
+  doctor_header_text: string;
+  chamber_header_text: string;
   patient_name: string;
   patient_age: string;
   patient_address: string;

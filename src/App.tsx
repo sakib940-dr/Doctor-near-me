@@ -17,6 +17,7 @@ import DoctorDirectory from './pages/DoctorDirectory';
 import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
 import DoctorProfile from './pages/DoctorProfile';
+import DoctorPrescriptionPage from './pages/DoctorPrescriptionPage';
 import DoctorSchedulePage from './pages/DoctorSchedulePage';
 import OnboardingPage from './pages/OnboardingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
@@ -52,6 +53,7 @@ export default function App() {
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/invitations" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorInvitationsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/prescriptions" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPrescriptionPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderAppointmentsPage /></RoleAwareDashboardShell></ProtectedRoute>} />

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Clock,
   LayoutDashboard,
+  FileText,
   Mail,
   Search,
   ShieldCheck,
@@ -27,6 +28,7 @@ const bottomItems: Record<DashboardRole, BottomNavItem[]> = {
   doctor: [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
     { label: 'Appointments', path: '/doctor/appointments', icon: CalendarDays },
+    { label: 'Rx', path: '/doctor/prescriptions', icon: FileText },
     { label: 'Schedule', path: '/doctor/schedules', icon: Clock },
     { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
   ],

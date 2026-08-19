@@ -4067,3 +4067,116 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   .admin-main,.cms-main,.super-main,.verification-main{max-width:1280px}
   .admin-appointment-list article{grid-template-columns:minmax(0,1fr) auto 160px}
 }
+
+/* ============================================================
+   Doctor prescription module
+   ============================================================ */
+.prescription-page .doctor-dashboard-main{padding-bottom:120px}
+.prescription-page-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:18px 0 20px}
+.prescription-page-heading>div:first-child>span{display:block;margin-bottom:5px;color:#0c8955;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.prescription-page-heading h1{margin:0;color:#0b3f32;font-size:32px;line-height:1.1}
+.prescription-page-heading p{margin:7px 0 0;color:#6b7a75}
+.prescription-heading-actions{display:flex;gap:10px;flex-wrap:wrap}
+.rx-primary-button,.rx-secondary-button,.rx-add-medicine,.rx-custom-advice button,.rx-appointment-prescription-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border-radius:11px;padding:10px 15px;font-weight:850;text-decoration:none;cursor:pointer}
+.rx-primary-button,.rx-add-medicine,.rx-appointment-prescription-link{border:1px solid #0b8a59;background:#0b8a59;color:#fff}
+.rx-secondary-button{border:1px solid #cfe2db;background:#fff;color:#0b7150}
+.rx-primary-button svg,.rx-secondary-button svg,.rx-add-medicine svg,.rx-appointment-prescription-link svg{width:18px;height:18px}
+.rx-primary-button:disabled,.rx-secondary-button:disabled{opacity:.6;cursor:not-allowed}
+.rx-success-box{margin:12px 0;padding:12px 14px;border:1px solid #b9e5cd;border-radius:12px;background:#eefbf3;color:#17683f;font-weight:700}
+.rx-card{border:1px solid #dfeae6;border-radius:18px;background:#fff;box-shadow:0 12px 32px rgba(21,57,45,.06)}
+.rx-patient-card{padding:18px;margin-bottom:18px}
+.rx-section-title{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;color:#0a4e3b}
+.rx-section-title>svg{width:22px;height:22px;margin-top:1px}
+.rx-section-title h2{margin:0;font-size:19px}
+.rx-section-title p{margin:4px 0 0;color:#72807c;font-size:12.5px}
+.rx-patient-grid{display:grid;grid-template-columns:2fr .7fr .7fr 1.1fr;gap:11px}
+.rx-patient-grid label,.rx-note-field{display:flex;flex-direction:column;gap:6px;color:#40534d;font-size:12px;font-weight:800}
+.rx-patient-grid input,.rx-patient-grid select,.rx-note-field textarea,.rx-custom-advice input,.rx-med-row input,.rx-med-row select{width:100%;box-sizing:border-box;border:1.5px solid #d6e2de;border-radius:10px;background:#fff;color:#17231f;font:inherit;outline:none;transition:border .15s ease,box-shadow .15s ease}
+.rx-patient-grid input,.rx-patient-grid select,.rx-custom-advice input,.rx-med-row input,.rx-med-row select{min-height:42px;padding:9px 10px}
+.rx-patient-grid input:focus,.rx-patient-grid select:focus,.rx-note-field textarea:focus,.rx-custom-advice input:focus,.rx-med-row input:focus{border-color:#1b9a6b;box-shadow:0 0 0 3px rgba(27,154,107,.1)}
+.rx-address-field{grid-column:span 2}
+.rx-workspace{display:grid;grid-template-columns:minmax(300px,.82fr) minmax(430px,1.18fr);gap:18px;align-items:start}
+.rx-clinical-card,.rx-medicine-card-wrap{padding:18px;min-width:0}
+.rx-clinical-section{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:13px 0;border-top:1px solid #edf2f0}
+.rx-clinical-section:first-of-type{border-top:0}
+.rx-clinical-section>strong{padding-top:10px;color:#0b4f3c;font-size:13px}
+.rx-clinical-lines{display:flex;flex-direction:column;gap:7px;min-width:0}
+.rx-clinical-line{display:flex;gap:6px;align-items:flex-start;min-width:0}
+.rx-clinical-line>.rx-autocomplete{flex:1;min-width:0}
+.rx-clinical-line>button,.rx-custom-advice-item button,.rx-added-medicines article>div:last-child button{display:grid;place-items:center;width:38px;height:38px;flex:0 0 auto;border:1px solid #ead8d8;border-radius:9px;background:#fff;color:#b54d4d;cursor:pointer}
+.rx-clinical-line>button svg,.rx-custom-advice-item button svg,.rx-added-medicines article>div:last-child button svg{width:17px;height:17px}
+.rx-add-line{display:inline-flex;align-items:center;gap:5px;width:max-content;border:0;background:transparent;color:#0b8058;font-weight:800;cursor:pointer;padding:3px 0}
+.rx-add-line svg{width:15px;height:15px}
+.rx-autocomplete{position:relative;min-width:0}
+.rx-autocomplete>input{width:100%;box-sizing:border-box;min-height:42px;border:1.5px solid #d6e2de;border-radius:10px;padding:9px 10px;background:#fff;color:#18241f;font:inherit;outline:none}
+.rx-autocomplete>input:focus{border-color:#1b9a6b;box-shadow:0 0 0 3px rgba(27,154,107,.1)}
+.rx-autocomplete-loading{position:absolute;right:10px;top:9px;color:#75837e}
+.rx-suggestion-popover{position:absolute;z-index:110;top:calc(100% + 5px);left:0;right:0;max-height:310px;overflow-y:auto;border:1px solid #d7e2de;border-radius:12px;padding:5px;background:#fff;box-shadow:0 18px 40px rgba(15,56,42,.16)}
+.rx-suggestion-popover>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;border:0;border-radius:9px;padding:9px 10px;background:transparent;color:#17231f;text-align:left;font:inherit;cursor:pointer}
+.rx-suggestion-popover>button:hover,.rx-suggestion-popover>button.active{background:#eef8f3}
+.rx-suggestion-copy{display:flex;min-width:0;flex-direction:column;gap:2px}
+.rx-suggestion-copy strong{font-size:13px;line-height:1.28}
+.rx-suggestion-copy small{color:#71807b;font-size:11px;line-height:1.28}
+.rx-suggestion-popover em{flex:0 0 auto;border-radius:999px;padding:2px 7px;background:#e8f5ef;color:#08734d;font-size:9.5px;font-style:normal;font-weight:850}
+.rx-instruction-popover{max-height:250px}
+.rx-clinical-popover{max-height:280px}
+.rx-medicine-composer{display:flex;flex-direction:column;gap:9px;border:1px solid #e0ebe7;border-radius:14px;padding:14px;background:#f9fcfb}
+.rx-med-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:11px;align-items:center;min-width:0}
+.rx-med-row>span{color:#40534d;font-size:12.5px;font-weight:850}
+.rx-days-input{display:flex;width:min(240px,100%);align-items:stretch}
+.rx-days-input input{border-radius:10px 0 0 10px;border-right:0}
+.rx-days-input b{display:flex;min-width:58px;align-items:center;justify-content:center;border:1.5px solid #d6e2de;border-radius:0 10px 10px 0;background:#f0f5f3;color:#234b3d;font-size:13px}
+.rx-add-medicine{align-self:flex-end;margin-top:3px}
+.rx-added-medicines{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.rx-added-medicines article{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border:1px solid #e0ebe7;border-radius:12px;padding:11px 12px;background:#fff}
+.rx-added-medicines article strong{display:block;color:#15241f;font-size:14px}
+.rx-added-medicines article p{margin:4px 0 0;color:#4d5f59;font-size:12.5px;line-height:1.45}
+.rx-added-medicines article>div:last-child{display:flex;gap:6px}
+.rx-added-medicines article>div:last-child button:first-child{width:auto;padding:0 10px;color:#0b7954;border-color:#cde2da;font-weight:800}
+.rx-empty-hint{margin:8px 0;color:#7a8783;font-size:12px}
+.rx-advice-section{margin-top:20px;padding-top:16px;border-top:1px solid #e5eeeb}
+.rx-advice-section h3{margin:0 0 10px;color:#0b4f3c}
+.rx-advice-list{display:grid;gap:7px}
+.rx-advice-list label{display:flex;gap:9px;align-items:flex-start;border-radius:9px;padding:8px;background:#f8fbfa;color:#344740;font-size:12.5px;line-height:1.45;cursor:pointer}
+.rx-advice-list input{margin-top:3px}
+.rx-custom-advice{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+.rx-custom-advice button{border:1px solid #0b8a59;background:#0b8a59;color:#fff}
+.rx-custom-advice-item{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;border:1px solid #dfeae6;border-radius:9px;padding:8px 9px;font-size:12.5px}
+.rx-note-field{margin-top:16px}
+.rx-note-field textarea{min-height:84px;padding:10px;resize:vertical}
+.rx-recent-prescriptions{margin-top:18px;padding:18px}
+.rx-recent-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rx-recent-grid article{display:flex;flex-direction:column;gap:3px;border:1px solid #e0ebe7;border-radius:12px;padding:12px;background:#fbfdfc}
+.rx-recent-grid strong{color:#163b2f}
+.rx-recent-grid span,.rx-recent-grid small{color:#71807b;font-size:11.5px}
+.rx-appointment-prescription-link{min-height:38px;padding:8px 11px}
+
+@media(max-width:1050px){
+  .rx-workspace{grid-template-columns:1fr}
+  .rx-patient-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rx-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  .prescription-page-heading{flex-direction:column}
+  .prescription-page-heading h1{font-size:27px}
+  .prescription-heading-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .rx-patient-card,.rx-clinical-card,.rx-medicine-card-wrap,.rx-recent-prescriptions{padding:13px}
+  .rx-patient-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .rx-address-field{grid-column:1/-1}
+  .rx-clinical-section{grid-template-columns:1fr;gap:6px}
+  .rx-clinical-section>strong{padding-top:0}
+  .rx-med-row{grid-template-columns:96px minmax(0,1fr);gap:8px}
+  .rx-med-row>span{font-size:11.5px}
+  .rx-add-medicine{width:100%}
+  .rx-added-medicines article{flex-direction:column}
+  .rx-added-medicines article>div:last-child{align-self:flex-end}
+  .rx-recent-grid{grid-template-columns:1fr}
+  .rx-suggestion-popover{max-height:235px}
+}
+@media(max-width:480px){
+  .rx-patient-grid{grid-template-columns:1fr}
+  .rx-address-field{grid-column:auto}
+  .rx-med-row{grid-template-columns:82px minmax(0,1fr)}
+  .rx-days-input{width:100%}
+  .rx-custom-advice{grid-template-columns:1fr}
+}

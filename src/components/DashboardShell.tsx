@@ -137,6 +137,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { label: 'Appointments', path: '/doctor/appointments', icon: CalendarDays },
+          { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
           { label: 'Schedule', path: '/doctor/schedules', icon: Clock },
           { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
           { label: 'Providers / Invitations', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },

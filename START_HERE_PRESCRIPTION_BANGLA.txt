@@ -1,0 +1,92 @@
+DOCTOR NEAR ME — PRESCRIPTION MODULE SETUP
+=========================================
+
+এই ZIP-এ prescription module + DGDA medicine catalog import file সব দেওয়া আছে।
+
+যদি আপনার existing Supabase database-এ 01–25 migrations আগে থেকেই run করা থাকে:
+
+STEP 1 — SQL RUN
+----------------
+Supabase Dashboard > SQL Editor খুলুন।
+এই file-এর পুরো SQL run করুন:
+
+  supabase/26_doctor_prescription_module.sql
+
+একবারই run করলেই হবে। Fileটি re-run safe ভাবে লেখা হয়েছে।
+
+STEP 2 — DRUG DATABASE IMPORT
+-----------------------------
+Supabase Dashboard > Table Editor > drug_master খুলুন।
+Import data from CSV নির্বাচন করে এই file import করুন:
+
+  supabase/data/dgda_drug_master_import.csv
+
+CSV-তে 41,121টি normalized medicine catalog record আছে।
+Column mapping header অনুযায়ী রাখবেন।
+
+যদি Supabase import UI row limit/timeout দেয়, CSV-টি ছোট batch-এ ভাগ করে import করতে হবে।
+
+STEP 3 — GITHUB / DEPLOY
+------------------------
+এই project folder GitHub repository-তে push করুন।
+তারপর local/Vercel build-এর জন্য:
+
+  npm install
+  npm run build
+
+এই ZIP-এ package-lock.json intentionally রাখা হয়নি, কারণ uploaded project-এর পুরনো lockfile আগেই package.json-এর সাথে out-of-sync ছিল। প্রথমবার `npm install` চালালে fresh package-lock.json তৈরি হবে। GitHub repo-তে পুরনো package-lock.json থাকলে সেটি delete করে নতুনটি commit করবেন।
+
+STEP 4 — TEST
+-------------
+Doctor account দিয়ে login করুন।
+
+A) Doctor menu > Prescription
+B) অথবা Doctor Appointments > confirmed/completed patient > Prescription
+
+Test করুন:
+
+1. Medicine field-এ "napa" লিখুন
+   Expected example:
+   TAB. Napa 500 mg
+   Paracetamol • Beximco Pharmaceuticals Ltd.
+
+2. Medicine select করার পর শুধু display name medicine field-এ থাকবে।
+
+3. Dose field click করুন:
+   1+1+1 / 1+0+1 / 0+0+1 ইত্যাদি Common suggestion থাকবে।
+
+4. খাওয়ার নিয়ম field click করুন:
+   বাংলা Common template দেখাবে। Doctor নিজের text-ও লিখতে পারবেন।
+
+5. মেয়াদে শুধু number লিখুন, যেমন 3 বা 7। UI/PDF-এ "দিন" auto হবে।
+
+6. Prescription Save করার পর doctor-এর ব্যবহৃত custom dose, খাওয়ার নিয়ম ও clinical phrase তার own Recent suggestions-এ আগে দেখাবে।
+
+7. C/C, H/O, O/E, Investigation, Treatment Plan-এ type করলে phrase-এর যেকোনো matching word/partial word থেকে suggestion আসবে।
+
+8. PDF download করে বাংলা sentence-এর শেষে "।" ঠিক আছে কিনা test করুন। Bengali danda U+0964/U+0965 renderer-এ handle করা হয়েছে।
+
+FEATURES INCLUDED
+-----------------
+- Doctor Prescription route/menu
+- Appointment থেকে patient auto-fill
+- Single-entry, 4-row medicine composer
+- DGDA medicine autocomplete
+- Brand/Form/Strength first line; Generic/Company second line
+- Recent prescribed medicine priority
+- Doctor-specific learned Dose / Meal instruction suggestions
+- 20 dental C/C templates
+- 20 H/O templates
+- 20 O/E templates
+- 20 Investigation templates
+- 20 Treatment Plan templates
+- Any-word/partial-word clinical search
+- 10 Bangla advice templates
+- Save prescription + recent history
+- Bangla/English mixed PDF
+- Each medicine prints in 2 logical lines
+- Mobile responsive UI
+
+IMPORTANT
+---------
+Medicine catalog থেকে dose, duration বা খাবারের নিয়ম auto-prescribe করা হয় না। Doctor নিজে এগুলো select/type করেন।

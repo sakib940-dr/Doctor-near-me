@@ -1,0 +1,22 @@
+DOCTOR NEAR ME — PRESCRIPTION INTEGRATION MANIFEST
+
+New/updated prescription files:
+- src/pages/DoctorPrescriptionPage.tsx
+- src/components/PrescriptionAutocomplete.tsx
+- src/services/prescriptions.ts
+- src/lib/prescriptionPdf.ts
+- src/assets/notoSansBengaliBase64.ts
+- src/App.tsx
+- src/components/DashboardShell.tsx
+- src/components/DashboardBottomNav.tsx
+- src/pages/DoctorAppointmentsPage.tsx
+- src/styles.css
+- package.json (jsPDF added)
+- supabase/26_doctor_prescription_module.sql
+- supabase/data/dgda_drug_master_import.csv
+- supabase/data/dgda_drug_master_rejected_rows.csv
+- START_HERE_PRESCRIPTION_BANGLA.txt
+- PRESCRIPTION_MODULE_SETUP.md
+
+DGDA normalized catalog rows: 41,121
+Prescription migration: Step 26

@@ -1,7 +1,7 @@
 {
   "name": "sirajganj-doctor",
   "private": true,
-  "version": "0.22.0",
+  "version": "0.23.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "jspdf": "^4.2.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

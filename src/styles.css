@@ -5328,7 +5328,6 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .phone-otp-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(190px,260px); gap: 12px; align-items: end; }
 .phone-otp-row .auth-submit { margin: 0; }
 .onboarding-phone-link-shell { display: grid; gap: 14px; }
-.onboarding-skip-link { justify-self: start; border: 0; background: none; color: var(--green-700); text-decoration: underline; cursor: pointer; }
 .onboarding-specialty-picker { max-height: 260px; overflow: auto; }
 .onboarding-location-guide { margin: 0; }
 .time-pair { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }

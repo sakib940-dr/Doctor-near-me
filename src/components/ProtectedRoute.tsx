@@ -12,7 +12,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
   if (loading) return <div className="route-state"><LoaderCircle className="spin" /> সেশন যাচাই হচ্ছে…</div>;
   if (!user) return <Navigate to="/auth" replace state={{ from: `${location.pathname}${location.search}` }} />;
-  if (account && ['doctor', 'hospital'].includes(account.role) && !account.onboarding_completed && location.pathname !== '/onboarding') {
+  const professionalAccount = account && ['doctor', 'hospital'].includes(account.role);
+  if (professionalAccount && !account.onboarding_completed && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
   return children;

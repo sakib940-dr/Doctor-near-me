@@ -5,7 +5,6 @@ import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { isEmailIdentifier, normalizeAuthPhone, validateEmail } from '../lib/authIdentifiers';
 import { isSupabaseConfigured, requireSupabase } from '../lib/supabase';
-import { getMyAccountContext } from '../services/account';
 import type { PublicRegistrationRole } from '../types';
 
 const roles: Array<{ value: PublicRegistrationRole; title: string; detail: string; icon: typeof UserRound }> = [
@@ -68,23 +67,13 @@ export default function AuthPage() {
         const { data, error: loginError } = await client.auth.signInWithPassword(credentials);
         if (loginError) throw loginError;
 
-        // Existing Doctor/Hospital accounts created before phone identity linking
-        // keep email login. Offer a one-time, skippable phone-login setup instead
-        // of creating another account, even when login started from a protected route.
-        const account = await getMyAccountContext().catch(() => null);
-        if (isEmailIdentifier(loginId) && account && ['doctor', 'hospital'].includes(account.role) && !data.user.phone) {
-          navigate('/onboarding?mode=phone-link', { replace: true });
-          return;
-        }
-
         const from = (location.state as { from?: string } | null)?.from;
         navigate(from || '/dashboard', { replace: true });
       } else {
         const emailError = validateEmail(email);
         if (emailError) throw new Error(emailError);
-        const normalizedPhone = phone.trim() ? normalizeAuthPhone(phone) : null;
-        if (phone.trim() && !normalizedPhone) throw new Error('সঠিক phone number দিন। বাংলাদেশি নম্বর 01XXXXXXXXX format-এ দিতে পারেন।');
-        if (['doctor', 'hospital'].includes(role) && !normalizedPhone) throw new Error('Doctor/Hospital account-এর জন্য Phone Number প্রয়োজন।');
+        const normalizedPhone = normalizeAuthPhone(phone);
+        if (!normalizedPhone) throw new Error('Phone Number প্রয়োজন। বাংলাদেশি নম্বর 01XXXXXXXXX format-এ দিতে পারেন।');
 
         const { data, error: signupError } = await requireSupabase().auth.signUp({
           email: email.trim().toLowerCase(),
@@ -96,7 +85,7 @@ export default function AuthPage() {
         });
         if (signupError) throw signupError;
         if (data.session) navigate('/onboarding', { replace: true });
-        else setNotice('Registration request নেওয়া হয়েছে। Email confirmation চালু থাকলে confirmation link থেকে account verify করে login করুন। একই email/phone দিয়ে duplicate professional account তৈরি করা হবে না।');
+        else setNotice('Registration request নেওয়া হয়েছে। Email confirmation চালু থাকলে confirmation link থেকে account verify করে login করুন। Phone Number account-এর সাথে সংরক্ষিত আছে। Phone/SMS verification provider পরে চালু করা যাবে; এখন onboarding verification ছাড়াই সম্পূর্ণ করা যাবে।');
       }
     } catch (submitError) {
       const message = messageFrom(submitError);
@@ -119,8 +108,6 @@ export default function AuthPage() {
     if (resetError) setError(resetError.message); else setNotice('Password reset link ইমেইলে পাঠানো হয়েছে।');
   }
 
-  const professionalPhoneRequired = ['doctor', 'hospital'].includes(role);
-
   return (
     <div className="app-shell auth-page">
       <PublicHeader />
@@ -128,7 +115,7 @@ export default function AuthPage() {
         <section className="auth-benefits">
           <span className="auth-kicker"><ShieldCheck size={17} /> নিরাপদ স্বাস্থ্যসেবা অ্যাকাউন্ট</span>
           <h1>{mode === 'login' ? 'আবার স্বাগতম' : 'আপনার অ্যাকাউন্ট তৈরি করুন'}</h1>
-          <p>{mode === 'login' ? 'একই account-এ verified Email অথবা Phone Number দিয়ে login করুন।' : 'Doctor/Hospital signup-এ Email ও Phone দুটোই account identity হিসেবে প্রস্তুত করা হবে।'}</p>
+          <p>{mode === 'login' ? 'Email দিয়ে login করুন; Supabase Phone provider/linking চালু হলে একই account-এ Phone Number দিয়েও login করা যাবে।' : 'Registration-এর জন্য Email Address এবং Phone Number দুটোই required। Phone verification এখন onboarding block করবে না।'}</p>
           <ul><li>Password শুধু Supabase Auth পরিচালনা করে</li><li>Role অনুযায়ী guided onboarding</li><li>Existing verification ও RLS policy অক্ষত</li></ul>
           <Link to="/doctors">অ্যাকাউন্ট ছাড়াই ডাক্তার খুঁজুন <ArrowRight size={17} /></Link>
         </section>
@@ -139,8 +126,8 @@ export default function AuthPage() {
               <label className="auth-field"><span>পূর্ণ নাম</span><div><UserRound /><input required minLength={2} value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="আপনার পূর্ণ নাম" /></div></label>
               <fieldset className="role-picker"><legend>অ্যাকাউন্টের ধরন</legend>{roles.map((item) => { const Icon = item.icon; return <label className={role === item.value ? 'selected' : ''} key={item.value}><input type="radio" name="role" value={item.value} checked={role === item.value} onChange={() => setRole(item.value)} /><Icon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></label>; })}</fieldset>
               <label className="auth-field"><span>ইমেইল Address</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" /></div></label>
-              <label className="auth-field"><span>Phone Number {!professionalPhoneRequired && <small>(ঐচ্ছিক)</small>}</span><div><Phone /><input required={professionalPhoneRequired} inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="01XXXXXXXXX" /></div></label>
-              {professionalPhoneRequired && <p className="auth-helper-note">Phone login চালু করতে Email confirm/login-এর পরে onboarding Step 1-এ SMS code দিয়ে এই নম্বর verify করতে হবে।</p>}
+              <label className="auth-field"><span>Phone Number</span><div><Phone /><input required inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="01XXXXXXXXX" /></div></label>
+              <p className="auth-helper-note">Phone Number required। SMS/Phone provider পরে configure করলে এই একই account-এ phone verification/linking চালু করা যাবে; এখন verification ছাড়াই onboarding ও dashboard ব্যবহার করা যাবে।</p>
             </>}
             {mode === 'login' && <label className="auth-field"><span>Email অথবা Phone Number</span><div>{isEmailIdentifier(identifier) || !identifier ? <Mail /> : <Phone />}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="name@example.com অথবা 01XXXXXXXXX" /></div></label>}
             <label className="auth-field"><span>পাসওয়ার্ড</span><div><LockKeyhole /><input required minLength={8} type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="কমপক্ষে ৮ অক্ষর" /></div></label>

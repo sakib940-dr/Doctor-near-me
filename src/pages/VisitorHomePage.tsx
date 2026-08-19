@@ -23,6 +23,7 @@ import ProviderCard from '../components/ProviderCard';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { SITE_NAME, SITE_TAGLINE } from '../lib/brand';
 import {
   findNearestDoctors,
   getDistricts,
@@ -56,6 +57,8 @@ const fallbackTopics: DiscoveryTopic[] = [
 
 const emptyHomepage: HomepageConfiguration = { sections: [], banners: [], topics: [], settings: {} };
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'তথ্য লোড করা যায়নি।';
+const LOCATION_STORAGE_KEY = 'docbd-current-location';
+const LEGACY_LOCATION_STORAGE_KEY = 'sirajganj-current-location';
 
 
 function SpecialtyDoctorRow({ topic, doctors, href }: { topic: DiscoveryTopic; doctors: DoctorSearchRow[]; href: string }) {
@@ -109,7 +112,7 @@ export default function VisitorHomePage() {
   useEffect(() => {
     let hasSavedLocation = false;
     try {
-      const raw = localStorage.getItem('sirajganj-current-location');
+      const raw = localStorage.getItem(LOCATION_STORAGE_KEY) || localStorage.getItem(LEGACY_LOCATION_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
         if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
@@ -193,8 +196,8 @@ export default function VisitorHomePage() {
 
   const topics = homepage.topics.length ? homepage.topics : fallbackTopics;
   const siteName = useMemo(() => {
-    const brand = homepage.settings.site_brand;
-    return brand && typeof brand === 'object' && 'site_name_bn' in brand ? String(brand.site_name_bn) : 'সিরাজগঞ্জ ডাক্তার';
+    const brand = homepage.settings.public_brand;
+    return brand && typeof brand === 'object' && 'site_name_bn' in brand ? String(brand.site_name_bn) : SITE_NAME;
   }, [homepage.settings]);
 
 
@@ -271,7 +274,8 @@ export default function VisitorHomePage() {
         // Anonymous visitors cannot write a user-owned Supabase row. Keep the
         // consented point locally so it can be persisted immediately after login.
         try {
-          localStorage.setItem('sirajganj-current-location', JSON.stringify({ ...location, capturedAt: Date.now() }));
+          localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({ ...location, capturedAt: Date.now() }));
+          localStorage.removeItem(LEGACY_LOCATION_STORAGE_KEY);
         } catch { /* storage can be unavailable in private browsing */ }
         if (user) {
           void saveMyCurrentLocation({
@@ -319,7 +323,7 @@ export default function VisitorHomePage() {
             )}
 
             <div className="visitor-hero-copy">
-              <span><HeartPulse /> সিরাজগঞ্জ ডাক্তার — স্বাস্থ্যের বিশ্বস্ত ঠিকানা</span>
+              <span><HeartPulse /> {SITE_NAME} — {SITE_TAGLINE}</span>
               <h1>বিশ্বস্ত চিকিৎসা, এখন আপনার আরও কাছে</h1>
               <p>ডাক্তার, রোগ বা স্পেশালিটি খুঁজুন—লোকেশন বা এলাকা অনুযায়ী দ্রুত সেরা অপশন দেখুন।</p>
             </div>

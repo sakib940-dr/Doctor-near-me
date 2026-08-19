@@ -1,6 +1,6 @@
 # Doctor Prescription Module
 
-This build adds the DentalMCQ-style prescription workflow to the Doctor module of Doctor Near Me.
+This build adds the DentalMCQ-style prescription workflow to the Doctor module of docbd.info.
 
 ## Database setup
 

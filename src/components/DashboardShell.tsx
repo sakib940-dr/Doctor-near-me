@@ -8,6 +8,7 @@ import {
   Clock,
   FileCheck2,
   Globe2,
+  HeartPulse,
   LayoutDashboard,
   Link2,
   LogOut,
@@ -27,7 +28,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getAdminOperationalSummary } from '../services/adminDashboard';
 import { getMyDoctorProviderInvitations } from '../services/providerDashboard';
 import { getVerificationReviewQueue } from '../services/verification';
-import DashboardBottomNav, { type DashboardRole } from './DashboardBottomNav';
+import type { DashboardRole } from './DashboardBottomNav';
+import { SITE_NAME } from '../lib/brand';
 
 interface DashboardShellProps {
   role: DashboardRole;
@@ -55,14 +57,14 @@ function isRouteActive(pathname: string, search: string, target: string, exact =
 }
 
 const panelLabels: Record<DashboardRole, string> = {
-  doctor: 'Doctor Panel',
-  patient: 'Patient Panel',
-  admin: 'Admin Panel',
+  doctor: 'Doctor',
+  patient: 'Patient',
+  admin: 'Admin',
   super_admin: 'Super Admin',
-  verification_officer: 'Verification Panel',
-  hospital: 'Hospital Panel',
-  chamber: 'Chamber Panel',
-  ambulance: 'Ambulance Panel',
+  verification_officer: 'Verification',
+  hospital: 'Hospital',
+  chamber: 'Chamber',
+  ambulance: 'Ambulance',
 };
 
 export default function DashboardShell({ role, children }: DashboardShellProps) {
@@ -218,17 +220,16 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
   }
 
   const panelName = panelLabels[role];
-  const displayName = account.full_name || panelName.replace(' Panel', '');
 
   const navigation = (
     <>
-      <div className="dashboard-shell-brand">
-        <span className="dashboard-shell-brand-icon"><UserCircle aria-hidden="true" /></span>
+      <Link className="dashboard-shell-brand" to="/dashboard" aria-label={`${SITE_NAME} dashboard`}>
+        <span className="dashboard-shell-brand-icon"><HeartPulse aria-hidden="true" /></span>
         <div>
-          <strong>{panelName}</strong>
-          <small>{displayName}</small>
+          <strong>{SITE_NAME}</strong>
+          <small>{panelName}</small>
         </div>
-      </div>
+      </Link>
 
       <nav className="dashboard-shell-nav" aria-label={`${role} dashboard navigation`}>
         {menuItems.map(({ label, path, icon: Icon, badge, exact }) => {
@@ -273,10 +274,11 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         >
           <Menu aria-hidden="true" />
         </button>
-        <div>
-          <strong>{panelName}</strong>
-          <small>{displayName}</small>
-        </div>
+        <Link className="dashboard-shell-mobile-brand" to="/dashboard" aria-label={`${SITE_NAME} dashboard`}>
+          <HeartPulse aria-hidden="true" />
+          <strong>{SITE_NAME}</strong>
+        </Link>
+        <span className="dashboard-shell-role-label">{panelName}</span>
       </header>
 
       {drawerOpen && <button type="button" className="dashboard-shell-backdrop" aria-label={`Close ${role} dashboard menu`} onClick={() => setDrawerOpen(false)} />}
@@ -288,7 +290,6 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       </aside>
 
       <main className="dashboard-shell-content">{children}</main>
-      <DashboardBottomNav role={role} />
     </div>
   );
 }

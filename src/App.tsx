@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardShell from './components/DashboardShell';
 import type { DashboardRole } from './components/DashboardBottomNav';
@@ -32,8 +32,10 @@ import SuperAdminPage from './pages/SuperAdminPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
 import VerificationOfficerPage from './pages/VerificationOfficerPage';
 import VisitorHomePage from './pages/VisitorHomePage';
+import { makePageTitle } from './lib/brand';
 
 export default function App() {
+  useRouteDocumentTitle();
   return (
     <Routes>
       <Route path="/" element={<VisitorHomePage />} />
@@ -60,7 +62,7 @@ export default function App() {
       <Route path="/provider/ambulances" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital']}><ProviderAmbulanceLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/services" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceServicesPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/hospitals" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceHospitalLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
-      <Route path="/verification/evidence" element={<ProtectedRoute><VerificationEvidencePage /></ProtectedRoute>} />
+      <Route path="/verification/evidence" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['doctor', 'hospital', 'chamber']}><VerificationEvidencePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/verification/reviews" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['verification_officer', 'admin', 'super_admin']}><VerificationOfficerPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDashboardPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/cms" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminCmsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
@@ -72,7 +74,7 @@ export default function App() {
 
 function DoctorDirectoryRoute() {
   const { account, loading } = useAuth();
-  if (!loading && account?.role === 'patient') return <DashboardShell role="patient"><DoctorDirectory /></DashboardShell>;
+  if (!loading && account?.role === 'patient') return <DashboardShell role="patient"><DoctorDirectory embedded /></DashboardShell>;
   return <DoctorDirectory />;
 }
 
@@ -81,4 +83,31 @@ function RoleAwareDashboardShell({ allowed, children }: { allowed: DashboardRole
   if (loading) return null;
   if (!account || !allowed.includes(account.role as DashboardRole)) return <Navigate to="/dashboard" replace />;
   return <DashboardShell role={account.role as DashboardRole}>{children}</DashboardShell>;
+}
+
+function useRouteDocumentTitle() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    let page: string | null = null;
+
+    if (path === '/auth') page = 'Login & Signup';
+    else if (path === '/onboarding') page = 'Onboarding';
+    else if (path === '/dashboard') page = 'Dashboard';
+    else if (path === '/doctors') page = 'ডাক্তার খুঁজুন';
+    else if (path.startsWith('/doctors/')) page = 'Doctor Profile';
+    else if (path === '/providers') page = 'হাসপাতাল ও চেম্বার';
+    else if (path.startsWith('/providers/')) page = 'Provider Profile';
+    else if (path.startsWith('/doctor/')) page = 'Doctor';
+    else if (path.startsWith('/provider/')) page = 'Hospital';
+    else if (path.startsWith('/ambulance/')) page = 'Ambulance';
+    else if (path.startsWith('/admin')) page = 'Admin';
+    else if (path.startsWith('/super-admin')) page = 'Super Admin';
+    else if (path.startsWith('/verification/')) page = 'Verification';
+    else if (path === '/profile') page = 'Profile';
+    else if (path === '/appointments') page = 'Appointments';
+
+    document.title = makePageTitle(page);
+  }, [location.pathname]);
 }

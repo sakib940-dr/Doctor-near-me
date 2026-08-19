@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, FileText, LoaderCircle, Plus, Save, Trash2 } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import PublicHeader from '../components/PublicHeader';
 import { ClinicalAutocomplete, InstructionAutocomplete, MedicineAutocomplete } from '../components/PrescriptionAutocomplete';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadPrescriptionPdf } from '../lib/prescriptionPdf';
@@ -253,12 +252,12 @@ export default function DoctorPrescriptionPage() {
   }
 
   if (loading) {
-    return <div className="app-shell doctor-dashboard-page"><PublicHeader /><main className="doctor-dashboard-main container"><div className="loading-box"><LoaderCircle className="spin" /> Prescription module লোড হচ্ছে…</div></main></div>;
+    return <div className="app-shell doctor-dashboard-page"><main className="doctor-dashboard-main container"><div className="loading-box"><LoaderCircle className="spin" /> Prescription module লোড হচ্ছে…</div></main></div>;
   }
 
   return (
     <div className="app-shell doctor-dashboard-page prescription-page">
-      <PublicHeader />
+      
       <main className="doctor-dashboard-main container">
         <Link className="back-link" to={appointmentId ? '/doctor/appointments' : '/dashboard'}><ArrowLeft /> ফিরে যান</Link>
 

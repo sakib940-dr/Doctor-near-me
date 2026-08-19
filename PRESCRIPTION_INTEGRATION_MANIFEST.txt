@@ -1,4 +1,4 @@
-DOCTOR NEAR ME — PRESCRIPTION INTEGRATION MANIFEST
+DOCBD.INFO — PRESCRIPTION INTEGRATION MANIFEST
 
 New/updated prescription files:
 - src/pages/DoctorPrescriptionPage.tsx

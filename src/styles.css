@@ -1352,7 +1352,7 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .public-provider-main{padding-top:24px;padding-bottom:90px}.provider-list-hero{padding:24px;border-radius:18px;background:linear-gradient(135deg,#eff9f4,#f8fbfa);border:1px solid #e2ebe7;margin-bottom:18px}.provider-list-hero>span{display:flex;align-items:center;gap:7px;color:#0c8955;font-weight:900;font-size:13px}.provider-list-hero>span svg{width:18px}.provider-list-hero h1{margin:6px 0 5px;font-size:31px}.provider-list-hero p{margin:0;color:#68766f}.provider-filter-row{display:flex;gap:8px;margin-top:16px}.provider-filter-row label{display:flex;align-items:center;gap:6px}.provider-filter-row label svg{width:18px;color:#158c5a}.provider-filter-row select{height:42px;border:1px solid #dce5e1;border-radius:10px;background:white;padding:0 32px 0 10px}.provider-list-vertical{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.public-provider-hero-card{display:grid;grid-template-columns:76px 1fr auto;align-items:center;gap:16px;background:#fff;border:1px solid #e2e8e5;border-radius:18px;padding:20px;margin:12px 0 8px}.provider-big-icon{width:76px;height:76px;border-radius:18px;background:#eef8f3;color:#0f8c58;display:grid;place-items:center}.provider-big-icon svg{width:34px;height:34px}.public-provider-hero-card span{display:inline-flex;align-items:center;gap:5px;color:#0b8754;font-size:12px;font-weight:900}.public-provider-hero-card span svg{width:14px}.public-provider-hero-card h1{margin:4px 0 4px}.public-provider-hero-card p{margin:0;display:flex;align-items:center;gap:5px;color:#66756d}.public-provider-hero-card p svg{width:16px}.public-provider-hero-card>a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:#0d8955;color:#fff;border-radius:11px;padding:11px 13px;font-weight:800}.public-provider-hero-card>a svg{width:17px}.provider-doctors-section{padding-left:0;padding-right:0}.provider-doctor-vertical{display:grid;grid-template-columns:1fr;gap:12px}.provider-doctor-vertical .visitor-doctor-main{grid-template-columns:112px minmax(0,1fr) 34px}.provider-location-box{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff;border:1px solid #e0e7e3;border-radius:18px;padding:20px;margin:8px 0 32px}.provider-location-box>div{display:flex;gap:12px;align-items:flex-start}.provider-location-box>div>svg{color:#0d8955}.provider-location-box span{font-size:12px;color:#6d7a73;font-weight:900}.provider-location-box h2{margin:2px 0 5px;font-size:20px}.provider-location-box p{margin:0;color:#66746d}.provider-location-box small{display:block;margin-top:4px;color:#87938d}.provider-location-box>a,.provider-location-box>button{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:11px;padding:12px 14px;background:#0d8955;color:#fff;text-decoration:none;font-weight:800}.provider-location-box svg{width:18px}
 
 @media (max-width:980px){.visitor-search-box{grid-template-columns:1fr 1fr;}.location-permission,.visitor-search-submit{height:48px}.visitor-search-input{grid-column:1/-1}.speciality-chip-grid{grid-template-columns:repeat(3,1fr)}.provider-grid,.provider-list-vertical{grid-template-columns:1fr}.emergency-grid{grid-template-columns:1fr}}
-@media (max-width:760px){body{padding-bottom:66px}.visitor-header-inner{min-height:58px}.visitor-brand strong{font-size:16px}.visitor-brand>span{width:34px;height:34px}.visitor-menu{display:grid;place-items:center}.visitor-nav{display:none;position:absolute;top:58px;left:12px;right:12px;background:#fff;border:1px solid #e2e8e5;border-radius:14px;padding:10px;box-shadow:0 18px 45px rgba(25,55,41,.14)}.visitor-nav.open{display:grid}.visitor-nav>a{padding:10px}.visitor-search-hero{padding:22px 0 18px}.visitor-hero-copy h1{font-size:30px}.visitor-hero-copy p{font-size:14px}.visitor-search-box{grid-template-columns:1fr 1fr;padding:7px;border-radius:14px}.visitor-search-box select{font-size:13px;padding-left:8px}.location-permission span{display:none}.location-permission{padding:0}.visitor-search-input{grid-column:1/-1}.visitor-search-submit{grid-column:1/-1}.visitor-section{padding:26px 0}.visitor-section-head{align-items:center}.visitor-section-head h2{font-size:20px}.visitor-section-head>a{font-size:13px}.doctor-horizontal-scroll{grid-auto-columns:88vw}.visitor-doctor-main{grid-template-columns:88px minmax(0,1fr) 25px;gap:11px;padding:11px}.visitor-doctor-avatar{width:88px!important;height:108px!important}.visitor-doctor-copy h2{font-size:17px}.visitor-doctor-degree{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.visitor-doctor-meta{display:grid;gap:4px}.speciality-chip-grid{display:flex;overflow-x:auto;gap:9px;padding-bottom:4px}.speciality-chip-grid button{min-width:170px;grid-template-columns:34px 1fr 16px;padding:11px}.visitor-provider-card{grid-template-columns:54px minmax(0,1fr) 30px;padding:11px}.provider-logo{width:54px;height:54px}.emergency-feature{padding:16px}.visitor-trust-strip>.container{grid-template-columns:1fr;gap:9px}.visitor-trust-strip div>div{justify-content:flex-start}.visitor-footer{padding-bottom:28px}.visitor-footer>.container{display:grid}.visitor-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:70;display:grid;grid-template-columns:repeat(5,1fr);height:64px;background:#fff;border-top:1px solid #e1e7e4;box-shadow:0 -8px 24px rgba(22,50,37,.08);padding-bottom:env(safe-area-inset-bottom)}.visitor-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#64736c;text-decoration:none;font-size:10px;font-weight:800}.visitor-bottom-nav svg{width:20px;height:20px}.public-provider-main{padding-top:14px}.provider-list-hero{padding:18px}.provider-list-hero h1{font-size:25px}.provider-filter-row{display:grid}.provider-filter-row label,.provider-filter-row select{width:100%}.provider-filter-row label select{flex:1}.public-provider-hero-card{grid-template-columns:60px 1fr;padding:14px}.provider-big-icon{width:60px;height:60px}.public-provider-hero-card>a{grid-column:1/-1;justify-content:center}.public-provider-hero-card h1{font-size:22px}.provider-doctor-vertical .visitor-doctor-main{grid-template-columns:88px minmax(0,1fr) 25px}.provider-location-box{display:grid;padding:15px}.provider-location-box>a,.provider-location-box>button{justify-content:center}.site-header{position:sticky;top:0;z-index:60}}
+@media (max-width:760px){.visitor-header-inner{min-height:58px}.visitor-brand strong{font-size:16px}.visitor-brand>span{width:34px;height:34px}.visitor-menu{display:grid;place-items:center}.visitor-nav{display:none;position:absolute;top:58px;left:12px;right:12px;background:#fff;border:1px solid #e2e8e5;border-radius:14px;padding:10px;box-shadow:0 18px 45px rgba(25,55,41,.14)}.visitor-nav.open{display:grid}.visitor-nav>a{padding:10px}.visitor-search-hero{padding:22px 0 18px}.visitor-hero-copy h1{font-size:30px}.visitor-hero-copy p{font-size:14px}.visitor-search-box{grid-template-columns:1fr 1fr;padding:7px;border-radius:14px}.visitor-search-box select{font-size:13px;padding-left:8px}.location-permission span{display:none}.location-permission{padding:0}.visitor-search-input{grid-column:1/-1}.visitor-search-submit{grid-column:1/-1}.visitor-section{padding:26px 0}.visitor-section-head{align-items:center}.visitor-section-head h2{font-size:20px}.visitor-section-head>a{font-size:13px}.doctor-horizontal-scroll{grid-auto-columns:88vw}.visitor-doctor-main{grid-template-columns:88px minmax(0,1fr) 25px;gap:11px;padding:11px}.visitor-doctor-avatar{width:88px!important;height:108px!important}.visitor-doctor-copy h2{font-size:17px}.visitor-doctor-degree{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.visitor-doctor-meta{display:grid;gap:4px}.speciality-chip-grid{display:flex;overflow-x:auto;gap:9px;padding-bottom:4px}.speciality-chip-grid button{min-width:170px;grid-template-columns:34px 1fr 16px;padding:11px}.visitor-provider-card{grid-template-columns:54px minmax(0,1fr) 30px;padding:11px}.provider-logo{width:54px;height:54px}.emergency-feature{padding:16px}.visitor-trust-strip>.container{grid-template-columns:1fr;gap:9px}.visitor-trust-strip div>div{justify-content:flex-start}.visitor-footer{padding-bottom:28px}.visitor-footer>.container{display:grid}.visitor-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:70;display:grid;grid-template-columns:repeat(5,1fr);height:64px;background:#fff;border-top:1px solid #e1e7e4;box-shadow:0 -8px 24px rgba(22,50,37,.08);padding-bottom:env(safe-area-inset-bottom)}.visitor-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#64736c;text-decoration:none;font-size:10px;font-weight:800}.visitor-bottom-nav svg{width:20px;height:20px}.public-provider-main{padding-top:14px}.provider-list-hero{padding:18px}.provider-list-hero h1{font-size:25px}.provider-filter-row{display:grid}.provider-filter-row label,.provider-filter-row select{width:100%}.provider-filter-row label select{flex:1}.public-provider-hero-card{grid-template-columns:60px 1fr;padding:14px}.provider-big-icon{width:60px;height:60px}.public-provider-hero-card>a{grid-column:1/-1;justify-content:center}.public-provider-hero-card h1{font-size:22px}.provider-doctor-vertical .visitor-doctor-main{grid-template-columns:88px minmax(0,1fr) 25px}.provider-location-box{display:grid;padding:15px}.provider-location-box>a,.provider-location-box>button{justify-content:center}.site-header{position:sticky;top:0;z-index:60}}
 
 /* ============================================================
    VISITOR / PATIENT MOBILE-FIRST POLISH — mockup target
@@ -1691,6 +1691,8 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   gap: 12px;
   padding: 4px 8px 22px;
   border-bottom: 1px solid #eef1f4;
+  color: inherit;
+  text-decoration: none;
 }
 
 .dashboard-shell-brand-icon {
@@ -1709,21 +1711,18 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   height: 24px;
 }
 
-.dashboard-shell-brand div,
-.dashboard-shell-mobile-header div {
+.dashboard-shell-brand div {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.dashboard-shell-brand strong,
-.dashboard-shell-mobile-header strong {
+.dashboard-shell-brand strong {
   color: #14213d;
   font-size: 15px;
 }
 
-.dashboard-shell-brand small,
-.dashboard-shell-mobile-header small {
+.dashboard-shell-brand small {
   overflow: hidden;
   color: #6b7280;
   font-size: 12px;
@@ -1829,7 +1828,7 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   display: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .dashboard-shell-sidebar {
     display: none;
   }
@@ -1851,6 +1850,45 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
     background: rgba(255, 255, 255, .96);
     padding: 0 16px;
     backdrop-filter: blur(10px);
+  }
+
+  .dashboard-shell-mobile-brand {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+    color: #14213d;
+    text-decoration: none;
+  }
+
+  .dashboard-shell-mobile-brand svg {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    color: #087f68;
+  }
+
+  .dashboard-shell-mobile-brand strong {
+    overflow: hidden;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-shell-role-label {
+    margin-left: auto;
+    flex: 0 0 auto;
+    max-width: 34vw;
+    overflow: hidden;
+    border: 1px solid #d9ebe6;
+    border-radius: 999px;
+    background: #f0faf7;
+    color: #087f68;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dashboard-shell-menu-button,
@@ -1921,7 +1959,7 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 
 @media (max-width: 767px) {
   .dashboard-shell-content {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    padding-bottom: 0;
   }
 
   .dashboard-bottom-nav {
@@ -2897,20 +2935,20 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   .dashboard-shell-content .booking-main {
     width: min(100% - 24px, 1160px);
     padding-top: 20px;
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
   }
 
   .dashboard-shell-content .directory-layout {
     width: min(100% - 24px, 1160px);
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
   }
 
   .dashboard-shell-content .directory-page > main {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
   }
 
   .patient-dashboard-redesign .doctor-analytics-main {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 
   .patient-page-heading { align-items: flex-start; }
@@ -3614,6 +3652,18 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .visitor-public-header .login-button:hover { background: var(--brand-800); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .visitor-public-header .menu-button { width: 44px; height: 44px; place-items: center; border-radius: var(--radius-sm); color: var(--brand-800); }
 .visitor-public-header .menu-button:hover { background: var(--brand-50); }
+.public-header-role-label {
+  margin-left: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-800);
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 
 /* Entry + search card alignment */
 .visitor-search-hero {
@@ -3772,11 +3822,12 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 
 /* Mobile visitor bottom nav */
 @media (max-width: 760px) {
-  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  body:has(.visitor-bottom-nav) { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .visitor-public-header.site-header { height: 64px; }
   .visitor-public-header .header-inner { min-height: 64px; }
   .visitor-public-header .brand-mark { width: 38px; height: 38px; }
   .visitor-public-header .brand strong { font-size: 16px; }
+  .visitor-public-header .public-header-role-label { margin-left: auto; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
   .visitor-public-header .main-nav {
     top: 68px;
     left: 14px;

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
+import { makePageTitle } from '../lib/brand';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDoctorPublicProfile } from '../services/discovery';
@@ -44,7 +45,7 @@ export default function DoctorProfile() {
     getDoctorPublicProfile(doctorId)
       .then((result) => {
         setProfile(result);
-        document.title = result ? `${result.doctor.name} | সিরাজগঞ্জ ডাক্তার` : 'ডাক্তার পাওয়া যায়নি';
+        document.title = result ? makePageTitle(result.doctor.name) : makePageTitle('ডাক্তার পাওয়া যায়নি');
       })
       .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'প্রোফাইল লোড করা যায়নি।'))
       .finally(() => setLoading(false));

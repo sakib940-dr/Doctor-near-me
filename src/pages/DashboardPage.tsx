@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, FileCheck2, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound, UsersRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import PublicHeader from '../components/PublicHeader';
 import DashboardShell from '../components/DashboardShell';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
@@ -10,6 +9,9 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { getMyAppointments } from '../services/appointments';
 import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
 import type { AppointmentRow, DashboardContext, UserRole } from '../types';
+
+const LOCATION_STORAGE_KEY = 'docbd-current-location';
+const LEGACY_LOCATION_STORAGE_KEY = 'sirajganj-current-location';
 
 const roleLabels: Record<UserRole, string> = { patient: 'রোগী', doctor: 'ডাক্তার', chamber: 'চেম্বার', hospital: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স সেবা', verification_officer: 'ভেরিফিকেশন অফিসার', admin: 'অ্যাডমিন', super_admin: 'সুপার অ্যাডমিন' };
 
@@ -87,14 +89,14 @@ export default function DashboardPage() {
 
     const persist = (latitude: number, longitude: number, accuracy: number | null) => {
       void saveMyCurrentLocation({ latitude, longitude, accuracyMeters: accuracy, saveHistory: true })
-        .then(() => { try { localStorage.removeItem('sirajganj-current-location'); } catch { /* ignore */ } })
+        .then(() => { try { localStorage.removeItem(LOCATION_STORAGE_KEY); localStorage.removeItem(LEGACY_LOCATION_STORAGE_KEY); } catch { /* ignore */ } })
         .catch(() => undefined);
     };
 
     // If the visitor granted location before logging in, persist that exact
     // consented location as soon as an authenticated session exists.
     try {
-      const raw = localStorage.getItem('sirajganj-current-location');
+      const raw = localStorage.getItem(LOCATION_STORAGE_KEY) || localStorage.getItem(LEGACY_LOCATION_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number };
         if (typeof saved.latitude === 'number' && typeof saved.longitude === 'number' && (!saved.capturedAt || Date.now() - saved.capturedAt < 30 * 60 * 1000)) {
@@ -174,7 +176,7 @@ export default function DashboardPage() {
     label: new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${day.date}T12:00:00`)),
   }));
 
-  const doctorDashboardContent = <div className="app-shell doctor-analytics-dashboard"><PublicHeader /><main className="doctor-analytics-main container">
+  const doctorDashboardContent = <div className="app-shell doctor-analytics-dashboard"><main className="doctor-analytics-main container">
     {(doctorDashboardError || error || accountError) && <div className="error-box" role="alert">{doctorDashboardError || error || accountError}</div>}
     {(loading || contextLoading || doctorDashboardLoading) ? <DoctorDashboardSkeleton /> : account && <>{/* heading */}
       <section className="doctor-analytics-heading"><div><span>Doctor Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ডাক্তার'}</h1><p>আজকের appointment, patient activity এবং গত ৭ দিনের trend এক নজরে দেখুন।</p></div><button type="button" onClick={() => navigate('/doctor/appointments')}><CalendarDays /> সব অ্যাপয়েন্টমেন্ট</button></section>
@@ -191,7 +193,7 @@ export default function DashboardPage() {
     </>}
   </main></div>;
 
-  const patientDashboardContent = <div className="app-shell doctor-analytics-dashboard patient-dashboard-redesign"><PublicHeader /><main className="doctor-analytics-main container">
+  const patientDashboardContent = <div className="app-shell doctor-analytics-dashboard patient-dashboard-redesign"><main className="doctor-analytics-main container">
     {(loading || contextLoading || patientAppointmentsLoading) ? <PatientDashboardSkeleton /> : <>
       {(error || accountError || patientAppointmentsError) && <div className="error-box" role="alert">{error || accountError || patientAppointmentsError}</div>}
       {account && <>

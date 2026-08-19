@@ -1,4 +1,4 @@
-# Sirajganj Doctor Platform — সম্পূর্ণ Project Handoff Summary
+# docbd.info Platform — সম্পূর্ণ Project Handoff Summary
 
 শেষ আপডেট: ১৪ আগস্ট ২০২৬  
 বর্তমান frontend release: `0.22.0`  

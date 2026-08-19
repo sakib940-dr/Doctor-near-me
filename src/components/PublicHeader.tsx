@@ -2,19 +2,31 @@ import { HeartPulse, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { SITE_NAME, SITE_TAGLINE } from '../lib/brand';
 
 export default function PublicHeader() {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, account } = useAuth();
   const navClass = ({ isActive }: { isActive: boolean }) => isActive ? 'is-active' : undefined;
+  const roleLabel = account ? ({
+    patient: 'Patient',
+    doctor: 'Doctor',
+    hospital: 'Hospital',
+    chamber: 'Chamber',
+    ambulance: 'Ambulance',
+    verification_officer: 'Verification',
+    admin: 'Admin',
+    super_admin: 'Super Admin',
+  } as const)[account.role] : null;
 
   return (
     <header className="site-header visitor-public-header">
       <div className="container header-inner">
-        <Link className="brand" to="/" aria-label="সিরাজগঞ্জ ডাক্তার হোম">
+        <Link className="brand" to="/" aria-label={`${SITE_NAME} হোম`}>
           <span className="brand-mark"><HeartPulse size={24} /></span>
-          <span><strong>সিরাজগঞ্জ ডাক্তার</strong><small>স্বাস্থ্যের বিশ্বস্ত ঠিকানা</small></span>
+          <span><strong>{SITE_NAME}</strong><small>{SITE_TAGLINE}</small></span>
         </Link>
+        {roleLabel && <span className="public-header-role-label">{roleLabel}</span>}
         <nav className={open ? 'main-nav is-open' : 'main-nav'} aria-label="প্রধান নেভিগেশন">
           <NavLink className={navClass} to="/doctors" onClick={() => setOpen(false)}>ডাক্তার</NavLink>
           <NavLink className={navClass} to="/providers" onClick={() => setOpen(false)}>হাসপাতাল</NavLink>

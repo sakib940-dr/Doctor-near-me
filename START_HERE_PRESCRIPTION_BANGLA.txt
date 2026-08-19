@@ -1,4 +1,4 @@
-DOCTOR NEAR ME — PRESCRIPTION MODULE SETUP
+DOCBD.INFO — PRESCRIPTION MODULE SETUP
 =========================================
 
 এই ZIP-এ prescription module + DGDA medicine catalog import file সব দেওয়া আছে।

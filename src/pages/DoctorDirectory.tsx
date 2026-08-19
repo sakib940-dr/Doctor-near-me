@@ -6,6 +6,7 @@ import PublicHeader from '../components/PublicHeader';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
 import type { District, DoctorSearchRow, Specialty, Upazila } from '../types';
+import { makePageTitle } from '../lib/brand';
 
 const PAGE_SIZE = 20;
 const degreeOptions = ['MBBS', 'BDS', 'FCPS', 'MD', 'MS'];
@@ -15,7 +16,7 @@ const numberParam = (value: string | null) => value && Number.isFinite(Number(va
 const listParam = (value: string | null) => value ? value.split(',').filter(Boolean) : [];
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'তথ্য লোড করা যায়নি।';
 
-export default function DoctorDirectory() {
+export default function DoctorDirectory({ embedded = false }: { embedded?: boolean }) {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get('q') ?? '');
   const [districtId, setDistrictId] = useState(params.get('district') ?? '');
@@ -40,7 +41,7 @@ export default function DoctorDirectory() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
-    document.title = 'ডাক্তার খুঁজুন | সিরাজগঞ্জ ডাক্তার';
+    document.title = makePageTitle('ডাক্তার খুঁজুন');
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
@@ -121,7 +122,7 @@ export default function DoctorDirectory() {
 
   return (
     <div className="app-shell directory-page">
-      <PublicHeader />
+      {!embedded && <PublicHeader />}
       <main>
         <section className="directory-hero">
           <div className="container">

@@ -298,7 +298,7 @@ on conflict(slug) do nothing;
 insert into public.site_settings(setting_key,setting_value,is_public,description)
 values
   ('public_brand',
-   '{"site_name_bn":"সিরাজগঞ্জ ডাক্তার","site_name_en":"Sirajganj Doctor"}'::jsonb,
+   '{"site_name_bn":"docbd.info","site_name_en":"docbd.info"}'::jsonb,
    true,'Public brand name'),
   ('social_links','{}'::jsonb,true,'Public social profile links'),
   ('default_location','{}'::jsonb,true,'Default district/upazila fallback')

@@ -321,7 +321,7 @@ export async function downloadPrescriptionPdf(
   doc.line(margin, footerTop, pageWidth - margin, footerTop);
   doc.setTextColor(100, 110, 106);
   doc.setFontSize(8.5);
-  writeText(doc, 'Generated from Doctor Near Me • Please follow the doctor’s instructions.', pageWidth / 2, footerTop + 7, { style: 'italic', align: 'center' });
+  writeText(doc, 'Generated from docbd.info • Please follow the doctor’s instructions.', pageWidth / 2, footerTop + 7, { style: 'italic', align: 'center' });
 
   const safeName = payload.patient_name.trim().replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'patient';
   doc.save(`Prescription_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`);

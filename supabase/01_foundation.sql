@@ -1,5 +1,5 @@
 -- ============================================================
--- SIRAJGANJ DOCTOR / BANGLADESH HEALTH PLATFORM
+-- DOCBD.INFO / BANGLADESH HEALTH PLATFORM
 -- STEP 1 — CLEAN PRODUCTION FOUNDATION
 -- New Supabase project only.
 -- Idempotent: safe to run once on a fresh DB and safe to re-run.

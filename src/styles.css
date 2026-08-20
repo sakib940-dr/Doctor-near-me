@@ -6836,3 +6836,89 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 
 @media(max-width:900px){.premium-info-grid,.premium-policy-grid{grid-template-columns:1fr 1fr}.premium-target-row{grid-template-columns:1fr 1fr}.premium-admin-lower-grid{grid-template-columns:1fr}.premium-target-actions{grid-column:1/-1}}
 @media(max-width:640px){.premium-member-main,.premium-admin-main{padding-top:12px}.premium-member-hero,.premium-admin-heading{align-items:flex-start;padding:14px;border-radius:18px}.premium-member-hero-icon,.premium-admin-heading>span{width:42px;height:42px;border-radius:13px}.premium-status-pill{position:absolute;right:24px;margin-top:56px}.premium-member-hero{padding-bottom:48px;position:relative}.premium-info-grid,.premium-policy-grid{grid-template-columns:1fr}.premium-info-grid article{padding:12px}.premium-status-card,.premium-requirements-card,.premium-referral-card,.premium-achievement-card,.premium-admin-policy,.premium-admin-targets,.premium-admin-rules,.premium-admin-referrals{padding:13px;border-radius:17px}.premium-admin-heading{flex-wrap:wrap}.premium-admin-heading>button{margin-left:auto}.premium-admin-targets>header{align-items:stretch;flex-direction:column}.premium-admin-targets>header form{min-width:0;width:100%}.premium-target-row{grid-template-columns:1fr}.premium-target-actions{grid-column:auto}.premium-target-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.premium-rule-editor>div:first-child{grid-template-columns:1fr}.premium-referral-code{align-items:stretch;flex-direction:column}.premium-referral-admin-list article{align-items:flex-start;flex-direction:column}.premium-referral-admin-list article>span{width:100%}.premium-referral-admin-list button{flex:1}}
+
+/* PWA update lifecycle: intentionally separate from application data/state. */
+.pwa-update-prompt {
+  position: fixed;
+  z-index: 120;
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(620px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #cfe5dc;
+  border-radius: 16px;
+  background: rgba(255,255,255,.98);
+  color: #163d32;
+  box-shadow: 0 16px 44px rgba(6,61,50,.18);
+  backdrop-filter: blur(12px);
+}
+.pwa-update-prompt div { min-width: 0; }
+.pwa-update-prompt strong,
+.pwa-update-prompt span { display: block; }
+.pwa-update-prompt strong { font-size: .92rem; }
+.pwa-update-prompt span { margin-top: 2px; color: #61756e; font-size: .78rem; line-height: 1.45; }
+.pwa-update-prompt button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 13px;
+  background: #0b8467;
+  color: #fff;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.pwa-update-prompt button:disabled { opacity: .7; cursor: progress; }
+
+@media (max-width: 600px) {
+  .pwa-update-prompt {
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .pwa-update-prompt button { width: 100%; }
+}
+
+@media (display-mode: standalone) {
+  html { min-height: 100%; background: #f7f9fb; }
+  body { min-height: 100vh; min-height: 100dvh; }
+}
+
+.pwa-offline-notice {
+  position: fixed;
+  z-index: 121;
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(560px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border-radius: 13px;
+  background: #173f34;
+  color: #fff;
+  box-shadow: 0 14px 36px rgba(6,61,50,.2);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+.pwa-offline-notice strong { margin-right: 4px; }
+.pwa-offline-notice svg { flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  .pwa-offline-notice { bottom: calc(74px + env(safe-area-inset-bottom)); }
+}

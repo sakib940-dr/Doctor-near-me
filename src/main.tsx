@@ -5,6 +5,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { VisitorLanguageProvider } from './contexts/VisitorLanguageContext';
 import App from './App';
 import './styles.css';
+import { registerPwaServiceWorker } from './lib/pwa';
+
+registerPwaServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

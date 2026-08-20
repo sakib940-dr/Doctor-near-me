@@ -1,13 +1,14 @@
 {
   "name": "docbd-info",
   "private": true,
-  "version": "0.23.0",
+  "version": "0.24.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pwa:validate": "node scripts/validate-pwa.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

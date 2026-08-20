@@ -316,6 +316,22 @@ export async function getDoctorsForProvider(providerId: string) {
   return hydrateDoctorVisitingCards(mapped);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function resolvePublicDoctorId(identifier: string) {
+  const value = identifier.trim();
+  if (!value) return null;
+  if (UUID_PATTERN.test(value)) return value;
+
+  const { data, error } = await requireSupabase()
+    .from('doctors')
+    .select('id')
+    .eq('profile_slug', value.toLowerCase())
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
 export async function getDoctorPublicProfile(doctorId: string) {
   const { data, error } = await requireSupabase().rpc(
     'get_doctor_public_profile',

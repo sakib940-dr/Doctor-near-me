@@ -29,7 +29,7 @@ import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getDoctorPublicProfile } from '../services/discovery';
+import { getDoctorPublicProfile, resolvePublicDoctorId } from '../services/discovery';
 import {
   getDoctorPublicStats,
   recordDoctorInteraction,
@@ -133,7 +133,15 @@ export default function DoctorProfile() {
     if (!isSupabaseConfigured || !doctorId) return;
     let active = true;
     setLoading(true);
-    Promise.all([getDoctorPublicProfile(doctorId), getDoctorPublicContent(doctorId), getDoctorPublicStats(doctorId)])
+    resolvePublicDoctorId(doctorId)
+      .then(async (resolvedDoctorId) => {
+        if (!resolvedDoctorId) return [null, null, null] as const;
+        return Promise.all([
+          getDoctorPublicProfile(resolvedDoctorId),
+          getDoctorPublicContent(resolvedDoctorId),
+          getDoctorPublicStats(resolvedDoctorId),
+        ]);
+      })
       .then(([profileResult, contentResult, statsResult]) => {
         if (!active) return;
         setProfile(profileResult);

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import DashboardShell from './components/DashboardShell';
 import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -48,7 +49,8 @@ import { makePageTitle } from './lib/brand';
 export default function App() {
   useRouteDocumentTitle();
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<VisitorHomePage />} />
       <Route path="/doctors" element={<DoctorDirectoryRoute />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
@@ -92,7 +94,9 @@ export default function App() {
       <Route path="/admin/premium" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><PremiumAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/super-admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['super_admin']}><SuperAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+      <PwaUpdatePrompt />
+    </>
   );
 }
 

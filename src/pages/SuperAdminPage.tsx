@@ -11,6 +11,7 @@ type Action = { kind: 'role'; value: Exclude<UserRole, 'super_admin'> } | { kind
 const roleLabels: Record<UserRole, string> = { patient: 'Patient', doctor: 'Doctor', chamber: 'Chamber', hospital: 'Hospital', ambulance: 'Ambulance', verification_officer: 'Verification Officer', admin: 'Admin', super_admin: 'Super Admin' };
 const roleOptions: Array<Exclude<UserRole, 'super_admin'>> = ['patient', 'doctor', 'hospital', 'chamber', 'ambulance', 'verification_officer', 'admin'];
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'Super Admin কাজটি সম্পন্ন করা যায়নি।';
+const SUPER_ADMIN_PAGE_SIZE = 30;
 const dateLabel = (value: string | null | undefined) => value ? new Intl.DateTimeFormat('bn-BD', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
 
 interface EditProfile {
@@ -25,7 +26,11 @@ export default function SuperAdminPage() {
   const requestedTab = searchParams.get('tab') as Tab | null;
   const [tab, setTab] = useState<Tab>(requestedTab && ['users', 'invites', 'controls'].includes(requestedTab) ? requestedTab : 'users');
   const [users, setUsers] = useState<SuperAdminUserRow[]>([]);
+  const [usersHasMore, setUsersHasMore] = useState(false);
+  const [usersLoadingMore, setUsersLoadingMore] = useState(false);
   const [invites, setInvites] = useState<PrivilegedAccountInvite[]>([]);
+  const [invitesLoaded, setInvitesLoaded] = useState(false);
+  const [policyLoaded, setPolicyLoaded] = useState(false);
   const [verificationPolicy, setVerificationPolicy] = useState<SuperAdminDoctorVerificationPolicy | null>(null);
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
@@ -52,18 +57,55 @@ export default function SuperAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true); setError(null);
+  async function loadUsers(reset = true) {
+    const offset = reset ? 0 : users.length;
+    if (reset) setLoading(true); else setUsersLoadingMore(true);
+    setError(null);
     try {
-      const [userRows, inviteRows, districtRows, doctorVerificationPolicy] = await Promise.all([
-        getSuperAdminUserDirectory({ role: role === 'all' ? null : role, status: status === 'all' ? null : status, districtId, upazilaId, search }),
-        getPrivilegedAccountInvites(), getDistricts(),
-        getSuperAdminDoctorVerificationPolicy(),
-      ]);
-      setUsers(userRows); setInvites(inviteRows); setDistricts(districtRows); setVerificationPolicy(doctorVerificationPolicy);
-    } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
+      const rows = await getSuperAdminUserDirectory({
+        role: role === 'all' ? null : role, status: status === 'all' ? null : status,
+        districtId, upazilaId, search, limit: SUPER_ADMIN_PAGE_SIZE, offset,
+      });
+      setUsers((current) => {
+        if (reset) return rows;
+        const seen = new Set(current.map((user) => user.user_id));
+        return [...current, ...rows.filter((user) => !seen.has(user.user_id))];
+      });
+      const total = Number(rows[0]?.total_count ?? offset + rows.length);
+      setUsersHasMore(rows.length === SUPER_ADMIN_PAGE_SIZE && offset + rows.length < total);
+    } catch (loadError) { setError(messageFrom(loadError)); }
+    finally { if (reset) setLoading(false); else setUsersLoadingMore(false); }
   }
-  useEffect(() => { if (account?.role === 'super_admin') void load(); }, [account]);
+
+  async function loadInvites() {
+    setLoading(true); setError(null);
+    try { setInvites(await getPrivilegedAccountInvites()); setInvitesLoaded(true); }
+    catch (loadError) { setError(messageFrom(loadError)); }
+    finally { setLoading(false); }
+  }
+
+  async function loadPolicy() {
+    setLoading(true); setError(null);
+    try { setVerificationPolicy(await getSuperAdminDoctorVerificationPolicy()); setPolicyLoaded(true); }
+    catch (loadError) { setError(messageFrom(loadError)); }
+    finally { setLoading(false); }
+  }
+
+  async function refreshCurrentTab() {
+    if (tab === 'users') { await loadUsers(true); return; }
+    if (tab === 'invites') { await loadInvites(); return; }
+    await loadPolicy();
+  }
+  useEffect(() => {
+    if (account?.role !== 'super_admin') return;
+    void loadUsers(true);
+    void getDistricts().then(setDistricts).catch(() => setDistricts([]));
+  }, [account?.user_id, account?.role]);
+  useEffect(() => {
+    if (account?.role !== 'super_admin') return;
+    if (tab === 'invites' && !invitesLoaded) void loadInvites();
+    if (tab === 'controls' && !policyLoaded) void loadPolicy();
+  }, [tab, account?.role, invitesLoaded, policyLoaded]);
   useEffect(() => {
     const next = searchParams.get('tab') as Tab | null;
     if (next && ['users', 'invites', 'controls'].includes(next) && next !== tab) setTab(next);
@@ -73,7 +115,7 @@ export default function SuperAdminPage() {
   useEffect(() => { if (!edit?.districtId) { setEditUpazilas([]); return; } getUpazilas(edit.districtId).then(setEditUpazilas).catch(() => setEditUpazilas([])); }, [edit?.districtId]);
   if (account && account.role !== 'super_admin') return <Navigate to="/dashboard" replace />;
 
-  async function submitSearch(event: FormEvent) { event.preventDefault(); await load(); }
+  async function submitSearch(event: FormEvent) { event.preventDefault(); await loadUsers(true); }
   function editFromDetail(item: SuperAdminUserDetail) {
     const p = item.profile;
     setEdit({ fullName: p.full_name || '', phone: p.phone || '', dateOfBirth: p.date_of_birth || '', gender: p.gender || '', bloodGroup: p.blood_group || '', addressLine: p.address_line || '', districtId: p.district_id, upazilaId: p.upazila_id, emergencyContactName: p.emergency_contact_name || '', emergencyContactPhone: p.emergency_contact_phone || '', reason: '' });
@@ -92,7 +134,7 @@ export default function SuperAdminPage() {
     setWorking(true); setError(null);
     try {
       await updateSuperAdminUserProfile({ userId: detail.profile.id, fullName: edit.fullName, phone: edit.phone, dateOfBirth: edit.dateOfBirth || null, gender: edit.gender || null, bloodGroup: edit.bloodGroup || null, addressLine: edit.addressLine, districtId: edit.districtId, upazilaId: edit.upazilaId, emergencyContactName: edit.emergencyContactName, emergencyContactPhone: edit.emergencyContactPhone, reason: edit.reason });
-      setNotice('User profile আপডেট হয়েছে।'); setEditing(false); await refreshDetail(); await load();
+      setNotice('User profile আপডেট হয়েছে।'); setEditing(false); await refreshDetail(); await loadUsers(true);
     } catch (saveError) { setError(messageFrom(saveError)); } finally { setWorking(false); }
   }
 
@@ -107,16 +149,16 @@ export default function SuperAdminPage() {
       else if (action.kind === 'status') await setSuperAdminUserStatus(detail.profile.id, action.value, reason);
       else await deleteSuperAdminUser(detail.profile.id, confirmation, reason);
       setNotice(action.kind === 'delete' ? 'Account permanently delete হয়েছে।' : 'Account control আপডেট হয়েছে।');
-      closeAction(); if (action.kind === 'delete') setDetail(null); else await refreshDetail(); await load();
+      closeAction(); if (action.kind === 'delete') setDetail(null); else await refreshDetail(); await loadUsers(true);
     } catch (actionError) { setError(messageFrom(actionError)); } finally { setWorking(false); }
   }
 
   async function createInvite(event: FormEvent) {
     event.preventDefault(); setWorking(true); setError(null); setCreatedLink('');
-    try { const result = await createPrivilegedAccountInvite(invite); const link = `${window.location.origin}${result.registration_path}`; setCreatedLink(link); setNotice('Privileged invitation তৈরি হয়েছে। Linkটি নির্দিষ্ট email owner-কে দিন।'); setInvite({ email: '', fullName: '', phone: '', role: 'verification_officer', expiresDays: 7 }); await load(); }
+    try { const result = await createPrivilegedAccountInvite(invite); const link = `${window.location.origin}${result.registration_path}`; setCreatedLink(link); setNotice('Privileged invitation তৈরি হয়েছে। Linkটি নির্দিষ্ট email owner-কে দিন।'); setInvite({ email: '', fullName: '', phone: '', role: 'verification_officer', expiresDays: 7 }); setInvites(await getPrivilegedAccountInvites()); }
     catch (inviteError) { setError(messageFrom(inviteError)); } finally { setWorking(false); }
   }
-  async function cancelInvite(id: string) { if (!window.confirm('এই invitation cancel করবেন?')) return; setWorking(true); try { await cancelPrivilegedAccountInvite(id); await load(); setNotice('Invitation cancel হয়েছে।'); } catch (cancelError) { setError(messageFrom(cancelError)); } finally { setWorking(false); } }
+  async function cancelInvite(id: string) { if (!window.confirm('এই invitation cancel করবেন?')) return; setWorking(true); try { await cancelPrivilegedAccountInvite(id); setInvites(await getPrivilegedAccountInvites()); setInvitesLoaded(true); setNotice('Invitation cancel হয়েছে।'); } catch (cancelError) { setError(messageFrom(cancelError)); } finally { setWorking(false); } }
 
   async function updateDoctorVerificationPolicy(next: {
     hideUnverifiedDoctors?: boolean;
@@ -143,9 +185,9 @@ export default function SuperAdminPage() {
     }
   }
 
-  return <div className="app-shell super-page"><main className="super-main container"><header className="super-heading"><span><Crown /></span><div><small>Single-owner authority</small><h1>Super Admin Control Center</h1><p>একজন Super Admin—privileged roles, sensitive user data ও irreversible account actions।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="super-tabs">{([['users', Users, 'সব Users'], ['invites', Plus, 'Privileged invites'], ['controls', ShieldCheck, 'Existing controls']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setSearchParams(value === 'users' ? {} : { tab: value }); }}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Super Admin data লোড হচ্ছে…</div> : <>
+  return <div className="app-shell super-page"><main className="super-main container"><header className="super-heading"><span><Crown /></span><div><small>Single-owner authority</small><h1>Super Admin Control Center</h1><p>একজন Super Admin—privileged roles, sensitive user data ও irreversible account actions।</p></div><button onClick={() => void refreshCurrentTab()}><RefreshCw /> Refresh</button></header><nav className="super-tabs">{([['users', Users, 'সব Users'], ['invites', Plus, 'Privileged invites'], ['controls', ShieldCheck, 'Existing controls']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setSearchParams(value === 'users' ? {} : { tab: value }); }}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Super Admin data লোড হচ্ছে…</div> : <>
 
-  {tab === 'users' && <section className="super-users"><form className="super-filters" onSubmit={submitSearch}><label><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="নাম, email বা phone" /></label><select value={role} onChange={(e) => setRole(e.target.value as UserRole | 'all')}><option value="all">সব role</option>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><select value={districtId ?? ''} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : null)}><option value="">সব জেলা</option>{districts.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select disabled={!districtId} value={upazilaId ?? ''} onChange={(e) => setUpazilaId(e.target.value ? Number(e.target.value) : null)}><option value="">সব উপজেলা</option>{upazilas.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><button>Filter</button></form><header className="super-list-title"><div><h2>User directory</h2><p>কোনো row-তে click করলে full account popup খুলবে এবং access audit হবে।</p></div><b>{users[0]?.total_count ?? 0} users</b></header><div className="super-user-list">{users.map((user) => <button key={user.user_id} onClick={() => void openUser(user.user_id)}><span className={`super-avatar role-${user.role}`}>{(user.full_name || user.email || 'U').slice(0, 1).toUpperCase()}</span><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'} {user.role === 'super_admin' && <Crown />}</strong><small>{user.email || 'Email নেই'} • {user.phone || 'Phone নেই'}</small><p><MapPin /> {[user.upazila_name, user.district_name].filter(Boolean).join(', ') || 'Location দেওয়া নেই'}</p></div><b>{roleLabels[user.role]}</b><span className={`super-status ${user.account_status}`}>{user.account_status}</span><time>Login: {dateLabel(user.last_sign_in_at)}</time></button>)}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div></section>}
+  {tab === 'users' && <section className="super-users"><form className="super-filters" onSubmit={submitSearch}><label><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="নাম, email বা phone" /></label><select value={role} onChange={(e) => setRole(e.target.value as UserRole | 'all')}><option value="all">সব role</option>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><select value={districtId ?? ''} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : null)}><option value="">সব জেলা</option>{districts.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select disabled={!districtId} value={upazilaId ?? ''} onChange={(e) => setUpazilaId(e.target.value ? Number(e.target.value) : null)}><option value="">সব উপজেলা</option>{upazilas.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><button>Filter</button></form><header className="super-list-title"><div><h2>User directory</h2><p>কোনো row-তে click করলে full account popup খুলবে এবং access audit হবে।</p></div><b>{users[0]?.total_count ?? 0} users</b></header><div className="super-user-list">{users.map((user) => <button key={user.user_id} onClick={() => void openUser(user.user_id)}><span className={`super-avatar role-${user.role}`}>{(user.full_name || user.email || 'U').slice(0, 1).toUpperCase()}</span><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'} {user.role === 'super_admin' && <Crown />}</strong><small>{user.email || 'Email নেই'} • {user.phone || 'Phone নেই'}</small><p><MapPin /> {[user.upazila_name, user.district_name].filter(Boolean).join(', ') || 'Location দেওয়া নেই'}</p></div><b>{roleLabels[user.role]}</b><span className={`super-status ${user.account_status}`}>{user.account_status}</span><time>Login: {dateLabel(user.last_sign_in_at)}</time></button>)}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div>{usersHasMore && <div className="public-load-more-wrap"><button type="button" className="public-load-more-button" disabled={usersLoadingMore} onClick={() => void loadUsers(false)}>{usersLoadingMore ? <LoaderCircle className="spin" /> : null}{usersLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও users দেখুন'}</button></div>}</section>}
 
   {tab === 'invites' && <div className="super-invite-grid"><form className="super-card" onSubmit={createInvite}><header><Plus /><div><h2>Admin/Officer account invite</h2><p>Existing user হলে User popup থেকে promote করুন। নতুন user হলে invited email দিয়ে registration করতে হবে।</p></div></header><Field label="পূর্ণ নাম"><input required minLength={2} value={invite.fullName} onChange={(e) => setInvite({ ...invite, fullName: e.target.value })} /></Field><Field label="Email"><input required type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} /></Field><Field label="Phone"><input value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} /></Field><div className="super-form-grid"><Field label="Privileged role"><select value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value as 'admin' | 'verification_officer' })}><option value="verification_officer">Verification Officer</option><option value="admin">Admin</option></select></Field><Field label="মেয়াদ (দিন)"><input type="number" min={1} max={30} value={invite.expiresDays} onChange={(e) => setInvite({ ...invite, expiresDays: Number(e.target.value) })} /></Field></div><button className="super-primary" disabled={working}>{working ? <LoaderCircle className="spin" /> : 'Invitation তৈরি করুন'}</button>{createdLink && <div className="super-created-link"><input readOnly value={createdLink} /><button type="button" onClick={() => void navigator.clipboard.writeText(createdLink)}><Copy /></button></div>}</form><section className="super-card"><header><UserCog /><div><h2>Invitation history</h2><p>Open invite cancel করা যাবে; claimed account User directory-তে পাওয়া যাবে।</p></div></header><div className="super-invite-list">{invites.map((item) => { const open = !item.claimed_at && !item.cancelled_at && new Date(item.expires_at) > new Date(); return <article key={item.invite_id}><div><strong>{item.full_name}</strong><small>{item.email} • {roleLabels[item.target_role]}</small><p>Expires: {dateLabel(item.expires_at)}</p></div><span className={item.claimed_at ? 'claimed' : open ? 'open' : 'closed'}>{item.claimed_at ? 'Claimed' : open ? 'Open' : 'Closed'}</span>{open && <button disabled={working} onClick={() => void cancelInvite(item.invite_id)}>Cancel</button>}</article>; })}{!invites.length && <p className="empty-inline">কোনো invitation নেই।</p>}</div></section></div>}
 

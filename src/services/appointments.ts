@@ -23,14 +23,38 @@ export async function updateMyPatientProfile(input: Omit<PatientProfile, 'user_i
   if (error) throw error;
 }
 
-export async function getMyAppointments(status?: AppointmentStatus | null) {
+export async function getMyAppointments(status?: AppointmentStatus | null, limit = 100, offset = 0) {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const safeOffset = Math.max(offset, 0);
   const { data, error } = await requireSupabase().rpc('get_my_appointments', {
     p_status: status ?? null,
-    p_limit: 100,
-    p_offset: 0,
+    p_limit: safeLimit,
+    p_offset: safeOffset,
   });
   if (error) throw error;
   return (data ?? []) as AppointmentRow[];
+}
+
+export interface PatientDashboardAppointmentSummary {
+  upcoming: number;
+  completed: number;
+  pending: number;
+  last30Days: number;
+}
+
+export async function getMyPatientDashboardSummary() {
+  const { data, error } = await requireSupabase().rpc('get_my_patient_dashboard_summary');
+  if (error) throw error;
+  const raw = (data ?? {}) as { summary?: Partial<PatientDashboardAppointmentSummary>; recent?: AppointmentRow[] };
+  return {
+    summary: {
+      upcoming: Number(raw.summary?.upcoming ?? 0),
+      completed: Number(raw.summary?.completed ?? 0),
+      pending: Number(raw.summary?.pending ?? 0),
+      last30Days: Number(raw.summary?.last30Days ?? 0),
+    },
+    recent: Array.isArray(raw.recent) ? raw.recent : [],
+  };
 }
 
 export async function createPatientAppointment(input: {

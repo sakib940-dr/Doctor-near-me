@@ -7,8 +7,7 @@ import {
   type AppNotification,
   disablePushNotifications,
   enablePushNotifications,
-  getMyNotifications,
-  getMyNotificationUnreadCount,
+  getMyNotificationPage,
   getPushPermission,
   isPushOptedOut,
   isPushSupported,
@@ -26,26 +25,36 @@ export default function NotificationsPage() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [pushState, setPushState] = useState(() => getPushPermission());
   const [message, setMessage] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (reset = true, pageOffset = 0) => {
+    if (reset) setLoading(true); else setLoadingMore(true);
     try {
-      const [rows, count] = await Promise.all([getMyNotifications(50), getMyNotificationUnreadCount()]);
-      setItems(rows);
-      setUnread(count);
+      const offset = reset ? 0 : Math.max(pageOffset, 0);
+      const page = await getMyNotificationPage(20, offset, false);
+      setItems((current) => reset ? page.items : [
+        ...current,
+        ...page.items.filter((row) => !current.some((existing) => existing.notification_id === row.notification_id)),
+      ]);
+      setUnread(page.unread_count);
+      setHasMore(page.items.length === 20);
     } catch {
-      setItems([]);
-      setUnread(0);
+      if (reset) {
+        setItems([]);
+        setUnread(0);
+        setHasMore(false);
+      }
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false); else setLoadingMore(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
-    return subscribeToNotificationRefresh(() => void load());
+    void load(true);
+    return subscribeToNotificationRefresh(() => void load(true));
   }, [load]);
 
   async function open(item: AppNotification) {
@@ -57,7 +66,7 @@ export default function NotificationsPage() {
     setWorking(true);
     await markAllNotificationsRead().catch(() => undefined);
     setWorking(false);
-    void load();
+    void load(true);
   }
 
   async function enablePush() {
@@ -113,6 +122,14 @@ export default function NotificationsPage() {
           ))}
         </div>
       ) : <div className="empty-state"><span>🔔</span><h3>{copy.empty}</h3></div>}
+      {!loading && items.length > 0 && hasMore && (
+        <div className="public-load-more-wrap">
+          <button type="button" className="secondary" onClick={() => void load(false, items.length)} disabled={loadingMore}>
+            {loadingMore ? <LoaderCircle className="spin" /> : null}
+            {language === 'bn' ? 'আরও দেখুন' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

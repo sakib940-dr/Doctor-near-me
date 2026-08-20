@@ -30,9 +30,9 @@ import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getDoctorsForProvider, getPublicProvider, resolvePublicProviderRoute } from '../services/discovery';
+import { getPublicProviderPageBase } from '../services/discovery';
 import { getProviderPublicStats, getPublicProfileStatsBatch, recordProviderInteraction } from '../services/engagement';
-import { getProviderDistance, getProviderPublicPageContent, type ProviderOpeningHour, type ProviderPublicPageContent } from '../services/providerPublicContent';
+import { getProviderDistance, type ProviderOpeningHour, type ProviderPublicPageContent } from '../services/providerPublicContent';
 import type { DoctorSearchRow, ProviderDirectoryRow, PublicProfileStats, PublicRankingTier } from '../types';
 
 const daysBn = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
@@ -73,14 +73,12 @@ export default function PublicProviderProfilePage(){
   const sliderRef=useRef<HTMLDivElement>(null),trackedView=useRef<string|null>(null);
 
   useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);setError(null);setProvider(null);setContent(null);setDoctors([]);setProviderStats(null);setPublicSlug('');
-    resolvePublicProviderRoute(providerId).then(async route=>{
-      if(!route)return [null,null,[],null,null] as const;
-      const p=await getPublicProvider(route.id);
-      if(!p)return [null,null,[],null,null] as const;
-      const canonicalPath=providerPublicPath(p.provider_type,route.slug,route.id);
+    getPublicProviderPageBase(providerId,10).then(async base=>{
+      if(!base?.route||!base.provider)return [null,null,[],null,''] as const;
+      const canonicalPath=providerPublicPath(base.provider.provider_type,base.route.slug,base.route.id);
       if(location.pathname!==canonicalPath)navigate(canonicalPath,{replace:true});
-      const [c,d,s]=await Promise.all([getProviderPublicPageContent(route.id),getDoctorsForProvider(route.id),getProviderPublicStats(route.id)]);
-      return [p,c,d,s,route.slug] as const;
+      const statsResult=await getProviderPublicStats(base.route.id);
+      return [base.provider,base.content,base.doctors,statsResult,base.route.slug] as const;
     })
     .then(([p,c,d,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors([...d]);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
     .catch((e:unknown)=>alive&&setError(e instanceof Error?e.message:'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।')).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[providerId,location.pathname,navigate]);
@@ -133,7 +131,7 @@ export default function PublicProviderProfilePage(){
       <details className="provider-profile-accordion-v2"><summary><span><BadgeCheck/>{t.investigation}</span><ChevronDown/></summary><div className="provider-accordion-body-v2 provider-cost-public-v2">{content?.investigation_costs.length?content.investigation_costs.map(c=><article key={c.id}><strong>{localText(c.name,language)}</strong><b>{localText(c.cost,language)||'—'}</b></article>):<p>{t.noInfo}</p>}<small className="provider-cost-disclaimer-v2">{t.costDisclaimer}</small></div></details>
     </section>
 
-    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{doctors.length>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{doctors.length?<div className="provider-doctor-rail-v2">{doctors.slice(0,10).map(doctor=><article className="provider-doctor-card-shell-v2" key={doctor.doctor_id}><DoctorResultCard doctor={doctor} stats={doctorStats[doctor.doctor_id]} onStatsChange={(id,next)=>setDoctorStats(current=>({...current,[id]:next}))}/>{todayDoctorSchedule(doctor,language)&&<div className="provider-doctor-schedule-v2"><Clock3/>{todayDoctorSchedule(doctor,language)}</div>}<div className="provider-doctor-common-contact-v2">{phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click','provider_doctor_card')}><Phone/>{t.call}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click','provider_doctor_card')}><MessageCircle/>{t.whatsapp}</a>}</div></article>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
+    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{Number(doctors[0]?.total_count??doctors.length)>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{doctors.length?<div className="provider-doctor-rail-v2">{doctors.slice(0,10).map(doctor=><article className="provider-doctor-card-shell-v2" key={doctor.doctor_id}><DoctorResultCard doctor={doctor} stats={doctorStats[doctor.doctor_id]} onStatsChange={(id,next)=>setDoctorStats(current=>({...current,[id]:next}))}/>{todayDoctorSchedule(doctor,language)&&<div className="provider-doctor-schedule-v2"><Clock3/>{todayDoctorSchedule(doctor,language)}</div>}<div className="provider-doctor-common-contact-v2">{phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click','provider_doctor_card')}><Phone/>{t.call}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click','provider_doctor_card')}><MessageCircle/>{t.whatsapp}</a>}</div></article>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
 
     <section className="provider-contact-map-v2"><div className="provider-section-title-v2"><MapPin/><div><small>{typeLabel}</small><h2>{t.map}</h2></div></div><div className="provider-contact-grid-v2"><div><h3>{language==='bn'?provider.name_bn:(provider.name_en||provider.name_bn)}</h3><p><MapPin/>{provider.address||t.noInfo}</p>{provider.phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click')}><Phone/>{provider.phone}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click')}><MessageCircle/>WhatsApp</a>}{distance!=null&&<strong><Navigation/>{t.distance} {numberText(distance,language,1)} {language==='bn'?'কিমি':'km'}</strong>}</div><button className="provider-distance-button-v2" type="button" disabled={distanceBusy} onClick={()=>void captureDistance()}>{distanceBusy?<LoaderCircle className="spin"/>:<Navigation/>}{distanceBusy?t.locating:t.showDistance}</button></div>{distanceError&&<p className="provider-distance-error-v2">{distanceError}</p>}{provider.latitude!=null&&provider.longitude!=null&&<div className="provider-map-frame-v2"><iframe title={`${provider.name_bn} map`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${provider.latitude},${provider.longitude}`)}&z=15&output=embed`}/></div>}{directionUrl&&<a className="provider-map-direction-v2" href={directionUrl} target="_blank" rel="noreferrer" onClick={()=>track('map_click')}><ExternalLink/>{t.direction}</a>}</section>
 

@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
 import { saveMyCurrentLocation } from '../services/discovery';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { getMyAppointments } from '../services/appointments';
+import { getMyAppointments, getMyPatientDashboardSummary, type PatientDashboardAppointmentSummary } from '../services/appointments';
 import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
 import { getMyDoctorInteractionSummary } from '../services/engagement';
 import type { AppointmentRow, DashboardContext, InteractionSummary, UserRole } from '../types';
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [doctorDashboardLoading, setDoctorDashboardLoading] = useState(false);
   const [doctorDashboardError, setDoctorDashboardError] = useState<string | null>(null);
   const [patientAppointments, setPatientAppointments] = useState<AppointmentRow[]>([]);
+  const [patientSummary, setPatientSummary] = useState<PatientDashboardAppointmentSummary>({ upcoming: 0, completed: 0, pending: 0, last30Days: 0 });
   const [patientAppointmentsLoading, setPatientAppointmentsLoading] = useState(false);
   const [patientAppointmentsError, setPatientAppointmentsError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ export default function DashboardPage() {
     let active = true;
     setPatientAppointmentsLoading(true);
     setPatientAppointmentsError(null);
-    getMyAppointments(null)
-      .then((appointments) => { if (active) setPatientAppointments(appointments); })
+    getMyPatientDashboardSummary()
+      .then((result) => { if (active) { setPatientAppointments(result.recent); setPatientSummary(result.summary); } })
       .catch((loadError: unknown) => {
         if (!active) return;
         setPatientAppointmentsError(loadError instanceof Error ? loadError.message : 'Appointment summary লোড করা যায়নি।');
@@ -70,7 +71,7 @@ export default function DashboardPage() {
     let active = true;
     setDoctorDashboardLoading(true);
     setDoctorDashboardError(null);
-    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null), getMyDoctorInteractionSummary(30)])
+    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null, 5), getMyDoctorInteractionSummary(30)])
       .then(([analytics, appointments, engagement]) => {
         if (!active) return;
         setDoctorAnalytics(analytics);
@@ -127,32 +128,7 @@ export default function DashboardPage() {
 
   async function logout() { await signOut(); navigate('/', { replace: true }); }
 
-  const patientMetrics = useMemo(() => {
-    const toLocalDateKey = (date: Date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    const today = new Date();
-    const todayKey = toLocalDateKey(today);
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-    const thirtyDaysAgoKey = toLocalDateKey(thirtyDaysAgo);
-
-    return patientAppointments.reduce((summary, appointment) => {
-      if (appointment.appointment_date >= todayKey && (appointment.status === 'pending' || appointment.status === 'confirmed')) {
-        summary.upcoming += 1;
-      }
-      if (appointment.status === 'completed') summary.completed += 1;
-      if (appointment.status === 'pending') summary.pending += 1;
-      if (appointment.appointment_date >= thirtyDaysAgoKey && appointment.appointment_date <= todayKey) {
-        summary.last30Days += 1;
-      }
-      return summary;
-    }, { upcoming: 0, completed: 0, pending: 0, last30Days: 0 });
-  }, [patientAppointments]);
+  const patientMetrics = patientSummary;
 
   const patientRecentAppointments = useMemo(() => [...patientAppointments]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

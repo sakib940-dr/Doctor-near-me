@@ -31,14 +31,14 @@ import {
   findNearestDoctors,
   getDistricts,
   getHomepageConfiguration,
-  getMarketplaceDoctors,
+  getHomepagePrimaryDoctorSections,
+  getHomepageSecondaryDoctorSections,
   getPublicProviders,
   getSpecialties,
   getUpazilas,
   resolveLocationContext,
   saveMyCurrentLocation,
   searchAmbulances,
-  searchDoctors,
 } from '../services/discovery';
 import type {
   AmbulanceSearchRow,
@@ -277,9 +277,7 @@ export default function VisitorHomePage() {
     let active = true;
     setResultsLoading(true);
     Promise.all([
-      getMarketplaceDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, mode: 'ranked', limit: 8 }),
-      getMarketplaceDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, mode: 'general', limit: 8 }),
-      getMarketplaceDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, mode: 'specialist', limit: 8 }),
+      getHomepagePrimaryDoctorSections({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 8 }),
       currentLocation ? findNearestDoctors({ latitude: currentLocation.latitude, longitude: currentLocation.longitude, radiusKm: 100, limit: 8 }) : Promise.resolve([] as DoctorSearchRow[]),
       getPublicProviders({ districtId: selectedDistrict, upazilaId: selectedUpazila, limit: 8 }),
       searchAmbulances({
@@ -289,11 +287,11 @@ export default function VisitorHomePage() {
         longitude: areaSelectionSource === 'gps' ? currentLocation?.longitude ?? null : null,
         radiusKm: areaSelectionSource === 'gps' && currentLocation ? 100 : null,
       }),
-    ]).then(([areaRows, mbbsRows, specialistRows, nearestRows, providerRows, ambulanceRows]) => {
+    ]).then(([doctorSections, nearestRows, providerRows, ambulanceRows]) => {
       if (!active) return;
-      setAreaDoctors(areaRows);
-      setMbbsDoctors(mbbsRows);
-      setSpecialistDoctors(specialistRows);
+      setAreaDoctors(doctorSections.ranked);
+      setMbbsDoctors(doctorSections.general);
+      setSpecialistDoctors(doctorSections.specialist);
       setNearbyDoctors(nearestRows);
       setProviders(providerRows);
       setAmbulances(ambulanceRows.slice(0, 3));
@@ -324,24 +322,17 @@ export default function VisitorHomePage() {
     const featuredTopics = topics.slice(0, 5);
     let active = true;
     setSecondaryLoading(true);
-    Promise.all([
-      getMarketplaceDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, mode: 'premium', limit: 8 }),
-      getMarketplaceDoctors({ districtId: selectedDistrict, upazilaId: selectedUpazila, mode: 'new', limit: 8 }),
-      Promise.all(featuredTopics.map(async (topic) => [topic.id, await searchDoctors({
-        query: topic.specialty_ids.length ? undefined : topic.name_bn,
-        specialtyIds: topic.specialty_ids,
-        districtId: selectedDistrict,
-        upazilaId: selectedUpazila,
-        limit: 7,
-        sort: 'name',
-      })] as const)),
-    ]).then(([premiumRows, newRows, specialtyEntries]) => {
+    getHomepageSecondaryDoctorSections({
+      districtId: selectedDistrict,
+      upazilaId: selectedUpazila,
+      topics: featuredTopics,
+      marketplaceLimit: 8,
+      topicLimit: 7,
+    }).then((sections) => {
       if (!active) return;
-      setPremiumDoctors(premiumRows);
-      setNewDoctors(newRows);
-      const next: Record<number, DoctorSearchRow[]> = {};
-      specialtyEntries.forEach(([topicId, rows]) => { next[topicId] = rows; });
-      setSpecialtyDoctors(next);
+      setPremiumDoctors(sections.premium);
+      setNewDoctors(sections.new);
+      setSpecialtyDoctors(sections.topics);
     }).catch(() => {
       if (!active) return;
       setPremiumDoctors([]); setNewDoctors([]); setSpecialtyDoctors({});

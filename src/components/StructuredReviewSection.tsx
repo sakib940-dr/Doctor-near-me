@@ -3,12 +3,9 @@ import { Languages, LoaderCircle, MessageSquareText, Pencil, Star, X } from 'luc
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  getDoctorReviewSummary,
   getMyDoctorReview,
   getMyProviderReview,
-  getProviderReviewSummary,
-  getPublicDoctorReviews,
-  getPublicProviderReviews,
+  getStructuredReviewBundle,
   getStructuredReviewQuestions,
   saveMyDoctorReview,
   saveMyProviderReview,
@@ -95,14 +92,13 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
   const label = entityLabel || (targetType === 'doctor' ? 'ডাক্তার' : 'হাসপাতাল/চেম্বার');
 
   async function loadPublic() {
-    const [nextQuestions, nextSummary, nextReviews] = await Promise.all([
+    const [nextQuestions, bundle] = await Promise.all([
       getStructuredReviewQuestions().catch(() => null),
-      targetType === 'doctor' ? getDoctorReviewSummary(targetId) : getProviderReviewSummary(targetId),
-      targetType === 'doctor' ? getPublicDoctorReviews(targetId, 20, 0) : getPublicProviderReviews(targetId, 20, 0),
+      getStructuredReviewBundle(targetType, targetId, 20, 0),
     ]);
     if (nextQuestions) setQuestionSet(nextQuestions);
-    setSummary(nextSummary);
-    setReviews(nextReviews);
+    setSummary(bundle.summary);
+    setReviews(bundle.reviews);
   }
 
   async function loadMine() {

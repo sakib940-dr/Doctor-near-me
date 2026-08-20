@@ -1,6 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import { analyticsDedupeKey, shouldRecordInteraction } from '../lib/analyticsClient';
-import { getPublicProfileSlugs } from './discovery';
+import { clearPublicRequestCache, dedupeRequest, publicCachedRequest } from '../lib/requestCache';
 import type {
   InteractionSummary,
   PublicProfileStats,
@@ -87,6 +87,7 @@ export async function saveMyDoctorReview(doctorId: string, input: StructuredRevi
     p_comment: input.comment ?? null,
   });
   if (error) throw error;
+  clearPublicRequestCache(`public:review-bundle:doctor:${doctorId}:`);
   return data as string;
 }
 
@@ -101,7 +102,25 @@ export async function saveMyProviderReview(providerId: string, input: Structured
     p_comment: input.comment ?? null,
   });
   if (error) throw error;
+  clearPublicRequestCache(`public:review-bundle:provider:${providerId}:`);
   return data as string;
+}
+
+export async function getStructuredReviewBundle(targetType: 'doctor' | 'provider', targetId: string, limit = 20, offset = 0) {
+  const safeLimit = Math.min(Math.max(limit, 1), 20);
+  const safeOffset = Math.max(offset, 0);
+  const key = `public:review-bundle:${targetType}:${targetId}:${safeLimit}:${safeOffset}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_structured_review_bundle', {
+      p_doctor_id: targetType === 'doctor' ? targetId : null,
+      p_provider_id: targetType === 'provider' ? targetId : null,
+      p_limit: safeLimit,
+      p_offset: safeOffset,
+    });
+    if (error) throw error;
+    const raw = (data ?? {}) as { summary?: StructuredReviewSummary | null; reviews?: StructuredReview[] };
+    return { summary: raw.summary ?? null, reviews: Array.isArray(raw.reviews) ? raw.reviews : [] };
+  }, 20_000);
 }
 
 export async function getPublicDoctorReviews(doctorId: string, limit = 20, offset = 0) {
@@ -187,40 +206,35 @@ export async function getMyProviderInteractionSummary(providerId: string, days =
 
 
 export async function getPublicProfileStatsBatch(input: { doctorIds?: string[]; providerIds?: string[] }) {
-  const doctorIds = Array.from(new Set(input.doctorIds ?? []));
-  const providerIds = Array.from(new Set(input.providerIds ?? []));
+  const doctorIds = Array.from(new Set(input.doctorIds ?? [])).sort();
+  const providerIds = Array.from(new Set(input.providerIds ?? [])).sort();
   if (!doctorIds.length && !providerIds.length) return [] as PublicProfileStatsRow[];
-  const { data, error } = await requireSupabase().rpc('get_public_profile_stats_batch', {
-    p_doctor_ids: doctorIds,
-    p_provider_ids: providerIds,
+  const client = requireSupabase();
+  const { data: sessionData } = await client.auth.getSession();
+  const viewerKey = sessionData.session?.user.id ?? 'anon';
+  const requestKey = `private:profile-stats:${viewerKey}:d=${doctorIds.join(',')}:p=${providerIds.join(',')}`;
+  return dedupeRequest(requestKey, async () => {
+    const { data, error } = await client.rpc('get_public_profile_stats_batch', {
+      p_doctor_ids: doctorIds,
+      p_provider_ids: providerIds,
+    });
+    if (error) throw error;
+    return (data ?? []) as PublicProfileStatsRow[];
   });
-  if (error) throw error;
-  return (data ?? []) as PublicProfileStatsRow[];
 }
 
 export async function getMySavedProfileCards() {
-  const { data, error } = await requireSupabase().rpc('get_my_saved_profile_cards');
+  const { data, error } = await requireSupabase().rpc('get_my_saved_profile_cards_v2');
   if (error) throw error;
-  const rows = (data ?? []) as SavedProfileCard[];
-  if (!rows.length) return rows;
-  try {
-    const slugs = await getPublicProfileSlugs({
-      doctorIds: rows.filter((item) => item.target_type === 'doctor').map((item) => item.target_id),
-      providerIds: rows.filter((item) => item.target_type === 'provider').map((item) => item.target_id),
-    });
-    const byTarget = new Map(slugs.map((item) => [`${item.target_type}:${item.target_id}`, item.slug]));
-    return rows.map((item) => ({ ...item, public_slug: byTarget.get(`${item.target_type}:${item.target_id}`) ?? null }));
-  } catch {
-    // Saved profiles remain usable through the compatibility identifier route
-    // if slug hydration is temporarily unavailable during a rolling deploy.
-    return rows;
-  }
+  return (data ?? []) as SavedProfileCard[];
 }
 
 export async function getStructuredReviewQuestions() {
-  const { data, error } = await requireSupabase().rpc('get_public_structured_review_questions');
-  if (error) throw error;
-  return (data ?? null) as StructuredReviewQuestionSet | null;
+  return publicCachedRequest('public:structured-review-questions', async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_structured_review_questions');
+    if (error) throw error;
+    return (data ?? null) as StructuredReviewQuestionSet | null;
+  }, 15 * 60_000);
 }
 
 export async function getDoctorReviewSummary(doctorId: string) {

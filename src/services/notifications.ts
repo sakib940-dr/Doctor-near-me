@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { dedupeRequest } from '../lib/requestCache';
 import type { UserRole } from '../types';
 
 export const NOTIFICATION_CENTER_REFRESH_EVENT = 'docbd:notifications-refresh';
@@ -32,6 +33,53 @@ function dispatchNotificationRefresh() {
 export function subscribeToNotificationRefresh(listener: () => void) {
   window.addEventListener(NOTIFICATION_CENTER_REFRESH_EVENT, listener);
   return () => window.removeEventListener(NOTIFICATION_CENTER_REFRESH_EVENT, listener);
+}
+
+
+export interface NotificationPreview {
+  items: AppNotification[];
+  unread_count: number;
+}
+
+export async function getMyNotificationPreview(limit = 8) {
+  const client = requireSupabase();
+  const { data: sessionData } = await client.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) return { items: [], unread_count: 0 } as NotificationPreview;
+  const safeLimit = Math.min(Math.max(limit, 1), 20);
+  return dedupeRequest(`private:notification-preview:${userId}:${safeLimit}`, async () => {
+    const { data, error } = await client.rpc('get_my_notification_preview', { p_limit: safeLimit });
+    if (error) throw error;
+    const raw = (data ?? {}) as { items?: AppNotification[]; unread_count?: number };
+    return { items: Array.isArray(raw.items) ? raw.items : [], unread_count: Number(raw.unread_count ?? 0) } as NotificationPreview;
+  });
+}
+
+export interface NotificationPage {
+  items: AppNotification[];
+  unread_count: number;
+}
+
+export async function getMyNotificationPage(limit = 20, offset = 0, unreadOnly = false) {
+  const client = requireSupabase();
+  const { data: sessionData } = await client.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) return { items: [], unread_count: 0 } as NotificationPage;
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+  const safeOffset = Math.max(offset, 0);
+  return dedupeRequest(`private:notification-page:${userId}:${unreadOnly ? 1 : 0}:${safeLimit}:${safeOffset}`, async () => {
+    const { data, error } = await client.rpc('get_my_notification_page', {
+      p_unread_only: unreadOnly,
+      p_limit: safeLimit,
+      p_offset: safeOffset,
+    });
+    if (error) throw error;
+    const raw = (data ?? {}) as { items?: AppNotification[]; unread_count?: number };
+    return {
+      items: Array.isArray(raw.items) ? raw.items : [],
+      unread_count: Number(raw.unread_count ?? 0),
+    } as NotificationPage;
+  });
 }
 
 export async function getMyNotifications(limit = 20, offset = 0, unreadOnly = false) {

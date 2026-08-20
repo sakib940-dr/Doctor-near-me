@@ -3,12 +3,14 @@ import type { PrivilegedAccountInvite, SuperAdminDoctorVerificationPolicy, Super
 
 export async function getSuperAdminUserDirectory(filters: {
   role?: UserRole | null; status?: string | null; districtId?: number | null;
-  upazilaId?: number | null; search?: string | null;
+  upazilaId?: number | null; search?: string | null; limit?: number; offset?: number;
 }) {
   const { data, error } = await requireSupabase().rpc('super_admin_user_directory_v2', {
     p_role: filters.role || null, p_status: filters.status || null,
     p_district_id: filters.districtId ?? null, p_upazila_id: filters.upazilaId ?? null,
-    p_search: filters.search?.trim() || null, p_limit: 100, p_offset: 0,
+    p_search: filters.search?.trim() || null,
+    p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
+    p_offset: Math.max(filters.offset ?? 0, 0),
   });
   if (error) throw error;
   return (data ?? []) as SuperAdminUserRow[];

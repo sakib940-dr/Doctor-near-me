@@ -5,8 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 import {
   type AppNotification,
-  getMyNotifications,
-  getMyNotificationUnreadCount,
+  getMyNotificationPreview,
   markAllNotificationsRead,
   markNotificationRead,
   notificationDeepLink,
@@ -26,9 +25,9 @@ export default function NotificationBell({ placement = 'header' }: { placement?:
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const [rows, count] = await Promise.all([getMyNotifications(8), getMyNotificationUnreadCount()]);
-      setItems(rows);
-      setUnread(count);
+      const preview = await getMyNotificationPreview(8);
+      setItems(preview.items);
+      setUnread(preview.unread_count);
     } catch {
       // Keep the shell usable if notification retrieval is temporarily unavailable.
     }
@@ -41,7 +40,7 @@ export default function NotificationBell({ placement = 'header' }: { placement?:
       return;
     }
     void load();
-    const interval = window.setInterval(() => void load(), 45_000);
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void load(); }, 180_000);
     const unsubscribe = subscribeToNotificationRefresh(() => void load());
     const visible = () => { if (document.visibilityState === 'visible') void load(); };
     document.addEventListener('visibilitychange', visible);

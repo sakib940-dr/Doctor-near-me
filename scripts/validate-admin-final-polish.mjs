@@ -8,8 +8,8 @@ const cms = fs.readFileSync('src/pages/AdminCmsPage.tsx','utf8');
 
 const checks = [
   ['Overview lazy-loads visible data only', page.includes('Promise.all([getAdminOperationalSummary(), getAdminOperationalTrends()])' ) && !page.includes('async function loadAll()')],
-  ['Users lazy tab load', page.includes("if (tab === 'users') { void loadUsers(); return; }")],
-  ['Appointments lazy tab load', page.includes("if (tab === 'appointments') { void loadAppointments(); return; }")],
+  ['Users lazy tab load', page.includes("if (tab === 'users') { void loadUsers(true); return; }")],
+  ['Appointments lazy tab load', page.includes("if (tab === 'appointments') { void loadAppointments(true); return; }")],
   ['Activity lazy tab load', page.includes("if (tab === 'activity') void loadActivity();")],
   ['Concurrent read RPC dedupe', service.includes('adminReadInflight') && service.includes('dedupeAdminRead')],
   ['High-level analytics deduped', service.includes('admin:analytics:')],

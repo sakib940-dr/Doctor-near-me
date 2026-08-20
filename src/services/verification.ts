@@ -37,10 +37,18 @@ export async function getVerificationDocumentUrl(path: string) {
   return data.signedUrl;
 }
 
-export async function getVerificationReviewQueue(entityType?: VerificationEntityType | null, status?: string | null) {
-  const { data, error } = await requireSupabase().rpc('get_verification_review_queue', { p_entity_type: entityType ?? null, p_status: status ?? 'pending', p_limit: 100, p_offset: 0 });
+export async function getVerificationReviewQueue(entityType?: VerificationEntityType | null, status?: string | null, limit = 30, offset = 0) {
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+  const safeOffset = Math.max(offset, 0);
+  const { data, error } = await requireSupabase().rpc('get_verification_review_queue', { p_entity_type: entityType ?? null, p_status: status ?? 'pending', p_limit: safeLimit, p_offset: safeOffset });
   if (error) throw error;
   return (data ?? []) as VerificationQueueRow[];
+}
+
+export async function getMyPendingVerificationCount() {
+  const { data, error } = await requireSupabase().rpc('get_my_pending_verification_count');
+  if (error) throw error;
+  return Number(data ?? 0);
 }
 
 export async function getVerificationReviewDetail(entityType: VerificationEntityType, entityId: string) {

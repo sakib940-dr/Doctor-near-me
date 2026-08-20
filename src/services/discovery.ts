@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { publicCachedRequest } from '../lib/requestCache';
 import type {
   AmbulanceSearchRow,
   DegreeMasterItem,
@@ -20,85 +21,75 @@ const emptyHomepage: HomepageConfiguration = {
 };
 
 export async function getHomepageConfiguration(districtId?: number | null) {
-  const { data, error } = await requireSupabase().rpc(
-    'get_homepage_configuration',
-    { p_district_id: districtId ?? null },
-  );
-  if (error) throw error;
-  return (data ?? emptyHomepage) as HomepageConfiguration;
+  const key = `public:homepage:${districtId ?? 'all'}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc(
+      'get_homepage_configuration',
+      { p_district_id: districtId ?? null },
+    );
+    if (error) throw error;
+    return (data ?? emptyHomepage) as HomepageConfiguration;
+  }, 60_000);
 }
 
 export async function getDistricts() {
-  const { data, error } = await requireSupabase()
-    .from('districts')
-    .select('id,division_id,name_bn,name_en,slug')
-    .eq('is_active', true)
-    .order('name_bn');
-  if (error) throw error;
-  return (data ?? []) as District[];
+  return publicCachedRequest('public:districts', async () => {
+    const { data, error } = await requireSupabase()
+      .from('districts')
+      .select('id,division_id,name_bn,name_en,slug')
+      .eq('is_active', true)
+      .order('name_bn');
+    if (error) throw error;
+    return (data ?? []) as District[];
+  }, 15 * 60_000);
 }
 
 export async function getUpazilas(districtId: number) {
-  const { data, error } = await requireSupabase()
-    .from('upazilas')
-    .select('id,district_id,name_bn,name_en,slug')
-    .eq('is_active', true)
-    .eq('district_id', districtId)
-    .order('name_bn');
-  if (error) throw error;
-  return (data ?? []) as Upazila[];
+  return publicCachedRequest(`public:upazilas:${districtId}`, async () => {
+    const { data, error } = await requireSupabase()
+      .from('upazilas')
+      .select('id,district_id,name_bn,name_en,slug')
+      .eq('is_active', true)
+      .eq('district_id', districtId)
+      .order('name_bn');
+    if (error) throw error;
+    return (data ?? []) as Upazila[];
+  }, 15 * 60_000);
 }
 
 export async function resolveLocationContext(latitude: number, longitude: number) {
-  const { data, error } = await requireSupabase().rpc('resolve_location_context', {
-    p_lat: latitude,
-    p_lon: longitude,
-  });
-  if (error) throw error;
-  const rows = (data ?? []) as LocationResolution[];
-  return rows[0] ?? null;
+  const key = `public:location-context:${latitude.toFixed(4)}:${longitude.toFixed(4)}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('resolve_location_context', {
+      p_lat: latitude,
+      p_lon: longitude,
+    });
+    if (error) throw error;
+    const rows = (data ?? []) as LocationResolution[];
+    return rows[0] ?? null;
+  }, 5 * 60_000);
 }
 
 export async function getSpecialties() {
-  const { data, error } = await requireSupabase()
-    .from('specialties')
-    .select('id,name_bn,name_en,slug,icon_url,sort_order')
-    .eq('is_active', true)
-    .order('sort_order');
-  if (error) throw error;
-  return (data ?? []) as Specialty[];
+  return publicCachedRequest('public:specialties', async () => {
+    const { data, error } = await requireSupabase()
+      .from('specialties')
+      .select('id,name_bn,name_en,slug,icon_url,sort_order')
+      .eq('is_active', true)
+      .order('sort_order');
+    if (error) throw error;
+    return (data ?? []) as Specialty[];
+  }, 15 * 60_000);
 }
-
 
 export async function getDegreeMaster() {
-  const { data, error } = await requireSupabase().rpc('get_active_degree_master');
-  if (error) throw error;
-  return (data ?? []) as DegreeMasterItem[];
+  return publicCachedRequest('public:degree-master', async () => {
+    const { data, error } = await requireSupabase().rpc('get_active_degree_master');
+    if (error) throw error;
+    return (data ?? []) as DegreeMasterItem[];
+  }, 30 * 60_000);
 }
 
-
-interface PublicDoctorVisitingCardRow {
-  doctor_id: string;
-  doctor_name: string;
-  avatar_url: string | null;
-  degree: string | null;
-  professional_title: string | null;
-  designation: string | null;
-  bmdc_registration_no: string | null;
-  medical_college: string | null;
-  present_job: string | null;
-  verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
-}
-
-interface PublicDoctorCardContextRow {
-  doctor_id: string;
-  provider_id: string | null;
-  provider_name: string | null;
-  provider_type: string | null;
-  provider_address: string | null;
-  provider_latitude: number | null;
-  provider_longitude: number | null;
-}
 
 interface PublicSlugRow {
   target_type: 'doctor' | 'provider';
@@ -112,125 +103,24 @@ export interface PublicProfileRoute {
 }
 
 export async function getPublicProfileSlugs(input: { doctorIds?: string[]; providerIds?: string[] }) {
-  const doctorIds = Array.from(new Set(input.doctorIds ?? []));
-  const providerIds = Array.from(new Set(input.providerIds ?? []));
+  const doctorIds = Array.from(new Set(input.doctorIds ?? [])).sort();
+  const providerIds = Array.from(new Set(input.providerIds ?? [])).sort();
   if (!doctorIds.length && !providerIds.length) return [] as PublicSlugRow[];
-  const { data, error } = await requireSupabase().rpc('get_public_profile_slugs', {
-    p_doctor_ids: doctorIds.length ? doctorIds : null,
-    p_provider_ids: providerIds.length ? providerIds : null,
-  });
-  if (error) throw error;
-  return (data ?? []) as PublicSlugRow[];
+  const key = `public:slugs:d=${doctorIds.join(',')}:p=${providerIds.join(',')}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_profile_slugs', {
+      p_doctor_ids: doctorIds.length ? doctorIds : null,
+      p_provider_ids: providerIds.length ? providerIds : null,
+    });
+    if (error) throw error;
+    return (data ?? []) as PublicSlugRow[];
+  }, 5 * 60_000);
 }
 
-async function hydrateDoctorSlugs(rows: DoctorSearchRow[]) {
-  if (!rows.length) return rows;
-  const slugs = await getPublicProfileSlugs({ doctorIds: rows.map((row) => row.doctor_id) });
-  const byDoctor = new Map(slugs.filter((row) => row.target_type === 'doctor').map((row) => [row.target_id, row.slug]));
-  return rows.map((row) => ({ ...row, profile_slug: byDoctor.get(row.doctor_id) ?? row.profile_slug ?? null }));
-}
-
-async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
-  if (!rows.length) return rows;
-  const ids = Array.from(new Set(rows.map((row) => row.doctor_id)));
-  const client = requireSupabase();
-  const [cardResult, contextResult, slugResult] = await Promise.all([
-    client.rpc('get_public_doctor_visiting_cards', { p_doctor_ids: ids }),
-    client.rpc('get_public_doctor_card_context', { p_doctor_ids: ids }),
-    client.rpc('get_public_profile_slugs', { p_doctor_ids: ids, p_provider_ids: null }),
-  ]);
-
-  // Never infer a Verified badge client-side. If canonical hydration is
-  // temporarily unavailable, fail closed while keeping the directory usable.
-  const byDoctor = new Map(
-    cardResult.error ? [] : ((cardResult.data ?? []) as PublicDoctorVisitingCardRow[]).map((item) => [item.doctor_id, item]),
-  );
-  const byContext = new Map(
-    contextResult.error ? [] : ((contextResult.data ?? []) as PublicDoctorCardContextRow[]).map((item) => [item.doctor_id, item]),
-  );
-  const bySlug = new Map(
-    slugResult.error ? [] : ((slugResult.data ?? []) as PublicSlugRow[]).filter((item) => item.target_type === 'doctor').map((item) => [item.target_id, item.slug]),
-  );
-
-  return rows.map((row) => {
-    const card = byDoctor.get(row.doctor_id);
-    const context = byContext.get(row.doctor_id);
-    return {
-      ...row,
-      profile_slug: bySlug.get(row.doctor_id) ?? row.profile_slug ?? null,
-      doctor_name: card?.doctor_name || row.doctor_name,
-      avatar_url: card?.avatar_url ?? row.avatar_url,
-      degree: card?.degree ?? row.degree,
-      professional_title: card?.professional_title ?? row.professional_title,
-      designation: card?.designation ?? row.designation,
-      bmdc_registration_no: card?.bmdc_registration_no ?? row.bmdc_registration_no ?? null,
-      medical_college: card?.medical_college ?? row.medical_college ?? null,
-      present_job: card?.present_job ?? row.present_job ?? null,
-      verification_status: card?.verification_status ?? row.verification_status ?? 'pending',
-      nearest_provider_id: row.nearest_provider_id ?? context?.provider_id ?? null,
-      nearest_provider_name: row.nearest_provider_name ?? context?.provider_name ?? null,
-      nearest_provider_type: row.nearest_provider_type ?? context?.provider_type ?? null,
-      nearest_provider_address: row.nearest_provider_address ?? context?.provider_address ?? null,
-      nearest_provider_latitude: row.nearest_provider_latitude ?? context?.provider_latitude ?? null,
-      nearest_provider_longitude: row.nearest_provider_longitude ?? context?.provider_longitude ?? null,
-    };
-  });
-}
-
-export async function searchDoctors(input: {
-  query?: string;
-  districtId?: number | null;
-  upazilaId?: number | null;
-  specialtyIds?: number[];
-  degrees?: string[];
-  minFee?: number | null;
-  maxFee?: number | null;
-  availableToday?: boolean;
-  sort?: 'name' | 'newest' | 'fee_low' | 'fee_high';
-  limit?: number;
-  offset?: number;
-}) {
-  const { data, error } = await requireSupabase().rpc(
-    'search_doctors_advanced',
-    {
-      p_query: input.query?.trim() || null,
-      p_district_id: input.districtId ?? null,
-      p_upazila_id: input.upazilaId ?? null,
-      p_specialty_ids: input.specialtyIds?.length
-        ? input.specialtyIds
-        : null,
-      p_degrees: input.degrees?.length ? input.degrees : null,
-      p_designations: null,
-      p_min_fee: input.minFee ?? null,
-      p_max_fee: input.maxFee ?? null,
-      p_available_today: input.availableToday ?? false,
-      p_sort: input.sort ?? 'name',
-      p_limit: Math.min(Math.max(input.limit ?? 20, 1), 20),
-      p_offset: input.offset ?? 0,
-    },
-  );
-  if (error) throw error;
-  const rows = (data ?? []) as DoctorSearchRow[];
-  return hydrateDoctorVisitingCards(rows);
-
-}
-
-
-export async function getMarketplaceDoctors(input: {
-  districtId?: number | null;
-  upazilaId?: number | null;
-  mode?: 'ranked' | 'premium' | 'new' | 'general' | 'general_dental' | 'specialist';
-  limit?: number;
-}) {
-  const { data, error } = await requireSupabase().rpc('get_public_marketplace_doctors', {
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_mode: input.mode ?? 'ranked',
-    p_limit: input.limit ?? 10,
-  });
-  if (error) throw error;
-  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+function mapDoctorSearchRow(row: Record<string, unknown>): DoctorSearchRow {
+  return {
     doctor_id: String(row.doctor_id),
+    profile_slug: (row.profile_slug as string | null) ?? null,
     doctor_name: String(row.doctor_name ?? ''),
     avatar_url: (row.avatar_url as string | null) ?? null,
     degree: (row.degree as string | null) ?? null,
@@ -246,18 +136,148 @@ export async function getMarketplaceDoctors(input: {
     upazila_id: row.upazila_id == null ? null : Number(row.upazila_id),
     upazila_name_bn: (row.upazila_name_bn as string | null) ?? null,
     specialties: Array.isArray(row.specialties) ? row.specialties as DoctorSearchRow['specialties'] : [],
-    available_today: false,
+    available_today: Boolean(row.available_today),
     total_count: Number(row.total_count ?? 0),
-    distance_km: null,
+    distance_km: row.distance_km == null ? null : Number(row.distance_km),
     nearest_provider_id: (row.nearest_provider_id as string | null) ?? null,
     nearest_provider_name: (row.nearest_provider_name as string | null) ?? null,
-    nearest_provider_type: null,
+    nearest_provider_type: (row.nearest_provider_type as string | null) ?? null,
     nearest_provider_address: (row.nearest_provider_address as string | null) ?? null,
-    nearest_provider_latitude: null,
-    nearest_provider_longitude: null,
+    nearest_provider_latitude: row.nearest_provider_latitude == null ? null : Number(row.nearest_provider_latitude),
+    nearest_provider_longitude: row.nearest_provider_longitude == null ? null : Number(row.nearest_provider_longitude),
     verification_status: (row.verification_status as DoctorSearchRow['verification_status']) ?? 'pending',
-  })) satisfies DoctorSearchRow[];
-  return hydrateDoctorSlugs(rows);
+    provider_schedules: Array.isArray(row.schedules) ? row.schedules as DoctorSearchRow['provider_schedules'] : [],
+  };
+}
+
+export async function searchDoctors(input: {
+  query?: string;
+  districtId?: number | null;
+  upazilaId?: number | null;
+  specialtyIds?: number[];
+  degrees?: string[];
+  minFee?: number | null;
+  maxFee?: number | null;
+  availableToday?: boolean;
+  sort?: 'name' | 'newest' | 'fee_low' | 'fee_high';
+  limit?: number;
+  offset?: number;
+}) {
+  const normalized = {
+    ...input,
+    query: input.query?.trim() || '',
+    specialtyIds: [...(input.specialtyIds ?? [])].sort((a,b)=>a-b),
+    degrees: [...(input.degrees ?? [])].sort(),
+    limit: Math.min(Math.max(input.limit ?? 20, 1), 20),
+    offset: Math.max(input.offset ?? 0, 0),
+  };
+  const key = `public:doctor-search:${JSON.stringify(normalized)}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc(
+      'get_public_doctor_search_cards',
+      {
+        p_query: normalized.query || null,
+        p_district_id: input.districtId ?? null,
+        p_upazila_id: input.upazilaId ?? null,
+        p_specialty_ids: normalized.specialtyIds.length ? normalized.specialtyIds : null,
+        p_degrees: normalized.degrees.length ? normalized.degrees : null,
+        p_min_fee: input.minFee ?? null,
+        p_max_fee: input.maxFee ?? null,
+        p_available_today: input.availableToday ?? false,
+        p_sort: input.sort ?? 'name',
+        p_limit: normalized.limit,
+        p_offset: normalized.offset,
+      },
+    );
+    if (error) throw error;
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+  }, 20_000);
+}
+
+
+export async function getHomepagePrimaryDoctorSections(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  limit?: number;
+}) {
+  const limit = Math.min(Math.max(input.limit ?? 8, 1), 8);
+  const key = `public:homepage-primary-doctors:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${limit}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_homepage_primary_doctors', {
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_limit: limit,
+    });
+    if (error) throw error;
+    const raw = (data ?? {}) as { ranked?: Array<Record<string, unknown>>; general?: Array<Record<string, unknown>>; specialist?: Array<Record<string, unknown>> };
+    return {
+      ranked: (raw.ranked ?? []).map(mapDoctorSearchRow),
+      general: (raw.general ?? []).map(mapDoctorSearchRow),
+      specialist: (raw.specialist ?? []).map(mapDoctorSearchRow),
+    };
+  }, 30_000);
+}
+
+export async function getHomepageSecondaryDoctorSections(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  topics: Array<{ id: number; name_bn: string; specialty_ids: number[] }>;
+  marketplaceLimit?: number;
+  topicLimit?: number;
+}) {
+  const topics = input.topics.slice(0, 5);
+  const positiveTopicIds = topics.filter((topic) => topic.id > 0).map((topic) => topic.id);
+  const marketplaceLimit = Math.min(Math.max(input.marketplaceLimit ?? 8, 1), 8);
+  const topicLimit = Math.min(Math.max(input.topicLimit ?? 7, 1), 7);
+  const key = `public:homepage-secondary-doctors:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${positiveTopicIds.join(',')}:${marketplaceLimit}:${topicLimit}`;
+  const bundled = await publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_homepage_secondary_doctors', {
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_topic_ids: positiveTopicIds,
+      p_marketplace_limit: marketplaceLimit,
+      p_topic_limit: topicLimit,
+    });
+    if (error) throw error;
+    const raw = (data ?? {}) as { premium?: Array<Record<string, unknown>>; new?: Array<Record<string, unknown>>; topics?: Record<string, Array<Record<string, unknown>>> };
+    const topicRows: Record<number, DoctorSearchRow[]> = {};
+    Object.entries(raw.topics ?? {}).forEach(([topicId, rows]) => { topicRows[Number(topicId)] = (rows ?? []).map(mapDoctorSearchRow); });
+    return { premium: (raw.premium ?? []).map(mapDoctorSearchRow), new: (raw.new ?? []).map(mapDoctorSearchRow), topics: topicRows };
+  }, 30_000);
+
+  const fallbackTopics = topics.filter((topic) => topic.id <= 0);
+  if (!fallbackTopics.length) return bundled;
+  const fallbackEntries = await Promise.all(fallbackTopics.map(async (topic) => [topic.id, await searchDoctors({
+    query: topic.specialty_ids.length ? undefined : topic.name_bn,
+    specialtyIds: topic.specialty_ids,
+    districtId: input.districtId ?? null,
+    upazilaId: input.upazilaId ?? null,
+    limit: topicLimit,
+    sort: 'name',
+  })] as const));
+  const mergedTopics = { ...bundled.topics };
+  fallbackEntries.forEach(([topicId, rows]) => { mergedTopics[topicId] = rows; });
+  return { ...bundled, topics: mergedTopics };
+}
+
+export async function getMarketplaceDoctors(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  mode?: 'ranked' | 'premium' | 'new' | 'general' | 'general_dental' | 'specialist';
+  limit?: number;
+}) {
+  const limit = Math.min(Math.max(input.limit ?? 8, 1), 12);
+  const key = `public:marketplace:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${input.mode ?? 'ranked'}:${limit}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_marketplace_doctors_v2', {
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_mode: input.mode ?? 'ranked',
+      p_limit: limit,
+    });
+    if (error) throw error;
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+  }, 30_000);
 }
 
 export async function getPublicProviders(input: {
@@ -266,100 +286,71 @@ export async function getPublicProviders(input: {
   limit?: number;
   offset?: number;
 } = {}) {
-  const { data, error } = await requireSupabase().rpc('get_public_ranked_providers', {
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_limit: input.limit ?? 20,
-    p_offset: input.offset ?? 0,
-  });
-  if (error) throw error;
-  return ((data ?? []) as ProviderDirectoryRow[]).map((row) => ({
-    ...row,
-    latitude: row.latitude == null ? null : Number(row.latitude),
-    longitude: row.longitude == null ? null : Number(row.longitude),
-    district_id: row.district_id == null ? null : Number(row.district_id),
-    upazila_id: row.upazila_id == null ? null : Number(row.upazila_id),
-  }));
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), 20);
+  const offset = Math.max(input.offset ?? 0, 0);
+  const key = `public:providers:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${limit}:${offset}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_ranked_providers', {
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    return ((data ?? []) as ProviderDirectoryRow[]).map((row) => ({
+      ...row,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+      district_id: row.district_id == null ? null : Number(row.district_id),
+      upazila_id: row.upazila_id == null ? null : Number(row.upazila_id),
+    }));
+  }, 30_000);
 }
 
+const PUBLIC_PROVIDER_COLUMNS = 'id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified,short_description,whatsapp,email,facebook_url,website_url,opening_note,emergency_available';
+
 export async function getPublicProviderBySlug(slug: string) {
-  const { data, error } = await requireSupabase()
-    .from('public_provider_directory')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as ProviderDirectoryRow | null;
+  const value = slug.trim().toLowerCase();
+  return publicCachedRequest(`public:provider-by-slug:${value}`, async () => {
+    const { data, error } = await requireSupabase().from('public_provider_directory').select(PUBLIC_PROVIDER_COLUMNS).eq('slug', value).maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as unknown as ProviderDirectoryRow | null;
+  }, 60_000);
 }
 
 export async function getPublicProvider(providerId: string) {
-  const { data, error } = await requireSupabase()
-    .from('public_provider_directory')
-    .select('*')
-    .eq('id', providerId)
-    .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as ProviderDirectoryRow | null;
+  return publicCachedRequest(`public:provider-by-id:${providerId}`, async () => {
+    const { data, error } = await requireSupabase().from('public_provider_directory').select(PUBLIC_PROVIDER_COLUMNS).eq('id', providerId).maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as unknown as ProviderDirectoryRow | null;
+  }, 60_000);
 }
 
-interface PublicProviderDoctorRpcRow {
-  doctor_id: string;
-  doctor_name: string;
-  avatar_url: string | null;
-  degree: string | null;
-  designation: string | null;
-  professional_title: string | null;
-  bmdc_registration_no: string | null;
-  consultation_fee: number | null;
-  experience_years: number | null;
-  district_id: number | null;
-  district_name_bn: string | null;
-  upazila_id: number | null;
-  upazila_name_bn: string | null;
-  specialties: DoctorSearchRow['specialties'] | null;
-  available_today: boolean;
-  schedules?: Array<{ day_of_week: number; start_time: string; end_time: string; fee: number | null; note?: { bn?: string | null; en?: string | null } | null }> | null;
-  total_count?: number;
-}
-
-export async function getDoctorsForProvider(providerId: string) {
-  const { data, error } = await requireSupabase().rpc(
-    'get_public_provider_doctors_v2',
-    { p_provider_id: providerId },
-  );
-  if (error) throw error;
-
-  const rows = (data ?? []) as PublicProviderDoctorRpcRow[];
-  const mapped = rows.map((row): DoctorSearchRow => ({
-    doctor_id: row.doctor_id,
-    doctor_name: row.doctor_name,
-    avatar_url: row.avatar_url,
-    degree: row.degree,
-    designation: row.designation,
-    professional_title: row.professional_title,
-    bmdc_registration_no: row.bmdc_registration_no,
-    consultation_fee: row.consultation_fee,
-    experience_years: row.experience_years,
-    district_id: row.district_id,
-    district_name_bn: row.district_name_bn,
-    upazila_id: row.upazila_id,
-    upazila_name_bn: row.upazila_name_bn,
-    specialties: row.specialties ?? [],
-    available_today: row.available_today,
-    total_count: Number(row.total_count ?? rows.length),
-    provider_schedules: row.schedules ?? [],
-  }));
-  return hydrateDoctorVisitingCards(mapped);
+export async function getDoctorsForProvider(providerId: string, limit = 20, offset = 0) {
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+  const safeOffset = Math.max(offset, 0);
+  const key = `public:provider-doctors:${providerId}:${safeLimit}:${safeOffset}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_provider_doctors_v3', {
+      p_provider_id: providerId,
+      p_limit: safeLimit,
+      p_offset: safeOffset,
+    });
+    if (error) throw error;
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+  }, 30_000);
 }
 
 export async function resolvePublicDoctorRoute(identifier: string) {
   const value = identifier.trim().toLowerCase();
   if (!value) return null;
-  const { data, error } = await requireSupabase().rpc('resolve_public_doctor_route', { p_identifier: value });
-  if (error) throw error;
-  const route = (data ?? null) as { id?: string; slug?: string } | null;
-  if (!route?.id || !route.slug) return null;
-  return { id: route.id, slug: route.slug } as PublicProfileRoute;
+  return publicCachedRequest(`public:doctor-route:${value}`, async () => {
+    const { data, error } = await requireSupabase().rpc('resolve_public_doctor_route', { p_identifier: value });
+    if (error) throw error;
+    const route = (data ?? null) as { id?: string; slug?: string } | null;
+    if (!route?.id || !route.slug) return null;
+    return { id: route.id, slug: route.slug } as PublicProfileRoute;
+  }, 5 * 60_000);
 }
 
 export async function resolvePublicDoctorId(identifier: string) {
@@ -369,40 +360,61 @@ export async function resolvePublicDoctorId(identifier: string) {
 export async function resolvePublicProviderRoute(identifier: string) {
   const value = identifier.trim().toLowerCase();
   if (!value) return null;
-  const { data, error } = await requireSupabase().rpc('resolve_public_provider_route', { p_identifier: value });
-  if (error) throw error;
-  const route = (data ?? null) as { id?: string; slug?: string } | null;
-  if (!route?.id || !route.slug) return null;
-  return { id: route.id, slug: route.slug } as PublicProfileRoute;
+  return publicCachedRequest(`public:provider-route:${value}`, async () => {
+    const { data, error } = await requireSupabase().rpc('resolve_public_provider_route', { p_identifier: value });
+    if (error) throw error;
+    const route = (data ?? null) as { id?: string; slug?: string } | null;
+    if (!route?.id || !route.slug) return null;
+    return { id: route.id, slug: route.slug } as PublicProfileRoute;
+  }, 5 * 60_000);
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {
-  const { data, error } = await requireSupabase().rpc(
-    'get_doctor_public_profile',
-    { p_doctor_id: doctorId },
-  );
-  if (error) throw error;
-  return (data ?? null) as DoctorPublicProfile | null;
+  return publicCachedRequest(`public:doctor-profile:${doctorId}`, async () => {
+    const { data, error } = await requireSupabase().rpc('get_doctor_public_profile', { p_doctor_id: doctorId });
+    if (error) throw error;
+    return (data ?? null) as DoctorPublicProfile | null;
+  }, 60_000);
+}
+
+export interface PublicDoctorPageBase {
+  route: PublicProfileRoute;
+  profile: DoctorPublicProfile | null;
+  content: import('../types').DoctorPublicContent | null;
+}
+
+export async function getPublicDoctorPageBase(identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+  return publicCachedRequest(`public:doctor-page-base:${value}`, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_doctor_page_base', { p_identifier: value });
+    if (error) throw error;
+    return (data ?? null) as PublicDoctorPageBase | null;
+  }, 60_000);
+}
+
+export interface PublicProviderPageBase {
+  route: PublicProfileRoute;
+  provider: ProviderDirectoryRow;
+  content: import('./providerPublicContent').ProviderPublicPageContent | null;
+  doctors: DoctorSearchRow[];
+}
+
+export async function getPublicProviderPageBase(identifier: string, doctorLimit = 10) {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+  const limit = Math.min(Math.max(doctorLimit, 1), 20);
+  return publicCachedRequest(`public:provider-page-base:${value}:${limit}`, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_provider_page_base', { p_identifier: value, p_doctor_limit: limit });
+    if (error) throw error;
+    const raw = (data ?? null) as { route?: PublicProfileRoute; provider?: ProviderDirectoryRow; content?: import('./providerPublicContent').ProviderPublicPageContent | null; doctors?: Array<Record<string, unknown>> } | null;
+    if (!raw?.route || !raw.provider) return null;
+    const doctors = (raw.doctors ?? []).map(mapDoctorSearchRow);
+    return { route: raw.route, provider: raw.provider, content: raw.content ?? null, doctors } as PublicProviderPageBase;
+  }, 60_000);
 }
 
 
-
-interface NearestDoctorRpcRow {
-  doctor_id: string;
-  provider_id: string;
-  doctor_name: string;
-  degree: string | null;
-  designation: string | null;
-  consultation_fee: number | null;
-  provider_name: string;
-  provider_type: string;
-  address: string | null;
-  district_id: number | null;
-  upazila_id: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  distance_km: number;
-}
 
 export async function findNearestDoctors(input: {
   latitude: number;
@@ -413,68 +425,22 @@ export async function findNearestDoctors(input: {
   limit?: number;
   offset?: number;
 }) {
-  const { data, error } = await requireSupabase().rpc('nearest_doctors', {
-    p_lat: input.latitude,
-    p_lon: input.longitude,
-    p_radius_km: input.radiusKm ?? 50,
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_limit: Math.min((input.limit ?? 20) * 4, 100),
-    p_offset: input.offset ?? 0,
-  });
-  if (error) throw error;
-  const rawRows = (data ?? []) as NearestDoctorRpcRow[];
-  // One doctor can have multiple approved chambers. The RPC is distance-sorted,
-  // so keep only the first row per doctor = that doctor's nearest chamber.
-  const seen = new Set<string>();
-  const rows = rawRows.filter((row) => {
-    if (seen.has(row.doctor_id)) return false;
-    seen.add(row.doctor_id);
-    return true;
-  }).slice(0, input.limit ?? 20);
-
-  // The location RPC intentionally returns only location-safe core fields.
-  // Reuse the existing public-profile RPC to hydrate photo/specialty/BMDC
-  // without changing any SQL or exposing private profile data.
-  const hydrated = await Promise.all(rows.map(async (row): Promise<DoctorSearchRow> => {
-    let profile: DoctorPublicProfile | null = null;
-    try { profile = await getDoctorPublicProfile(row.doctor_id); } catch { profile = null; }
-    return {
-      doctor_id: row.doctor_id,
-      doctor_name: profile?.doctor.name || row.doctor_name,
-      avatar_url: profile?.doctor.avatar_url ?? null,
-      degree: profile?.doctor.degree ?? row.degree,
-      designation: profile?.doctor.designation ?? row.designation,
-      professional_title: profile?.doctor.professional_title ?? null,
-      bmdc_registration_no: profile?.doctor.bmdc_registration_no ?? null,
-      medical_college: profile?.doctor.medical_college ?? null,
-      present_job: profile?.doctor.present_job ?? null,
-      consultation_fee: profile?.doctor.consultation_fee ?? row.consultation_fee,
-      experience_years: profile?.doctor.experience_years ?? null,
-      district_id: row.district_id,
-      district_name_bn: null,
-      upazila_id: row.upazila_id,
-      upazila_name_bn: null,
-      specialties: (profile?.specialties ?? []).map((item, index) => ({
-        id: item.id,
-        name_bn: item.name_bn,
-        name_en: item.name_en,
-        slug: '',
-        is_primary: index === 0,
-      })),
-      available_today: false,
-      total_count: rows.length,
-      distance_km: row.distance_km,
-      nearest_provider_id: row.provider_id,
-      nearest_provider_name: row.provider_name,
-      nearest_provider_type: row.provider_type,
-      nearest_provider_address: row.address,
-      nearest_provider_latitude: row.latitude,
-      nearest_provider_longitude: row.longitude,
-      verification_status: profile?.doctor.verification_status ?? 'pending',
-    };
-  }));
-  return hydrateDoctorSlugs(hydrated);
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), 20);
+  const offset = Math.max(input.offset ?? 0, 0);
+  const key = `public:near:${input.latitude.toFixed(4)}:${input.longitude.toFixed(4)}:${input.radiusKm ?? 50}:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${limit}:${offset}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_public_nearest_doctors_v2', {
+      p_lat: input.latitude,
+      p_lon: input.longitude,
+      p_radius_km: input.radiusKm ?? 50,
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+  }, 20_000);
 }
 
 export async function saveMyCurrentLocation(input: {
@@ -505,17 +471,20 @@ export async function searchAmbulances(input: {
   longitude?: number | null;
   radiusKm?: number | null;
 }) {
-  const { data, error } = await requireSupabase().rpc('search_ambulances', {
-    p_district_id: input.districtId ?? null,
-    p_upazila_id: input.upazilaId ?? null,
-    p_vehicle_types: null,
-    p_available_only: true,
-    p_latitude: input.latitude ?? null,
-    p_longitude: input.longitude ?? null,
-    p_radius_km: input.radiusKm ?? null,
-    p_limit: 20,
-    p_offset: 0,
-  });
-  if (error) throw error;
-  return (data ?? []) as AmbulanceSearchRow[];
+  const key = `public:ambulances:${input.districtId ?? 'all'}:${input.upazilaId ?? 'all'}:${input.latitude?.toFixed(4) ?? 'none'}:${input.longitude?.toFixed(4) ?? 'none'}:${input.radiusKm ?? 'default'}`;
+  return publicCachedRequest(key, async () => {
+    const { data, error } = await requireSupabase().rpc('search_ambulances', {
+      p_district_id: input.districtId ?? null,
+      p_upazila_id: input.upazilaId ?? null,
+      p_vehicle_types: null,
+      p_available_only: true,
+      p_latitude: input.latitude ?? null,
+      p_longitude: input.longitude ?? null,
+      p_radius_km: input.radiusKm ?? null,
+      p_limit: 20,
+      p_offset: 0,
+    });
+    if (error) throw error;
+    return (data ?? []) as AmbulanceSearchRow[];
+  }, 10_000);
 }

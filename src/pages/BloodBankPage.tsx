@@ -36,6 +36,8 @@ export default function BloodBankPage() {
   const [searchDistrict, setSearchDistrict] = useState('');
   const [searchUpazila, setSearchUpazila] = useState('');
   const [donors, setDonors] = useState<BloodDonorSearchRow[]>([]);
+  const [donorsHasMore, setDonorsHasMore] = useState(false);
+  const [donorsLoadingMore, setDonorsLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
 
   const [requestGroup, setRequestGroup] = useState('');
@@ -100,15 +102,28 @@ export default function BloodBankPage() {
 
   const districtNames = useMemo(() => new Map(districts.map((item) => [item.id, item.name_bn])), [districts]);
 
-  async function findDonors(event: FormEvent) {
-    event.preventDefault();
-    setError(null); setNotice(null); setWorking(true); setSearched(true);
+  async function loadDonors(reset = true) {
+    const offset = reset ? 0 : donors.length;
+    if (reset) setWorking(true); else setDonorsLoadingMore(true);
+    setError(null); setNotice(null); setSearched(true);
     try {
-      const rows = await searchBloodDonors({ bloodGroup: searchGroup, districtId: searchDistrict ? Number(searchDistrict) : null, upazilaId: searchUpazila ? Number(searchUpazila) : null, limit: 50 });
-      setDonors(rows);
+      const rows = await searchBloodDonors({
+        bloodGroup: searchGroup,
+        districtId: searchDistrict ? Number(searchDistrict) : null,
+        upazilaId: searchUpazila ? Number(searchUpazila) : null,
+        limit: 20, offset,
+      });
+      setDonors((current) => {
+        if (reset) return rows;
+        const seen = new Set(current.map((item) => item.donor_id));
+        return [...current, ...rows.filter((row) => !seen.has(row.donor_id))];
+      });
+      setDonorsHasMore(rows.length === 20);
     } catch (searchError) { setError(messageFrom(searchError)); }
-    finally { setWorking(false); }
+    finally { if (reset) setWorking(false); else setDonorsLoadingMore(false); }
   }
+
+  async function findDonors(event: FormEvent) { event.preventDefault(); await loadDonors(true); }
 
   async function submitBloodRequest(event: FormEvent) {
     event.preventDefault();
@@ -183,6 +198,7 @@ export default function BloodBankPage() {
             <div><strong>{donor.donor_name}</strong><small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}{donor.last_donation_date ? ` · শেষ দান ${donor.last_donation_date}` : ''}</small></div>
             {donor.phone ? <a href={`tel:${donor.phone}`}><Phone /> কল করুন</a> : <span className="blood-private-phone"><ShieldCheck /> Phone private</span>}
           </article>)}
+          {donorsHasMore && <div className="public-load-more-wrap"><button type="button" className="public-load-more-button" disabled={donorsLoadingMore} onClick={() => void loadDonors(false)}>{donorsLoadingMore ? <LoaderCircle className="spin" /> : null}{donorsLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও donor দেখুন'}</button></div>}
         </div>
       </section>}
 

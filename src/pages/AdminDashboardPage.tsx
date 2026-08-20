@@ -10,6 +10,7 @@ import type { AdminActivityRow, AdminAnalyticsRangeKey, AdminAppointmentRow, Adm
 type Tab = 'overview' | 'users' | 'appointments' | 'activity';
 const roleLabels: Record<UserRole, string> = { patient: 'Patient', doctor: 'Doctor', chamber: 'Chamber', hospital: 'Hospital', ambulance: 'Ambulance', verification_officer: 'Verification Officer', admin: 'Admin', super_admin: 'Super Admin' };
 const appointmentStatuses: AppointmentStatus[] = ['pending', 'confirmed', 'rejected', 'cancelled', 'completed', 'no_show'];
+const ADMIN_LIST_PAGE_SIZE = 30;
 const topDoctorRankingConfig: readonly [AdminTopDoctorMetricKey, string, typeof FileText][] = [
   ['prescriptions', 'Top Prescription Generator', FileText],
   ['follows', 'Most Saved/Followed Doctor', Heart],
@@ -97,6 +98,10 @@ export default function AdminDashboardPage() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [appointments, setAppointments] = useState<AdminAppointmentRow[]>([]);
   const [activity, setActivity] = useState<AdminActivityRow[]>([]);
+  const [usersHasMore, setUsersHasMore] = useState(false);
+  const [appointmentsHasMore, setAppointmentsHasMore] = useState(false);
+  const [usersLoadingMore, setUsersLoadingMore] = useState(false);
+  const [appointmentsLoadingMore, setAppointmentsLoadingMore] = useState(false);
   const [role, setRole] = useState<UserRole | 'all'>('all');
   const [userStatus, setUserStatus] = useState('all');
   const [userSearch, setUserSearch] = useState('');
@@ -123,19 +128,51 @@ export default function AdminDashboardPage() {
     } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
   }
 
-  async function loadUsers() {
-    setLoading(true); setError(null);
+  async function loadUsers(reset = true) {
+    const offset = reset ? 0 : users.length;
+    if (reset) setLoading(true); else setUsersLoadingMore(true);
+    setError(null);
     try {
-      const userData = await getAdminUserDirectory({ role: role === 'all' ? null : role, status: userStatus === 'all' ? null : userStatus, search: userSearch });
-      setUsers(userData);
-      setSelectedUserIds((current) => current.filter((id) => userData.some((user) => user.user_id === id)));
-    } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
+      const userData = await getAdminUserDirectory({
+        role: role === 'all' ? null : role,
+        status: userStatus === 'all' ? null : userStatus,
+        search: userSearch,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        offset,
+      });
+      setUsers((current) => {
+        if (reset) return userData;
+        const seen = new Set(current.map((user) => user.user_id));
+        return [...current, ...userData.filter((user) => !seen.has(user.user_id))];
+      });
+      const total = Number(userData[0]?.total_count ?? offset + userData.length);
+      setUsersHasMore(userData.length === ADMIN_LIST_PAGE_SIZE && offset + userData.length < total);
+      if (reset) setSelectedUserIds((current) => current.filter((id) => userData.some((user) => user.user_id === id)));
+    } catch (loadError) { setError(messageFrom(loadError)); }
+    finally { if (reset) setLoading(false); else setUsersLoadingMore(false); }
   }
 
-  async function loadAppointments() {
-    setLoading(true); setError(null);
-    try { setAppointments(await getAdminAppointmentDirectory({ status: appointmentStatus === 'all' ? null : appointmentStatus, search: appointmentSearch })); }
-    catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
+  async function loadAppointments(reset = true) {
+    const offset = reset ? 0 : appointments.length;
+    if (reset) setLoading(true); else setAppointmentsLoadingMore(true);
+    setError(null);
+    try {
+      const nextRows = await getAdminAppointmentDirectory({
+        status: appointmentStatus === 'all' ? null : appointmentStatus,
+        search: appointmentSearch,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        offset,
+      });
+      setAppointments((current) => {
+        if (reset) return nextRows;
+        const seen = new Set(current.map((item) => item.appointment_id));
+        return [...current, ...nextRows.filter((item) => !seen.has(item.appointment_id))];
+      });
+      const total = Number(nextRows[0]?.total_count ?? offset + nextRows.length);
+      setAppointmentsHasMore(nextRows.length === ADMIN_LIST_PAGE_SIZE && offset + nextRows.length < total);
+    }
+    catch (loadError) { setError(messageFrom(loadError)); }
+    finally { if (reset) setLoading(false); else setAppointmentsLoadingMore(false); }
   }
 
   async function loadActivity() {
@@ -178,8 +215,8 @@ export default function AdminDashboardPage() {
       void loadHospitalAnalytics(hospitalRange);
       return;
     }
-    if (tab === 'users') { void loadUsers(); return; }
-    if (tab === 'appointments') { void loadAppointments(); return; }
+    if (tab === 'users') { void loadUsers(true); return; }
+    if (tab === 'appointments') { void loadAppointments(true); return; }
     if (tab === 'activity') void loadActivity();
   }, [account?.user_id, account?.role, tab]);
   useEffect(() => {
@@ -189,8 +226,8 @@ export default function AdminDashboardPage() {
   }, [searchParams]);
   if (account && !['admin', 'super_admin'].includes(account.role)) return <Navigate to="/dashboard" replace />;
 
-  async function searchUsers(event: FormEvent) { event.preventDefault(); setLoading(true); setError(null); try { const nextUsers = await getAdminUserDirectory({ role: role === 'all' ? null : role, status: userStatus === 'all' ? null : userStatus, search: userSearch }); setUsers(nextUsers); setSelectedUserIds([]); } catch (searchError) { setError(messageFrom(searchError)); } finally { setLoading(false); } }
-  async function searchAppointments(event: FormEvent) { event.preventDefault(); setLoading(true); setError(null); try { setAppointments(await getAdminAppointmentDirectory({ status: appointmentStatus === 'all' ? null : appointmentStatus, search: appointmentSearch })); } catch (searchError) { setError(messageFrom(searchError)); } finally { setLoading(false); } }
+  async function searchUsers(event: FormEvent) { event.preventDefault(); setSelectedUserIds([]); await loadUsers(true); }
+  async function searchAppointments(event: FormEvent) { event.preventDefault(); await loadAppointments(true); }
   function closeAction() { setUserAction(null); setAppointmentAction(null); setReason(''); setConfirmed(false); }
 
   async function applyUserStatus() {
@@ -248,8 +285,8 @@ export default function AdminDashboardPage() {
       void loadOverview(); void loadAnalytics(); void loadTopDoctors(); void loadHospitalAnalytics();
       return;
     }
-    if (tab === 'users') { void loadUsers(); return; }
-    if (tab === 'appointments') { void loadAppointments(); return; }
+    if (tab === 'users') { void loadUsers(true); return; }
+    if (tab === 'appointments') { void loadAppointments(true); return; }
     void loadActivity();
   }
   const analyticsBusy = analyticsLoading || topDoctorsLoading || hospitalAnalyticsLoading;
@@ -467,9 +504,9 @@ export default function AdminDashboardPage() {
       </section>
     </div>}
 
-  {!loading && tab === 'users' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>User management</h2><p>Admin/Super Admin ছাড়া operational account suspend বা restore করুন।</p></div><b>{users[0]?.total_count ?? 0} users</b></div><form className="admin-filters" onSubmit={searchUsers}><select value={role} onChange={(event) => setRole(event.target.value as UserRole | 'all')}><option value="all">সব role</option>{roles.map((item) => <option value={item} key={item}>{roleLabels[item]}</option>)}</select><select value={userStatus} onChange={(event) => setUserStatus(event.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><label><Search /><input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="নাম, ইমেইল বা ফোন" /></label><button>খুঁজুন</button></form>{selectedUserIds.length > 0 && <div className="admin-bulk-bar"><div><strong>{selectedUserIds.length} selected</strong><small>প্রতিটি account action আলাদা audit log তৈরি করবে।</small></div><input value={bulkUserReason} onChange={(event) => { setBulkUserReason(event.target.value); setBulkUserConfirm(null); }} placeholder="Common reason (suspend-এর জন্য required)" /><button className={bulkUserConfirm === 'suspended' ? 'danger confirming' : 'danger'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('suspended')}>{bulkUserWorking ? <LoaderCircle className="spin" /> : bulkUserConfirm === 'suspended' ? 'Confirm suspend' : 'Suspend selected'}</button><button className={bulkUserConfirm === 'active' ? 'primary confirming' : 'primary'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('active')}>{bulkUserConfirm === 'active' ? 'Confirm restore' : 'Restore selected'}</button><button onClick={() => { setSelectedUserIds([]); setBulkUserConfirm(null); }}>Clear</button></div>}<div className="admin-user-select-all"><label><input type="checkbox" checked={allBulkUsersSelected} onChange={toggleAllUsers} disabled={!bulkManageableUsers.length} /> <span>এই পাতার manageable users নির্বাচন</span></label></div><div className="admin-user-list">{users.map((user) => { const manageable = canBulkManageUser(user); return <article key={user.user_id} className={selectedUserIds.includes(user.user_id) ? 'selected' : ''}><label className="admin-user-checkbox" title={manageable ? 'Select user' : 'এই user bulk action-এ নেওয়া যাবে না'}><input type="checkbox" checked={selectedUserIds.includes(user.user_id)} onChange={() => toggleUserSelection(user.user_id)} disabled={!manageable} /></label><div className="admin-user-avatar">{(user.full_name || 'U').slice(0, 1).toUpperCase()}</div><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'}</strong><small>{user.email || user.phone || 'যোগাযোগ নেই'}</small><p>{roleLabels[user.role]} {user.professional_status && <b>{user.professional_status}</b>}</p></div><span className={`admin-status ${user.account_status}`}>{user.account_status}</span>{manageable && <button className={user.account_status === 'active' ? 'suspend' : 'activate'} onClick={() => { setUserAction({ user, status: user.account_status === 'active' ? 'suspended' : 'active' }); setReason(''); setConfirmed(false); }}>{user.account_status === 'active' ? 'Suspend' : 'Restore'}</button>}</article>; })}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div></section>}
+  {!loading && tab === 'users' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>User management</h2><p>Admin/Super Admin ছাড়া operational account suspend বা restore করুন।</p></div><b>{users[0]?.total_count ?? 0} users</b></div><form className="admin-filters" onSubmit={searchUsers}><select value={role} onChange={(event) => setRole(event.target.value as UserRole | 'all')}><option value="all">সব role</option>{roles.map((item) => <option value={item} key={item}>{roleLabels[item]}</option>)}</select><select value={userStatus} onChange={(event) => setUserStatus(event.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><label><Search /><input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="নাম, ইমেইল বা ফোন" /></label><button>খুঁজুন</button></form>{selectedUserIds.length > 0 && <div className="admin-bulk-bar"><div><strong>{selectedUserIds.length} selected</strong><small>প্রতিটি account action আলাদা audit log তৈরি করবে।</small></div><input value={bulkUserReason} onChange={(event) => { setBulkUserReason(event.target.value); setBulkUserConfirm(null); }} placeholder="Common reason (suspend-এর জন্য required)" /><button className={bulkUserConfirm === 'suspended' ? 'danger confirming' : 'danger'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('suspended')}>{bulkUserWorking ? <LoaderCircle className="spin" /> : bulkUserConfirm === 'suspended' ? 'Confirm suspend' : 'Suspend selected'}</button><button className={bulkUserConfirm === 'active' ? 'primary confirming' : 'primary'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('active')}>{bulkUserConfirm === 'active' ? 'Confirm restore' : 'Restore selected'}</button><button onClick={() => { setSelectedUserIds([]); setBulkUserConfirm(null); }}>Clear</button></div>}<div className="admin-user-select-all"><label><input type="checkbox" checked={allBulkUsersSelected} onChange={toggleAllUsers} disabled={!bulkManageableUsers.length} /> <span>এই পাতার manageable users নির্বাচন</span></label></div><div className="admin-user-list">{users.map((user) => { const manageable = canBulkManageUser(user); return <article key={user.user_id} className={selectedUserIds.includes(user.user_id) ? 'selected' : ''}><label className="admin-user-checkbox" title={manageable ? 'Select user' : 'এই user bulk action-এ নেওয়া যাবে না'}><input type="checkbox" checked={selectedUserIds.includes(user.user_id)} onChange={() => toggleUserSelection(user.user_id)} disabled={!manageable} /></label><div className="admin-user-avatar">{(user.full_name || 'U').slice(0, 1).toUpperCase()}</div><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'}</strong><small>{user.email || user.phone || 'যোগাযোগ নেই'}</small><p>{roleLabels[user.role]} {user.professional_status && <b>{user.professional_status}</b>}</p></div><span className={`admin-status ${user.account_status}`}>{user.account_status}</span>{manageable && <button className={user.account_status === 'active' ? 'suspend' : 'activate'} onClick={() => { setUserAction({ user, status: user.account_status === 'active' ? 'suspended' : 'active' }); setReason(''); setConfirmed(false); }}>{user.account_status === 'active' ? 'Suspend' : 'Restore'}</button>}</article>; })}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div>{usersHasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={usersLoadingMore} onClick={() => void loadUsers(false)}>{usersLoadingMore ? <LoaderCircle className="spin" /> : null}{usersLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও users দেখুন'}</button></div>}</section>}
 
-  {!loading && tab === 'appointments' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>Appointment oversight</h2><p>বিরোধ বা support case-এ reason সহ status override করুন।</p></div><b>{appointments[0]?.total_count ?? 0} appointments</b></div><form className="admin-filters admin-appointment-filters" onSubmit={searchAppointments}><select value={appointmentStatus} onChange={(event) => setAppointmentStatus(event.target.value as AppointmentStatus | 'all')}><option value="all">সব status</option>{appointmentStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select><label><Search /><input value={appointmentSearch} onChange={(event) => setAppointmentSearch(event.target.value)} placeholder="Patient, Doctor বা Provider" /></label><button>খুঁজুন</button></form><div className="admin-appointment-list">{appointments.map((item) => <article key={item.appointment_id}><div><strong>{item.patient_name} <small>→</small> {item.doctor_name}</strong><p>{item.provider_name || 'Provider নেই'} • {dateLabel(item.appointment_date)} {item.start_time?.slice(0, 5)}</p>{item.patient_note && <small>Note: {item.patient_note}</small>}</div><span className={`appointment-status ${item.status}`}>{item.status}</span><select value="" onChange={(event) => { if (event.target.value) { setAppointmentAction({ item, status: event.target.value as AppointmentStatus }); setReason(''); setConfirmed(false); } }}><option value="">Override…</option>{appointmentStatuses.filter((statusItem) => statusItem !== item.status).map((statusItem) => <option key={statusItem} value={statusItem}>{statusItem}</option>)}</select></article>)}{!appointments.length && <p className="empty-inline">কোনো appointment পাওয়া যায়নি।</p>}</div></section>}
+  {!loading && tab === 'appointments' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>Appointment oversight</h2><p>বিরোধ বা support case-এ reason সহ status override করুন।</p></div><b>{appointments[0]?.total_count ?? 0} appointments</b></div><form className="admin-filters admin-appointment-filters" onSubmit={searchAppointments}><select value={appointmentStatus} onChange={(event) => setAppointmentStatus(event.target.value as AppointmentStatus | 'all')}><option value="all">সব status</option>{appointmentStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select><label><Search /><input value={appointmentSearch} onChange={(event) => setAppointmentSearch(event.target.value)} placeholder="Patient, Doctor বা Provider" /></label><button>খুঁজুন</button></form><div className="admin-appointment-list">{appointments.map((item) => <article key={item.appointment_id}><div><strong>{item.patient_name} <small>→</small> {item.doctor_name}</strong><p>{item.provider_name || 'Provider নেই'} • {dateLabel(item.appointment_date)} {item.start_time?.slice(0, 5)}</p>{item.patient_note && <small>Note: {item.patient_note}</small>}</div><span className={`appointment-status ${item.status}`}>{item.status}</span><select value="" onChange={(event) => { if (event.target.value) { setAppointmentAction({ item, status: event.target.value as AppointmentStatus }); setReason(''); setConfirmed(false); } }}><option value="">Override…</option>{appointmentStatuses.filter((statusItem) => statusItem !== item.status).map((statusItem) => <option key={statusItem} value={statusItem}>{statusItem}</option>)}</select></article>)}{!appointments.length && <p className="empty-inline">কোনো appointment পাওয়া যায়নি।</p>}</div>{appointmentsHasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={appointmentsLoadingMore} onClick={() => void loadAppointments(false)}>{appointmentsLoadingMore ? <LoaderCircle className="spin" /> : null}{appointmentsLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও appointments দেখুন'}</button></div>}</section>}
 
   {!loading && tab === 'activity' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>{account?.role === 'super_admin' ? 'Sensitive audit trail' : 'আমার সাম্প্রতিক activity'}</h2><p>{account?.role === 'super_admin' ? 'সব privileged actor-এর immutable action history।' : 'Admin হিসেবে আপনার করা action-গুলো; full audit শুধুমাত্র Super Admin দেখতে পারেন।'}</p></div><b>{activity.length} records</b></div><div className="admin-activity-list">{activity.map((item) => <article key={item.audit_id}><span><Activity /></span><div><strong>{item.action.replaceAll('_', ' ')}</strong><p>{item.actor_name || 'System'} • {item.target_type || 'target'} {item.target_id?.slice(0, 8) || ''}</p><small>{Object.entries(item.metadata).slice(0, 3).map(([key, value]) => `${key}: ${String(value ?? '—')}`).join(' • ')}</small></div><time>{dateLabel(item.created_at)}</time></article>)}{!activity.length && <p className="empty-inline">কোনো activity নেই।</p>}</div></section>}
 

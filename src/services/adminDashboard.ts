@@ -61,13 +61,15 @@ export async function getAdminUserDirectory(filters: {
   role?: UserRole | null;
   status?: string | null;
   search?: string | null;
+  limit?: number;
+  offset?: number;
 } = {}) {
   const { data, error } = await requireSupabase().rpc('get_admin_user_directory', {
     p_role: filters.role || null,
     p_status: filters.status || null,
     p_search: filters.search?.trim() || null,
-    p_limit: 50,
-    p_offset: 0,
+    p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
+    p_offset: Math.max(filters.offset ?? 0, 0),
   });
   if (error) throw error;
   return (data ?? []) as AdminUserRow[];
@@ -90,14 +92,16 @@ export async function setAdminUserAccountStatus(input: {
 export async function getAdminAppointmentDirectory(filters: {
   status?: AppointmentStatus | null;
   search?: string | null;
+  limit?: number;
+  offset?: number;
 } = {}) {
   const { data, error } = await requireSupabase().rpc('get_admin_appointment_directory', {
     p_status: filters.status || null,
     p_search: filters.search?.trim() || null,
     p_date_from: null,
     p_date_to: null,
-    p_limit: 50,
-    p_offset: 0,
+    p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
+    p_offset: Math.max(filters.offset ?? 0, 0),
   });
   if (error) throw error;
   return (data ?? []) as AdminAppointmentRow[];

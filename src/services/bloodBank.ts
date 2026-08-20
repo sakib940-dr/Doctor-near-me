@@ -39,13 +39,14 @@ export async function searchBloodDonors(input: {
   districtId?: number | null;
   upazilaId?: number | null;
   limit?: number;
+  offset?: number;
 }) {
   const { data, error } = await requireSupabase().rpc('search_blood_donors', {
     p_blood_group: input.bloodGroup,
     p_district_id: input.districtId ?? null,
     p_upazila_id: input.upazilaId ?? null,
-    p_limit: input.limit ?? 50,
-    p_offset: 0,
+    p_limit: Math.min(Math.max(input.limit ?? 20, 1), 50),
+    p_offset: Math.max(input.offset ?? 0, 0),
   });
   if (error) throw error;
   return (data ?? []) as BloodDonorSearchRow[];

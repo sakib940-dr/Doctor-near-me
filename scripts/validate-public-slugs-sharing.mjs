@@ -65,8 +65,8 @@ mustContain('src/App.tsx',
   '<Route path="/chamber/:providerId" element={<PublicProviderProfilePage />} />',
   '<Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />',
 );
-mustContain('src/pages/DoctorProfile.tsx', 'resolvePublicDoctorRoute', 'navigate(canonicalPath, { replace: true })', 'ডাক্তার পাওয়া যায়নি', '<ProfileShareButton');
-mustContain('src/pages/PublicProviderProfilePage.tsx', 'resolvePublicProviderRoute', 'navigate(canonicalPath,{replace:true})', 'প্রতিষ্ঠানটি পাওয়া যায়নি', '<ProfileShareButton');
+mustContain('src/pages/DoctorProfile.tsx', 'getPublicDoctorPageBase', 'navigate(canonicalPath, { replace: true })', 'ডাক্তার পাওয়া যায়নি', '<ProfileShareButton');
+mustContain('src/pages/PublicProviderProfilePage.tsx', 'getPublicProviderPageBase', 'navigate(canonicalPath,{replace:true})', 'প্রতিষ্ঠানটি পাওয়া যায়নি', '<ProfileShareButton');
 
 // Homepage/search/provider-doctor cards and saved profiles use the clean route helpers.
 mustContain('src/components/DoctorResultCard.tsx', 'doctorPublicPath(doctor.profile_slug, doctor.doctor_id)');

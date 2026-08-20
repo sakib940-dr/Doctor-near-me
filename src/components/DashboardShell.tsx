@@ -27,7 +27,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAdminOperationalSummary } from '../services/adminDashboard';
 import { getMyDoctorProviderInvitations } from '../services/providerDashboard';
-import { getVerificationReviewQueue } from '../services/verification';
+import { getMyPendingVerificationCount } from '../services/verification';
 import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
 import NotificationBell from './NotificationBell';
@@ -128,8 +128,8 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       return;
     }
     let active = true;
-    void getVerificationReviewQueue(null, 'pending')
-      .then((rows) => { if (active) setPendingVerification(rows.length); })
+    void getMyPendingVerificationCount()
+      .then((count) => { if (active) setPendingVerification(count); })
       .catch(() => { if (active) setPendingVerification(0); });
     return () => { active = false; };
   }, [account?.role, location.pathname, role]);

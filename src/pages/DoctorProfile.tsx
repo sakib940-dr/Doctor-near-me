@@ -31,15 +31,12 @@ import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getDoctorPublicProfile, resolvePublicDoctorRoute } from '../services/discovery';
+import { getPublicDoctorPageBase } from '../services/discovery';
 import {
   getDoctorPublicStats,
   recordDoctorInteraction,
 } from '../services/engagement';
-import {
-  getDoctorChamberDistances,
-  getDoctorPublicContent,
-} from '../services/doctorPublicContent';
+import { getDoctorChamberDistances } from '../services/doctorPublicContent';
 import type {
   DoctorChamberDistance,
   DoctorPublicContent,
@@ -143,17 +140,13 @@ export default function DoctorProfile() {
     setContent(null);
     setProfileStats(null);
     setPublicSlug('');
-    resolvePublicDoctorRoute(doctorId)
-      .then(async (route) => {
-        if (!route) return [null, null, null, null] as const;
-        const canonicalPath = doctorPublicPath(route.slug, route.id);
+    getPublicDoctorPageBase(doctorId)
+      .then(async (base) => {
+        if (!base?.route) return [null, null, null, ''] as const;
+        const canonicalPath = doctorPublicPath(base.route.slug, base.route.id);
         if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
-        return Promise.all([
-          getDoctorPublicProfile(route.id),
-          getDoctorPublicContent(route.id),
-          getDoctorPublicStats(route.id),
-          Promise.resolve(route.slug),
-        ]);
+        const statsResult = await getDoctorPublicStats(base.route.id);
+        return [base.profile, base.content, statsResult, base.route.slug] as const;
       })
       .then(([profileResult, contentResult, statsResult, slugResult]) => {
         if (!active) return;

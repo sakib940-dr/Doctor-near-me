@@ -8045,3 +8045,6 @@ img { max-width: 100%; height: auto; }
   .admin-analytics-chart { height: 202px; }
   .admin-analytics-donut,.admin-visitor-engagement-donut { height: 230px; }
 }
+
+/* STEP 59: bounded public pagination keeps free-tier reads and mobile DOM size small. */
+.public-load-more-wrap{display:flex;justify-content:center;padding:14px 0 4px}.public-load-more-button{min-height:44px;padding:10px 18px;border:1px solid var(--border,#dfe7e4);border-radius:999px;background:var(--surface,#fff);font:inherit;font-weight:700;color:var(--brand,#087f5b);display:inline-flex;align-items:center;gap:8px;justify-content:center}.public-load-more-button:disabled{opacity:.65;cursor:wait}@media(max-width:430px){.public-load-more-button{width:100%;max-width:320px}}

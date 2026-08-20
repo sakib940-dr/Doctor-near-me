@@ -6,6 +6,7 @@ import PublicHeader from '../components/PublicHeader';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { useAuth } from '../contexts/AuthContext';
+import { doctorPublicPath, providerPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import { getMySavedProfileCards } from '../services/engagement';
 import type { SavedProfileCard } from '../types';
@@ -62,7 +63,9 @@ function SavedSection({ title, count, rows, onRemove }: { title: string; count: 
     <div className="saved-section-head"><h2>{title}</h2><span>{count.toLocaleString('bn-BD')}</span></div>
     <div className="saved-profile-grid">
       {rows.map((item) => {
-        const href = item.target_type === 'doctor' ? `/doctors/${item.target_id}` : `/providers/${item.target_id}`;
+        const href = item.target_type === 'doctor'
+          ? doctorPublicPath(item.public_slug, item.target_id)
+          : providerPublicPath(item.provider_type, item.public_slug, item.target_id);
         const image = getImageUrl(item.image_url, item.target_type === 'doctor' ? 'avatars' : 'public-images');
         const Icon = item.target_type === 'doctor' ? Stethoscope : Building2;
         return <article className="saved-profile-card marketplace-card" key={`${item.target_type}-${item.target_id}`}>

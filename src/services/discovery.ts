@@ -100,13 +100,44 @@ interface PublicDoctorCardContextRow {
   provider_longitude: number | null;
 }
 
+interface PublicSlugRow {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+  slug: string;
+}
+
+export interface PublicProfileRoute {
+  id: string;
+  slug: string;
+}
+
+export async function getPublicProfileSlugs(input: { doctorIds?: string[]; providerIds?: string[] }) {
+  const doctorIds = Array.from(new Set(input.doctorIds ?? []));
+  const providerIds = Array.from(new Set(input.providerIds ?? []));
+  if (!doctorIds.length && !providerIds.length) return [] as PublicSlugRow[];
+  const { data, error } = await requireSupabase().rpc('get_public_profile_slugs', {
+    p_doctor_ids: doctorIds.length ? doctorIds : null,
+    p_provider_ids: providerIds.length ? providerIds : null,
+  });
+  if (error) throw error;
+  return (data ?? []) as PublicSlugRow[];
+}
+
+async function hydrateDoctorSlugs(rows: DoctorSearchRow[]) {
+  if (!rows.length) return rows;
+  const slugs = await getPublicProfileSlugs({ doctorIds: rows.map((row) => row.doctor_id) });
+  const byDoctor = new Map(slugs.filter((row) => row.target_type === 'doctor').map((row) => [row.target_id, row.slug]));
+  return rows.map((row) => ({ ...row, profile_slug: byDoctor.get(row.doctor_id) ?? row.profile_slug ?? null }));
+}
+
 async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
   if (!rows.length) return rows;
   const ids = Array.from(new Set(rows.map((row) => row.doctor_id)));
   const client = requireSupabase();
-  const [cardResult, contextResult] = await Promise.all([
+  const [cardResult, contextResult, slugResult] = await Promise.all([
     client.rpc('get_public_doctor_visiting_cards', { p_doctor_ids: ids }),
     client.rpc('get_public_doctor_card_context', { p_doctor_ids: ids }),
+    client.rpc('get_public_profile_slugs', { p_doctor_ids: ids, p_provider_ids: null }),
   ]);
 
   // Never infer a Verified badge client-side. If canonical hydration is
@@ -117,12 +148,16 @@ async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
   const byContext = new Map(
     contextResult.error ? [] : ((contextResult.data ?? []) as PublicDoctorCardContextRow[]).map((item) => [item.doctor_id, item]),
   );
+  const bySlug = new Map(
+    slugResult.error ? [] : ((slugResult.data ?? []) as PublicSlugRow[]).filter((item) => item.target_type === 'doctor').map((item) => [item.target_id, item.slug]),
+  );
 
   return rows.map((row) => {
     const card = byDoctor.get(row.doctor_id);
     const context = byContext.get(row.doctor_id);
     return {
       ...row,
+      profile_slug: bySlug.get(row.doctor_id) ?? row.profile_slug ?? null,
       doctor_name: card?.doctor_name || row.doctor_name,
       avatar_url: card?.avatar_url ?? row.avatar_url,
       degree: card?.degree ?? row.degree,
@@ -194,7 +229,7 @@ export async function getMarketplaceDoctors(input: {
     p_limit: input.limit ?? 10,
   });
   if (error) throw error;
-  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+  const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
     doctor_id: String(row.doctor_id),
     doctor_name: String(row.doctor_name ?? ''),
     avatar_url: (row.avatar_url as string | null) ?? null,
@@ -222,6 +257,7 @@ export async function getMarketplaceDoctors(input: {
     nearest_provider_longitude: null,
     verification_status: (row.verification_status as DoctorSearchRow['verification_status']) ?? 'pending',
   })) satisfies DoctorSearchRow[];
+  return hydrateDoctorSlugs(rows);
 }
 
 export async function getPublicProviders(input: {
@@ -316,20 +352,28 @@ export async function getDoctorsForProvider(providerId: string) {
   return hydrateDoctorVisitingCards(mapped);
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export async function resolvePublicDoctorRoute(identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+  const { data, error } = await requireSupabase().rpc('resolve_public_doctor_route', { p_identifier: value });
+  if (error) throw error;
+  const route = (data ?? null) as { id?: string; slug?: string } | null;
+  if (!route?.id || !route.slug) return null;
+  return { id: route.id, slug: route.slug } as PublicProfileRoute;
+}
 
 export async function resolvePublicDoctorId(identifier: string) {
-  const value = identifier.trim();
-  if (!value) return null;
-  if (UUID_PATTERN.test(value)) return value;
+  return (await resolvePublicDoctorRoute(identifier))?.id ?? null;
+}
 
-  const { data, error } = await requireSupabase()
-    .from('doctors')
-    .select('id')
-    .eq('profile_slug', value.toLowerCase())
-    .maybeSingle();
+export async function resolvePublicProviderRoute(identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  if (!value) return null;
+  const { data, error } = await requireSupabase().rpc('resolve_public_provider_route', { p_identifier: value });
   if (error) throw error;
-  return data?.id ?? null;
+  const route = (data ?? null) as { id?: string; slug?: string } | null;
+  if (!route?.id || !route.slug) return null;
+  return { id: route.id, slug: route.slug } as PublicProfileRoute;
 }
 
 export async function getDoctorPublicProfile(doctorId: string) {
@@ -392,7 +436,7 @@ export async function findNearestDoctors(input: {
   // The location RPC intentionally returns only location-safe core fields.
   // Reuse the existing public-profile RPC to hydrate photo/specialty/BMDC
   // without changing any SQL or exposing private profile data.
-  return Promise.all(rows.map(async (row): Promise<DoctorSearchRow> => {
+  const hydrated = await Promise.all(rows.map(async (row): Promise<DoctorSearchRow> => {
     let profile: DoctorPublicProfile | null = null;
     try { profile = await getDoctorPublicProfile(row.doctor_id); } catch { profile = null; }
     return {
@@ -430,6 +474,7 @@ export async function findNearestDoctors(input: {
       verification_status: profile?.doctor.verification_status ?? 'pending',
     };
   }));
+  return hydrateDoctorSlugs(hydrated);
 }
 
 export async function saveMyCurrentLocation(input: {

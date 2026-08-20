@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import type { MyDoctorProfile } from '../types';
+import { resolvePublicDoctorRoute } from './discovery';
 
 export interface DoctorProfileUpdate {
   fullName: string;
@@ -29,7 +30,15 @@ export interface DoctorProfileUpdateResult {
 export async function getMyDoctorProfile() {
   const { data, error } = await requireSupabase().rpc('get_my_doctor_profile');
   if (error) throw error;
-  return (data ?? null) as MyDoctorProfile | null;
+  const profile = (data ?? null) as MyDoctorProfile | null;
+  if (!profile?.doctor.id) return profile;
+  try {
+    const route = await resolvePublicDoctorRoute(profile.doctor.id);
+    if (route) profile.doctor.profile_slug = route.slug;
+  } catch {
+    // Owner dashboard remains usable during rolling migration/deploy.
+  }
+  return profile;
 }
 
 

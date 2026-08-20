@@ -16,19 +16,21 @@ import {
   Stethoscope,
   X,
 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import DoctorResultCard from '../components/DoctorResultCard';
+import ProfileShareButton from '../components/ProfileShareButton';
 import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { makePageTitle } from '../lib/brand';
+import { providerPublicPath } from '../lib/publicRoutes';
 import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getDoctorsForProvider, getPublicProvider } from '../services/discovery';
+import { getDoctorsForProvider, getPublicProvider, resolvePublicProviderRoute } from '../services/discovery';
 import { getProviderPublicStats, getPublicProfileStatsBatch, recordProviderInteraction } from '../services/engagement';
 import { getProviderDistance, getProviderPublicPageContent, type ProviderOpeningHour, type ProviderPublicPageContent } from '../services/providerPublicContent';
 import type { DoctorSearchRow, ProviderDirectoryRow, PublicProfileStats, PublicRankingTier } from '../types';
@@ -64,14 +66,24 @@ function todayDoctorSchedule(doctor:DoctorSearchRow,language:VisitorLanguage){
 
 export default function PublicProviderProfilePage(){
   const {providerId=''}=useParams();
-  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[doctors,setDoctors]=useState<DoctorSearchRow[]>([]),[doctorStats,setDoctorStats]=useState<Record<string,PublicProfileStats>>({}),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
+  const navigate=useNavigate(),location=useLocation();
+  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[publicSlug,setPublicSlug]=useState(''),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[doctors,setDoctors]=useState<DoctorSearchRow[]>([]),[doctorStats,setDoctorStats]=useState<Record<string,PublicProfileStats>>({}),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
   const {language}=useVisitorLanguage();
   const [loading,setLoading]=useState(isSupabaseConfigured),[error,setError]=useState<string|null>(null),[activeSlide,setActiveSlide]=useState(0),[contactOpen,setContactOpen]=useState(false),[distance,setDistance]=useState<number|null>(null),[distanceBusy,setDistanceBusy]=useState(false),[distanceError,setDistanceError]=useState<string|null>(null);
   const sliderRef=useRef<HTMLDivElement>(null),trackedView=useRef<string|null>(null);
 
-  useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);Promise.all([getPublicProvider(providerId),getProviderPublicPageContent(providerId),getDoctorsForProvider(providerId),getProviderPublicStats(providerId)])
-    .then(([p,c,d,s])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors(d);setProviderStats(s);document.title=makePageTitle(p?.name_bn||'Hospital');})
-    .catch((e:unknown)=>alive&&setError(e instanceof Error?e.message:'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।')).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[providerId]);
+  useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);setError(null);setProvider(null);setContent(null);setDoctors([]);setProviderStats(null);setPublicSlug('');
+    resolvePublicProviderRoute(providerId).then(async route=>{
+      if(!route)return [null,null,[],null,null] as const;
+      const p=await getPublicProvider(route.id);
+      if(!p)return [null,null,[],null,null] as const;
+      const canonicalPath=providerPublicPath(p.provider_type,route.slug,route.id);
+      if(location.pathname!==canonicalPath)navigate(canonicalPath,{replace:true});
+      const [c,d,s]=await Promise.all([getProviderPublicPageContent(route.id),getDoctorsForProvider(route.id),getProviderPublicStats(route.id)]);
+      return [p,c,d,s,route.slug] as const;
+    })
+    .then(([p,c,d,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors(d);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
+    .catch((e:unknown)=>alive&&setError(e instanceof Error?e.message:'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।')).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[providerId,location.pathname,navigate]);
 
   useEffect(()=>{if(!provider?.id||trackedView.current===provider.id)return;trackedView.current=provider.id;void recordProviderInteraction(provider.id,'profile_view','provider_profile_v2').catch(()=>undefined)},[provider?.id]);
   useEffect(()=>{if(!doctors.length){setDoctorStats({});return;}let alive=true;void getPublicProfileStatsBatch({doctorIds:doctors.map(x=>x.doctor_id)}).then(items=>{if(!alive)return;const next:Record<string,PublicProfileStats>={};for(const item of items)if(item.target_type==='doctor')next[item.target_id]={follower_count:Number(item.follower_count||0),review_count:Number(item.review_count||0),average_rating:item.average_rating==null?null:Number(item.average_rating),is_following:Boolean(item.is_following),ranking_tier:item.ranking_tier,is_premium:Boolean(item.is_premium)};setDoctorStats(next)}).catch(()=>undefined);return()=>{alive=false}},[doctors]);
@@ -106,6 +118,7 @@ export default function PublicProviderProfilePage(){
       {whatsappUrl?<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click')}><MessageCircle/><span>{t.whatsapp}</span></a>:<button disabled><MessageCircle/><span>{t.whatsapp}</span></button>}
       <button type="button" disabled={!phone&&!whatsappUrl} onClick={()=>{track('appointment_click');setContactOpen(true)}}><CalendarDays/><span>{t.contact}</span></button>
       <FollowSaveButton targetType="provider" targetId={provider.id} stats={providerStats} variant="button" entityLabel={typeLabel} onStatsChange={setProviderStats} language={language}/>
+      {publicSlug&&<ProfileShareButton targetType="provider" targetId={provider.id} slug={publicSlug} title={language==='bn'?provider.name_bn:(provider.name_en||provider.name_bn)} language={language} providerType={provider.provider_type} className="provider-profile-share-action"/>}
       {directionUrl?<a href={directionUrl} target="_blank" rel="noreferrer" onClick={()=>track('map_click')}><Navigation/><span>{t.direction}</span></a>:<button disabled><Navigation/><span>{t.direction}</span></button>}
     </section>
 

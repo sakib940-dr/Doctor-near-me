@@ -1,7 +1,7 @@
 {
   "name": "docbd-info",
   "private": true,
-  "version": "0.26.0",
+  "version": "0.27.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "pwa:validate": "node scripts/validate-pwa.mjs && node --experimental-strip-types scripts/validate-pwa-install-promotion.mjs && node scripts/validate-push-notifications.mjs",
     "push:keys": "node scripts/generate-vapid.mjs",
-    "push:validate": "node scripts/validate-push-notifications.mjs"
+    "push:validate": "node scripts/validate-push-notifications.mjs",
+    "slugshare:validate": "node --experimental-strip-types scripts/validate-public-slugs-sharing.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

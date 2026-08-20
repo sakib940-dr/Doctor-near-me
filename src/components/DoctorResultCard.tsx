@@ -1,6 +1,7 @@
 import { BadgeCheck, Building2, Crown, GraduationCap, Heart, MapPin, Sparkles, Star, Stethoscope } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { doctorPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import type { DoctorSearchRow, PublicProfileStats } from '../types';
 import FollowSaveButton from './FollowSaveButton';
@@ -32,6 +33,7 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange }: Props
   const distanceText = doctor.distance_km != null ? `${doctor.distance_km.toFixed(1)} km দূরে` : null;
   const isVerified = doctor.verification_status === 'approved';
   const tier = localStats?.ranking_tier ?? (isVerified ? 'verified' : 'unverified');
+  const publicHref = doctorPublicPath(doctor.profile_slug, doctor.doctor_id);
 
   useEffect(() => setLocalStats(stats ?? null), [stats]);
 
@@ -43,7 +45,7 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange }: Props
   return (
     <article className="directory-doctor-card visitor-doctor-card marketplace-card marketplace-doctor-card-compact visitor-horizontal-profile-card">
       <div className="marketplace-card-media visitor-horizontal-profile-media">
-        <Link to={`/doctors/${doctor.doctor_id}`} aria-label={`${doctor.doctor_name} Doctor Details দেখুন`}>
+        <Link to={publicHref} aria-label={`${doctor.doctor_name} Doctor Details দেখুন`}>
           {avatar && !imageFailed ? (
             <img src={avatar} alt={doctor.doctor_name} loading="lazy" decoding="async" onError={() => setImageFailed(true)} />
           ) : (
@@ -57,7 +59,7 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange }: Props
         </div>
       </div>
 
-      <Link className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body" to={`/doctors/${doctor.doctor_id}`}>
+      <Link className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body" to={publicHref}>
         <div className="visitor-doctor-copy">
           <h2>{doctor.doctor_name}</h2>
           {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}

@@ -57,11 +57,14 @@ export default function App() {
       <Routes>
       <Route path="/" element={<VisitorHomePage />} />
       <Route path="/doctors" element={<DoctorDirectoryRoute />} />
+      <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
       <Route path="/providers" element={<PublicProvidersPage />} />
       <Route path="/categories" element={<CategoriesPage />} />
       <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
       <Route path="/providers/:providerId/doctors" element={<ProviderDoctorsPublicPage />} />
+      <Route path="/hospital/:providerId" element={<PublicProviderProfilePage />} />
+      <Route path="/chamber/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
@@ -141,9 +144,9 @@ function useRouteDocumentTitle() {
     else if (path === '/dashboard') page = 'Dashboard';
     else if (path === '/notifications') page = 'Notifications';
     else if (path === '/doctors') page = 'ডাক্তার খুঁজুন';
-    else if (path.startsWith('/doctors/')) page = 'Doctor Profile';
+    else if (path.startsWith('/doctor/') || path.startsWith('/doctors/')) page = 'Doctor Profile';
     else if (path === '/providers') page = 'হাসপাতাল ও চেম্বার';
-    else if (path.startsWith('/providers/')) page = 'Provider Profile';
+    else if (path.startsWith('/hospital/') || path.startsWith('/chamber/') || path.startsWith('/providers/')) page = 'Provider Profile';
     else if (path === '/doctor/visiting-card') page = 'Visiting Card';
     else if (path === '/doctor/chambers') page = 'Chamber Details';
     else if (path === '/doctor/verification') page = 'Verification';

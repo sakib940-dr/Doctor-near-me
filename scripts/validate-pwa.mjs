@@ -59,6 +59,6 @@ expect(auth.includes('persistSession: true') && auth.includes('autoRefreshToken:
 const app = read('src/App.tsx');
 expect(app.includes('path="/doctors/:doctorId"') && app.includes('path="/providers/:providerId"'), 'public route definitions missing');
 const doctorProfile = read('src/pages/DoctorProfile.tsx');
-expect(doctorProfile.includes('resolvePublicDoctorId(doctorId)'), 'public doctor slug resolver not wired');
+expect(doctorProfile.includes('resolvePublicDoctorRoute(doctorId)') || doctorProfile.includes('resolvePublicDoctorId(doctorId)'), 'public doctor slug resolver not wired');
 
 console.log('PWA validation passed.');

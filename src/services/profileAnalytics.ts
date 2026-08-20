@@ -15,6 +15,10 @@ function normalize(data: unknown): ProfileAnalytics {
     appointment_clicks: number(value.appointment_clicks),
     appointment_requests: number(value.appointment_requests),
     map_clicks: number(value.map_clicks),
+    profile_shares: number(value.profile_shares),
+    share_clicks: number(value.share_clicks),
+    native_share_initiated: number(value.native_share_initiated),
+    copy_link: number(value.copy_link),
     followers: number(value.followers),
     followers_new: number(value.followers_new),
     followers_lost: number(value.followers_lost),
@@ -37,17 +41,31 @@ function normalize(data: unknown): ProfileAnalytics {
   };
 }
 
-export async function getMyDoctorProfileAnalytics(period: AnalyticsPeriod) {
-  const { data, error } = await requireSupabase().rpc('get_my_doctor_profile_analytics', { p_days: period });
-  if (error) throw error;
-  return normalize(data);
-}
-
-export async function getMyProviderProfileAnalytics(providerId: string, period: AnalyticsPeriod) {
-  const { data, error } = await requireSupabase().rpc('get_my_provider_profile_analytics', {
+async function getMyShareMetrics(providerId: string | null, period: AnalyticsPeriod) {
+  const { data, error } = await requireSupabase().rpc('get_my_profile_share_metrics', {
     p_provider_id: providerId,
     p_days: period,
   });
   if (error) throw error;
-  return normalize(data);
+  return (data ?? {}) as Partial<ProfileAnalytics>;
+}
+
+export async function getMyDoctorProfileAnalytics(period: AnalyticsPeriod) {
+  const client = requireSupabase();
+  const [analyticsResult, shareMetrics] = await Promise.all([
+    client.rpc('get_my_doctor_profile_analytics', { p_days: period }),
+    getMyShareMetrics(null, period),
+  ]);
+  if (analyticsResult.error) throw analyticsResult.error;
+  return normalize({ ...((analyticsResult.data ?? {}) as object), ...shareMetrics });
+}
+
+export async function getMyProviderProfileAnalytics(providerId: string, period: AnalyticsPeriod) {
+  const client = requireSupabase();
+  const [analyticsResult, shareMetrics] = await Promise.all([
+    client.rpc('get_my_provider_profile_analytics', { p_provider_id: providerId, p_days: period }),
+    getMyShareMetrics(providerId, period),
+  ]);
+  if (analyticsResult.error) throw analyticsResult.error;
+  return normalize({ ...((analyticsResult.data ?? {}) as object), ...shareMetrics });
 }

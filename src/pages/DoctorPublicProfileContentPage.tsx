@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { doctorPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import {
   createDoctorSliderImage,
@@ -30,6 +31,7 @@ import {
   updateDoctorSliderImage,
   uploadDoctorSliderImage,
 } from '../services/doctorPublicContent';
+import { resolvePublicDoctorRoute } from '../services/discovery';
 import type {
   DoctorInvestigationCostItem,
   DoctorPublicContent,
@@ -49,6 +51,7 @@ export default function DoctorPublicProfileContentPage() {
   const [aboutBn, setAboutBn] = useState('');
   const [aboutEn, setAboutEn] = useState('');
   const [savingAbout, setSavingAbout] = useState(false);
+  const [publicHref, setPublicHref] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +69,15 @@ export default function DoctorPublicProfileContentPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!user?.id) { setPublicHref(null); return; }
+    let active = true;
+    setPublicHref(doctorPublicPath(null, user.id));
+    void resolvePublicDoctorRoute(user.id).then((route) => {
+      if (active && route) setPublicHref(doctorPublicPath(route.slug, route.id));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [user?.id]);
 
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
 
@@ -94,7 +106,7 @@ export default function DoctorPublicProfileContentPage() {
           <div><small>Public profile</small><h1>Doctor Details Content</h1><p>Slider, bilingual About, services এবং cost list পরিচালনা করুন।</p></div>
         </div>
         <div className="doctor-public-editor-actions">
-          {user?.id && <Link to={`/doctors/${user.id}`} target="_blank"><Eye /> Public profile দেখুন</Link>}
+          {publicHref && <Link to={publicHref} target="_blank"><Eye /> Public profile দেখুন</Link>}
           <Link to="/doctor/schedules"><CalendarClock /> Chamber schedule</Link>
         </div>
         {error && <div className="error-box" role="alert">{error}</div>}

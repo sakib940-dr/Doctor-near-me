@@ -9,6 +9,7 @@ import {
   MessageCircle,
   MousePointerClick,
   Phone,
+  Share2,
   Star,
   TrendingUp,
 } from 'lucide-react';
@@ -78,6 +79,7 @@ export default function ProfileAnalyticsPage() {
     { icon: Heart, label: 'Total Followers', value: analytics.followers, detail: `নতুন ${analytics.followers_new} • Unfollow ${analytics.followers_lost}` },
     { icon: Star, label: 'Total Reviews', value: analytics.reviews, detail: analytics.average_rating == null ? 'এখনো rating নেই' : `গড় ${analytics.average_rating.toFixed(1)} / 5` },
     { icon: MapPin, label: 'Map Clicks', value: analytics.map_clicks, detail: 'Location/Map action' },
+    { icon: Share2, label: 'Profile Shares', value: analytics.profile_shares, detail: `Native ${analytics.native_share_initiated} • Copy ${analytics.copy_link}` },
   ] : [];
 
   return <main className="profile-analytics-page container">
@@ -107,7 +109,7 @@ export default function ProfileAnalyticsPage() {
         <article><span>Review submitted</span><strong>{analytics.review_submitted.toLocaleString('bn-BD')}</strong></article>
         <article><span>Review edited</span><strong>{analytics.review_edited.toLocaleString('bn-BD')}</strong></article>
       </section>
-      <p className="profile-analytics-note">Profile view একই target-এর জন্য একই browsing session-এর ৩০ মিনিটের window-এ একবার count হয়। Rapid duplicate clicks client + database dedupe দিয়ে suppress করা হয়। Appointment Requests, Total Followers ও Total Reviews canonical database records থেকে গণনা করা হয়।</p>
+      <p className="profile-analytics-note">Profile view একই target-এর জন্য একই browsing session-এর ৩০ মিনিটের window-এ একবার count হয়। Rapid duplicate clicks client + database dedupe দিয়ে suppress করা হয়। Profile Shares native share initiation + successful copy-link action থেকে গণনা করা হয়; receiving app guess করা হয় না। Appointment Requests, Total Followers ও Total Reviews canonical database records থেকে গণনা করা হয়।</p>
     </>}
   </main>;
 }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { doctorPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import {
   getMyDoctorProfile,
@@ -168,7 +169,7 @@ export default function DoctorVisitingCardPage() {
 
               <Link
                 className={`doctor-visiting-card-preview ${['rejected', 'expired'].includes(profile.doctor.verification_status) ? 'preview-disabled' : ''}`}
-                to={['rejected', 'expired'].includes(profile.doctor.verification_status) ? '/doctor/visiting-card' : `/doctors/${profile.doctor.id}`}
+                to={['rejected', 'expired'].includes(profile.doctor.verification_status) ? '/doctor/visiting-card' : doctorPublicPath(profile.doctor.profile_slug, profile.doctor.id)}
                 aria-disabled={['rejected', 'expired'].includes(profile.doctor.verification_status)}
                 onClick={(event) => {
                   if (['rejected', 'expired'].includes(profile.doctor.verification_status)) event.preventDefault();
@@ -191,7 +192,7 @@ export default function DoctorVisitingCardPage() {
               </Link>
 
               {!['rejected', 'expired'].includes(profile.doctor.verification_status) ? (
-                <Link className="visiting-card-public-link" to={`/doctors/${profile.doctor.id}`} target="_blank">
+                <Link className="visiting-card-public-link" to={doctorPublicPath(profile.doctor.profile_slug, profile.doctor.id)} target="_blank">
                   Existing Public Profile দেখুন <ExternalLink />
                 </Link>
               ) : (

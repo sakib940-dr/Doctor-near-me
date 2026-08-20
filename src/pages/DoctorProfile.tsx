@@ -18,18 +18,20 @@ import {
   Stethoscope,
   X,
 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import FollowSaveButton from '../components/FollowSaveButton';
+import ProfileShareButton from '../components/ProfileShareButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { makePageTitle } from '../lib/brand';
+import { doctorPublicPath } from '../lib/publicRoutes';
 import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getDoctorPublicProfile, resolvePublicDoctorId } from '../services/discovery';
+import { getDoctorPublicProfile, resolvePublicDoctorRoute } from '../services/discovery';
 import {
   getDoctorPublicStats,
   recordDoctorInteraction,
@@ -115,7 +117,10 @@ function todayStatus(chamber: DoctorPublicProfile['chambers'][number], language:
 
 export default function DoctorProfile() {
   const { doctorId = '' } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<DoctorPublicProfile | null>(null);
+  const [publicSlug, setPublicSlug] = useState('');
   const [content, setContent] = useState<DoctorPublicContent | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
@@ -133,26 +138,35 @@ export default function DoctorProfile() {
     if (!isSupabaseConfigured || !doctorId) return;
     let active = true;
     setLoading(true);
-    resolvePublicDoctorId(doctorId)
-      .then(async (resolvedDoctorId) => {
-        if (!resolvedDoctorId) return [null, null, null] as const;
+    setError(null);
+    setProfile(null);
+    setContent(null);
+    setProfileStats(null);
+    setPublicSlug('');
+    resolvePublicDoctorRoute(doctorId)
+      .then(async (route) => {
+        if (!route) return [null, null, null, null] as const;
+        const canonicalPath = doctorPublicPath(route.slug, route.id);
+        if (location.pathname !== canonicalPath) navigate(canonicalPath, { replace: true });
         return Promise.all([
-          getDoctorPublicProfile(resolvedDoctorId),
-          getDoctorPublicContent(resolvedDoctorId),
-          getDoctorPublicStats(resolvedDoctorId),
+          getDoctorPublicProfile(route.id),
+          getDoctorPublicContent(route.id),
+          getDoctorPublicStats(route.id),
+          Promise.resolve(route.slug),
         ]);
       })
-      .then(([profileResult, contentResult, statsResult]) => {
+      .then(([profileResult, contentResult, statsResult, slugResult]) => {
         if (!active) return;
         setProfile(profileResult);
         setContent(contentResult);
         setProfileStats(statsResult);
+        setPublicSlug(slugResult || '');
         document.title = profileResult ? makePageTitle(profileResult.doctor.name) : makePageTitle('ডাক্তার পাওয়া যায়নি');
       })
       .catch((loadError: unknown) => active && setError(loadError instanceof Error ? loadError.message : 'প্রোফাইল লোড করা যায়নি।'))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [doctorId]);
+  }, [doctorId, location.pathname, navigate]);
 
   useEffect(() => {
     if (!profile?.doctor.id || trackedView.current === profile.doctor.id) return;
@@ -290,6 +304,7 @@ export default function DoctorProfile() {
             {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /><span>{t.whatsapp}</span></a> : <button disabled><MessageCircle /><span>{t.whatsapp}</span></button>}
             {canOnlineBook ? <Link to={`/doctors/${profile.doctor.id}/book`} onClick={() => track('appointment_click')}><CalendarDays /><span>{t.appointment}</span></Link> : <button type="button" disabled={!callPhone} onClick={() => { track('appointment_click'); setContactOpen(true); }}><CalendarDays /><span>{t.appointment}</span></button>}
             <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} className="doctor-profile-follow-action" language={language} />
+            {publicSlug && <ProfileShareButton targetType="doctor" targetId={profile.doctor.id} slug={publicSlug} title={profile.doctor.name} language={language} className="doctor-profile-share-action" />}
           </section>
 
           <section className="doctor-social-summary-v2">

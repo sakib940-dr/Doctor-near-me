@@ -218,6 +218,7 @@ export interface DoctorSpecialty {
 
 export interface DoctorSearchRow {
   doctor_id: string;
+  profile_slug?: string | null;
   doctor_name: string;
   avatar_url: string | null;
   degree: string | null;
@@ -388,6 +389,7 @@ export interface DoctorDashboardChamber {
 export interface MyDoctorProfile {
   doctor: {
     id: string;
+    profile_slug?: string | null;
     full_name: string | null;
     email: string | null;
     phone: string | null;
@@ -833,6 +835,7 @@ export interface PublicProfileStatsRow extends PublicProfileStats {
 
 export interface SavedProfileCard {
   target_type: 'doctor' | 'provider';
+  public_slug?: string | null;
   target_id: string;
   title: string;
   subtitle: string | null;
@@ -909,6 +912,10 @@ export interface InteractionSummary {
   appointment_clicks: number;
   appointment_requests: number;
   map_clicks: number;
+  profile_shares: number;
+  share_clicks: number;
+  native_share_initiated: number;
+  copy_link: number;
   followers: number;
   followers_new: number;
   followers_lost: number;

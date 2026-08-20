@@ -1,6 +1,7 @@
 import { Building2, Crown, Heart, Hospital, MapPin, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { providerPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import type { ProviderDirectoryRow, PublicProfileStats } from '../types';
 import FollowSaveButton from './FollowSaveButton';
@@ -29,6 +30,7 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
   const [imageFailed, setImageFailed] = useState(false);
   const image = getImageUrl(provider.banner_url || provider.logo_url, 'public-images');
   const TypeIcon = provider.provider_type === 'hospital' ? Hospital : Building2;
+  const publicHref = providerPublicPath(provider.provider_type, provider.slug, provider.id);
   const distance = viewerLocation && provider.latitude != null && provider.longitude != null
     ? distanceKm(viewerLocation.latitude, viewerLocation.longitude, Number(provider.latitude), Number(provider.longitude))
     : null;
@@ -44,7 +46,7 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
   return (
     <article className="visitor-provider-card marketplace-card marketplace-provider-card-compact visitor-horizontal-profile-card provider-horizontal-profile-card">
       <div className="provider-logo visitor-horizontal-profile-media">
-        <Link to={`/providers/${provider.id}`} aria-label={`${provider.name_bn} profile দেখুন`}>
+        <Link to={publicHref} aria-label={`${provider.name_bn} profile দেখুন`}>
           {image && !imageFailed ? <img src={image} alt={provider.name_bn} loading="lazy" decoding="async" onError={() => setImageFailed(true)} /> : <TypeIcon />}
         </Link>
         <div className="provider-card-badges visitor-horizontal-badges">
@@ -52,7 +54,7 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
         </div>
       </div>
 
-      <Link className="provider-card-primary visitor-horizontal-profile-body" to={`/providers/${provider.id}`}>
+      <Link className="provider-card-primary visitor-horizontal-profile-body" to={publicHref}>
         <div className="provider-card-copy">
           <span className="provider-type-label">{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'}</span>
           <h3>{provider.name_bn}</h3>

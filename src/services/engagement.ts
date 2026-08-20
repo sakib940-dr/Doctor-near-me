@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import { analyticsDedupeKey, shouldRecordInteraction } from '../lib/analyticsClient';
+import { getPublicProfileSlugs } from './discovery';
 import type {
   InteractionSummary,
   PublicProfileStats,
@@ -128,7 +129,10 @@ export type PublicInteractionType =
   | 'call_click'
   | 'whatsapp_click'
   | 'appointment_click'
-  | 'map_click';
+  | 'map_click'
+  | 'share_click'
+  | 'share_native'
+  | 'share_copy';
 
 export async function recordDoctorInteraction(
   doctorId: string,
@@ -197,7 +201,20 @@ export async function getPublicProfileStatsBatch(input: { doctorIds?: string[]; 
 export async function getMySavedProfileCards() {
   const { data, error } = await requireSupabase().rpc('get_my_saved_profile_cards');
   if (error) throw error;
-  return (data ?? []) as SavedProfileCard[];
+  const rows = (data ?? []) as SavedProfileCard[];
+  if (!rows.length) return rows;
+  try {
+    const slugs = await getPublicProfileSlugs({
+      doctorIds: rows.filter((item) => item.target_type === 'doctor').map((item) => item.target_id),
+      providerIds: rows.filter((item) => item.target_type === 'provider').map((item) => item.target_id),
+    });
+    const byTarget = new Map(slugs.map((item) => [`${item.target_type}:${item.target_id}`, item.slug]));
+    return rows.map((item) => ({ ...item, public_slug: byTarget.get(`${item.target_type}:${item.target_id}`) ?? null }));
+  } catch {
+    // Saved profiles remain usable through the compatibility identifier route
+    // if slug hydration is temporarily unavailable during a rolling deploy.
+    return rows;
+  }
 }
 
 export async function getStructuredReviewQuestions() {

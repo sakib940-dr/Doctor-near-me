@@ -259,7 +259,7 @@ export async function getPublicProviderBySlug(slug: string) {
 export async function getPublicProvider(providerId: string) {
   const { data, error } = await requireSupabase()
     .from('public_provider_directory')
-    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
+    .select('*')
     .eq('id', providerId)
     .maybeSingle();
   if (error) throw error;
@@ -282,11 +282,13 @@ interface PublicProviderDoctorRpcRow {
   upazila_name_bn: string | null;
   specialties: DoctorSearchRow['specialties'] | null;
   available_today: boolean;
+  schedules?: Array<{ day_of_week: number; start_time: string; end_time: string; fee: number | null; note?: { bn?: string | null; en?: string | null } | null }> | null;
+  total_count?: number;
 }
 
 export async function getDoctorsForProvider(providerId: string) {
   const { data, error } = await requireSupabase().rpc(
-    'get_public_provider_doctors',
+    'get_public_provider_doctors_v2',
     { p_provider_id: providerId },
   );
   if (error) throw error;
@@ -308,7 +310,8 @@ export async function getDoctorsForProvider(providerId: string) {
     upazila_name_bn: row.upazila_name_bn,
     specialties: row.specialties ?? [],
     available_today: row.available_today,
-    total_count: rows.length,
+    total_count: Number(row.total_count ?? rows.length),
+    provider_schedules: row.schedules ?? [],
   }));
   return hydrateDoctorVisitingCards(mapped);
 }

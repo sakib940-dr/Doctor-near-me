@@ -19,6 +19,7 @@ import DoctorChamberDetailsPage from './pages/DoctorChamberDetailsPage';
 import DoctorDirectory from './pages/DoctorDirectory';
 import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
+import DoctorPublicProfileContentPage from './pages/DoctorPublicProfileContentPage';
 import DoctorProfile from './pages/DoctorProfile';
 import DoctorPrescriptionPage from './pages/DoctorPrescriptionPage';
 import DoctorSchedulePage from './pages/DoctorSchedulePage';
@@ -26,9 +27,11 @@ import DoctorVisitingCardPage from './pages/DoctorVisitingCardPage';
 import DoctorVerificationPage from './pages/DoctorVerificationPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
+import ProfileAnalyticsPage from './pages/ProfileAnalyticsPage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
 import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
 import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
+import ProviderDoctorsPublicPage from './pages/ProviderDoctorsPublicPage';
 import ProviderProfilePage from './pages/ProviderProfilePage';
 import PublicProviderProfilePage from './pages/PublicProviderProfilePage';
 import ProviderWebsitePage from './pages/ProviderWebsitePage';
@@ -50,6 +53,7 @@ export default function App() {
       <Route path="/providers" element={<PublicProvidersPage />} />
       <Route path="/categories" element={<CategoriesPage />} />
       <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
+      <Route path="/providers/:providerId/doctors" element={<ProviderDoctorsPublicPage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
@@ -61,6 +65,8 @@ export default function App() {
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/public-profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPublicProfileContentPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/analytics" element={<ProtectedRoute><DashboardShell role="doctor"><ProfileAnalyticsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/visiting-card" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVisitingCardPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/verification" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVerificationPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/chambers" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorChamberDetailsPage /></DashboardShell></ProtectedRoute>} />
@@ -71,6 +77,7 @@ export default function App() {
       <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderAppointmentsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/provider/analytics" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProfileAnalyticsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/ambulances" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital']}><ProviderAmbulanceLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/services" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceServicesPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/hospitals" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceHospitalLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
@@ -118,7 +125,10 @@ function useRouteDocumentTitle() {
     else if (path === '/doctor/schedules') page = 'Schedule';
     else if (path === '/doctor/appointments') page = 'Appointments';
     else if (path === '/doctor/profile') page = 'Doctor Profile';
+    else if (path === '/doctor/public-profile') page = 'Public Profile Content';
+    else if (path === '/doctor/analytics') page = 'Doctor Analytics';
     else if (path.startsWith('/doctor/')) page = 'Doctor';
+    else if (path === '/provider/analytics') page = 'Hospital Analytics';
     else if (path.startsWith('/provider/')) page = 'Hospital';
     else if (path.startsWith('/ambulance/')) page = 'Ambulance';
     else if (path.startsWith('/admin')) page = 'Admin';

@@ -21,6 +21,7 @@ interface Props {
   entityLabel?: string;
   onStatsChange?: (stats: PublicProfileStats) => void;
   onFollowingChange?: (following: boolean) => void;
+  language?: 'bn' | 'en';
 }
 
 const defaultStats = (following = false): PublicProfileStats => ({
@@ -43,6 +44,7 @@ export default function FollowSaveButton({
   entityLabel,
   onStatsChange,
   onFollowingChange,
+  language = 'bn',
 }: Props) {
   const { user, account } = useAuth();
   const navigate = useNavigate();
@@ -72,7 +74,9 @@ export default function FollowSaveButton({
   if (user && account?.role !== 'patient') return null;
 
   const following = localStats?.is_following ?? initialFollowing;
-  const readableTarget = entityLabel || (targetType === 'doctor' ? 'ডাক্তার' : 'হাসপাতাল');
+  const readableTarget = entityLabel || (language === 'bn' ? (targetType === 'doctor' ? 'ডাক্তার' : 'হাসপাতাল') : (targetType === 'doctor' ? 'doctor' : 'hospital'));
+  const saveText = language === 'bn' ? 'সংরক্ষণ' : 'Save';
+  const savedText = language === 'bn' ? 'সংরক্ষিত' : 'Saved';
 
   async function toggle(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -109,14 +113,14 @@ export default function FollowSaveButton({
     <button
       type="button"
       className={`follow-save-button ${variant === 'button' ? 'follow-save-button-labeled' : 'follow-save-button-icon'} ${following ? 'is-saved' : ''} ${className}`.trim()}
-      aria-label={following ? `${readableTarget} সংরক্ষিত থেকে সরান` : `${readableTarget} সংরক্ষণ করুন`}
+      aria-label={following ? (language === 'bn' ? `${readableTarget} সংরক্ষিত থেকে সরান` : `Remove ${readableTarget} from saved`) : (language === 'bn' ? `${readableTarget} সংরক্ষণ করুন` : `Save ${readableTarget}`)}
       aria-pressed={following}
-      title={error || (following ? 'সংরক্ষিত থেকে সরান' : 'সংরক্ষণ করুন')}
+      title={error || (following ? (language === 'bn' ? 'সংরক্ষিত থেকে সরান' : 'Remove from saved') : saveText)}
       disabled={busy}
       onClick={toggle}
     >
       {busy ? <LoaderCircle className="spin" /> : <Heart fill={following ? 'currentColor' : 'none'} />}
-      {variant === 'button' ? <span>{following ? 'সংরক্ষিত' : 'সংরক্ষণ'}</span> : null}
+      {variant === 'button' ? <span>{following ? savedText : saveText}</span> : null}
     </button>
   );
 }

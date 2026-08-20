@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarDays, Clock3, LoaderCircle, MapPin, ShieldCheck, Stethoscope } from 'lucide-react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createPatientAppointment } from '../services/appointments';
 import { getDoctorPublicProfile } from '../services/discovery';
@@ -14,6 +14,8 @@ export default function BookingPage() {
   const { doctorId = '' } = useParams();
   const { account } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedProviderId = searchParams.get('provider') || '';
   const [profile, setProfile] = useState<DoctorPublicProfile | null>(null);
   const [providerId, setProviderId] = useState('');
   const [date, setDate] = useState('');
@@ -23,7 +25,7 @@ export default function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { getDoctorPublicProfile(doctorId).then((result) => { setProfile(result); if (result?.chambers[0]) setProviderId(result.chambers[0].id); }).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'ডাক্তার তথ্য লোড হয়নি।')).finally(() => setLoading(false)); }, [doctorId]);
+  useEffect(() => { getDoctorPublicProfile(doctorId).then((result) => { setProfile(result); const requested = result?.chambers.find((item) => item.id === requestedProviderId); if (requested) setProviderId(requested.id); else if (result?.chambers[0]) setProviderId(result.chambers[0].id); }).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'ডাক্তার তথ্য লোড হয়নি।')).finally(() => setLoading(false)); }, [doctorId, requestedProviderId]);
   const chamber = profile?.chambers.find((item) => item.id === providerId);
   const day = date ? new Date(`${date}T12:00:00`).getDay() : null;
   const schedules = useMemo(() => chamber?.schedules.filter((schedule) => day === schedule.day_of_week) ?? [], [chamber, day]);

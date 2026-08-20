@@ -221,8 +221,11 @@ export async function saveMyChamberSchedule(input: {
   fee: number | null;
   isActive: boolean;
   scheduleId?: string | null;
+  noteBn?: string | null;
+  noteEn?: string | null;
 }) {
-  const { data, error } = await requireSupabase().rpc('save_my_chamber_schedule', {
+  const client = requireSupabase();
+  const { data, error } = await client.rpc('save_my_chamber_schedule', {
     p_provider_id: input.providerId,
     p_day_of_week: input.dayOfWeek,
     p_start_time: input.startTime,
@@ -232,7 +235,14 @@ export async function saveMyChamberSchedule(input: {
     p_schedule_id: input.scheduleId ?? null,
   });
   if (error) throw error;
-  return data as string;
+  const scheduleId = data as string;
+  const { error: noteError } = await client.rpc('update_my_chamber_schedule_note', {
+    p_schedule_id: scheduleId,
+    p_note_bn: input.noteBn?.trim() || null,
+    p_note_en: input.noteEn?.trim() || null,
+  });
+  if (noteError) throw noteError;
+  return scheduleId;
 }
 
 export async function deleteMyChamberSchedule(scheduleId: string) {

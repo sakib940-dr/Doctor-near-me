@@ -1,10 +1,13 @@
 import { requireSupabase } from '../lib/supabase';
+import { analyticsDedupeKey, shouldRecordInteraction } from '../lib/analyticsClient';
 import type {
   InteractionSummary,
   PublicProfileStats,
   PublicProfileStatsRow,
   SavedProfileCard,
   StructuredReview,
+  StructuredReviewQuestionSet,
+  StructuredReviewSummary,
 } from '../types';
 
 export interface StructuredReviewInput {
@@ -132,14 +135,16 @@ export async function recordDoctorInteraction(
   eventType: PublicInteractionType,
   source?: string,
 ) {
-  const { error } = await requireSupabase().rpc('record_public_profile_interaction', {
+  if (!shouldRecordInteraction('doctor', doctorId, eventType)) return false;
+  const { data, error } = await requireSupabase().rpc('record_public_profile_interaction', {
     p_doctor_id: doctorId,
     p_provider_id: null,
     p_event_type: eventType,
     p_source: source ?? null,
-    p_metadata: {},
+    p_metadata: { dedupe_key: analyticsDedupeKey('doctor', doctorId, eventType) },
   });
   if (error) throw error;
+  return Boolean(data);
 }
 
 export async function recordProviderInteraction(
@@ -147,14 +152,16 @@ export async function recordProviderInteraction(
   eventType: PublicInteractionType,
   source?: string,
 ) {
-  const { error } = await requireSupabase().rpc('record_public_profile_interaction', {
+  if (!shouldRecordInteraction('provider', providerId, eventType)) return false;
+  const { data, error } = await requireSupabase().rpc('record_public_profile_interaction', {
     p_doctor_id: null,
     p_provider_id: providerId,
     p_event_type: eventType,
     p_source: source ?? null,
-    p_metadata: {},
+    p_metadata: { dedupe_key: analyticsDedupeKey('provider', providerId, eventType) },
   });
   if (error) throw error;
+  return Boolean(data);
 }
 
 export async function getMyDoctorInteractionSummary(days = 30) {
@@ -191,4 +198,39 @@ export async function getMySavedProfileCards() {
   const { data, error } = await requireSupabase().rpc('get_my_saved_profile_cards');
   if (error) throw error;
   return (data ?? []) as SavedProfileCard[];
+}
+
+export async function getStructuredReviewQuestions() {
+  const { data, error } = await requireSupabase().rpc('get_public_structured_review_questions');
+  if (error) throw error;
+  return (data ?? null) as StructuredReviewQuestionSet | null;
+}
+
+export async function getDoctorReviewSummary(doctorId: string) {
+  const { data, error } = await requireSupabase().rpc('get_public_structured_review_summary', {
+    p_doctor_id: doctorId,
+    p_provider_id: null,
+  });
+  if (error) throw error;
+  return (data ?? null) as StructuredReviewSummary | null;
+}
+
+export async function getProviderReviewSummary(providerId: string) {
+  const { data, error } = await requireSupabase().rpc('get_public_structured_review_summary', {
+    p_doctor_id: null,
+    p_provider_id: providerId,
+  });
+  if (error) throw error;
+  return (data ?? null) as StructuredReviewSummary | null;
+}
+
+
+export async function replyToMyProviderReview(reviewId: string, replyBn?: string | null, replyEn?: string | null) {
+  const { data, error } = await requireSupabase().rpc('reply_to_my_provider_review', {
+    p_review_id: reviewId,
+    p_reply_bn: replyBn?.trim() || null,
+    p_reply_en: replyEn?.trim() || null,
+  });
+  if (error) throw error;
+  return Boolean(data);
 }

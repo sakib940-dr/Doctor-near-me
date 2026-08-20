@@ -243,6 +243,7 @@ export interface DoctorSearchRow {
   nearest_provider_latitude?: number | null;
   nearest_provider_longitude?: number | null;
   verification_status?: 'pending' | 'approved' | 'rejected' | 'expired';
+  provider_schedules?: Array<{ day_of_week: number; start_time: string; end_time: string; fee: number | null; note?: { bn?: string | null; en?: string | null } | null }>;
 }
 
 
@@ -255,6 +256,8 @@ export interface ProviderDirectoryRow {
   logo_url: string | null;
   banner_url: string | null;
   short_description?: string | null;
+  about_bn?: string | null;
+  about_en?: string | null;
   phone: string | null;
   whatsapp?: string | null;
   email?: string | null;
@@ -313,6 +316,8 @@ export interface DoctorPublicProfile {
     consultation_fee: number | null;
     headline: string | null;
     bio: string | null;
+    bio_bn?: string | null;
+    bio_en?: string | null;
     languages: string[] | null;
     accepting_appointments: boolean;
     // Optional forward-compatible public contact/profile fields. Existing
@@ -339,12 +344,14 @@ export interface DoctorPublicProfile {
     longitude: number | null;
     map_url: string | null;
     phone: string | null;
+    whatsapp?: string | null;
     emergency_available: boolean;
     schedules: Array<{
       day_of_week: number;
       start_time: string;
       end_time: string;
       fee: number | null;
+      note?: { bn?: string | null; en?: string | null } | null;
     }>;
   }>;
 }
@@ -355,6 +362,7 @@ export interface DoctorDashboardSchedule {
   start_time: string;
   end_time: string;
   fee: number | null;
+  note?: { bn?: string | null; en?: string | null } | null;
   is_active: boolean;
 }
 
@@ -364,6 +372,7 @@ export interface DoctorDashboardChamber {
   provider_type: 'chamber' | 'hospital';
   address: string | null;
   phone: string | null;
+  whatsapp?: string | null;
   district_id?: number | null;
   upazila_id?: number | null;
   latitude?: number | null;
@@ -392,6 +401,8 @@ export interface MyDoctorProfile {
     present_job: string | null;
     bmdc_verified: boolean;
     bio: string | null;
+    bio_bn?: string | null;
+    bio_en?: string | null;
     consultation_fee: number | null;
     experience_years: number | null;
     verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
@@ -429,6 +440,8 @@ export interface ProviderDashboardItem {
   name_bn: string;
   name_en: string | null;
   short_description: string | null;
+  about_bn: string | null;
+  about_en: string | null;
   logo_url: string | null;
   banner_url: string | null;
   phone: string | null;
@@ -829,6 +842,33 @@ export interface SavedProfileCard {
   saved_at: string;
 }
 
+
+export type ReviewLanguage = 'bn' | 'en';
+
+export interface StructuredReviewQuestion {
+  key: string;
+  score_key: 'q1' | 'q2' | 'q3' | 'q4' | 'q5';
+  bn: string;
+  en: string;
+}
+
+export interface StructuredReviewQuestionSet {
+  version: number;
+  doctor: StructuredReviewQuestion[];
+  provider: StructuredReviewQuestion[];
+}
+
+export interface StructuredReviewSummary {
+  target_type: 'doctor' | 'provider';
+  review_count: number;
+  overall_average: number | null;
+  q1_average: number | null;
+  q2_average: number | null;
+  q3_average: number | null;
+  q4_average: number | null;
+  q5_average: number | null;
+}
+
 export interface StructuredReview {
   review_id: string;
   target_type?: 'doctor' | 'provider';
@@ -848,20 +888,47 @@ export interface StructuredReview {
   total_count?: number;
 }
 
-export interface InteractionSummary {
+export interface AnalyticsSeriesPoint {
+  bucket: string;
   profile_views: number;
   call_clicks: number;
   whatsapp_clicks: number;
   appointment_clicks: number;
+  appointment_requests: number;
+  map_clicks: number;
+  follows: number;
+  reviews: number;
+}
+
+export interface InteractionSummary {
+  target_type?: 'doctor' | 'provider';
+  target_id?: string;
+  profile_views: number;
+  call_clicks: number;
+  whatsapp_clicks: number;
+  appointment_clicks: number;
+  appointment_requests: number;
   map_clicks: number;
   followers: number;
   followers_new: number;
   followers_lost: number;
   followers_net: number;
   reviews: number;
+  review_submitted: number;
+  review_edited: number;
   average_rating: number | null;
   days: number;
+  bucket?: 'day' | 'month';
+  series?: AnalyticsSeriesPoint[];
 }
+
+export type AnalyticsPeriod = 7 | 30 | 0;
+export type ProfileAnalytics = InteractionSummary & {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+  bucket: 'day' | 'month';
+  series: AnalyticsSeriesPoint[];
+};
 
 export interface DoctorSliderImage {
   id: number;
@@ -890,4 +957,65 @@ export interface DegreeMasterItem {
   aliases: string[];
   sort_order: number;
   is_active?: boolean;
+}
+
+// STEP 45 — Doctor public profile content/editor
+export interface LocalizedProfileText {
+  bn?: string | null;
+  en?: string | null;
+}
+
+export interface DoctorServiceItem {
+  id: number;
+  doctor_id: string;
+  name: LocalizedProfileText;
+  description: LocalizedProfileText | null;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorTreatmentCostItem {
+  id: number;
+  doctor_id: string;
+  name: LocalizedProfileText;
+  cost: {
+    min?: number | null;
+    max?: number | null;
+    note_bn?: string | null;
+    note_en?: string | null;
+  };
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorInvestigationCostItem {
+  id: number;
+  doctor_id: string;
+  name: LocalizedProfileText;
+  cost: {
+    amount?: number | null;
+    note_bn?: string | null;
+    note_en?: string | null;
+  };
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorPublicContent {
+  bio_bn: string | null;
+  bio_en: string | null;
+  slider_images: DoctorSliderImage[];
+  services: DoctorServiceItem[];
+  treatment_costs: DoctorTreatmentCostItem[];
+  investigation_costs: DoctorInvestigationCostItem[];
+}
+
+export interface DoctorChamberDistance {
+  provider_id: string;
+  distance_km: number;
 }

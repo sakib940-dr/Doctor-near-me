@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   BadgeCheck,
   CalendarDays,
+  ChevronDown,
   Clock3,
   ExternalLink,
   GraduationCap,
@@ -10,24 +11,43 @@ import {
   LoaderCircle,
   MapPin,
   MessageCircle,
+  Navigation,
   Phone,
   ShieldCheck,
+  Star,
   Stethoscope,
   X,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
+import StructuredReviewSection from '../components/StructuredReviewSection';
 import VisitorBottomNav from '../components/VisitorBottomNav';
-import VerifiedBadge from '../components/VerifiedBadge';
 import { makePageTitle } from '../lib/brand';
+import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDoctorPublicProfile } from '../services/discovery';
-import { getDoctorPublicStats } from '../services/engagement';
-import type { DoctorPublicProfile, PublicProfileStats } from '../types';
+import {
+  getDoctorPublicStats,
+  recordDoctorInteraction,
+} from '../services/engagement';
+import {
+  getDoctorChamberDistances,
+  getDoctorPublicContent,
+} from '../services/doctorPublicContent';
+import type {
+  DoctorChamberDistance,
+  DoctorPublicContent,
+  DoctorPublicProfile,
+  PublicProfileStats,
+  PublicRankingTier,
+} from '../types';
 
-const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+type Language = 'bn' | 'en';
+
+const daysBn = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const cleanTime = (time: string) => time.slice(0, 5);
 const cleanPhone = (value: string) => value.replace(/[^0-9+]/g, '');
 const whatsappNumber = (value: string) => {
@@ -35,207 +55,296 @@ const whatsappNumber = (value: string) => {
   if (digits.startsWith('0')) digits = `88${digits}`;
   return digits;
 };
+const numberText = (value: number, language: Language, digits = 0) => value.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+
+const copy = {
+  bn: {
+    back: 'ডাক্তার তালিকায় ফিরুন',
+    degree: 'ডিগ্রি', specialty: 'বিশেষত্ব', designation: 'পদবি', medicalCollege: 'মেডিকেল কলেজ', presentJob: 'বর্তমান কর্মস্থল', bmdc: 'বিএমডিসি',
+    call: 'কল করুন', whatsapp: 'WhatsApp', appointment: 'অ্যাপয়েন্টমেন্ট', save: 'সংরক্ষণ',
+    followers: 'মোট অনুসারী', reviews: 'রিভিউ', rating: 'গড় রেটিং', fee: 'ভিজিট ফি',
+    about: 'ডাক্তার সম্পর্কে', schedule: 'চেম্বারের সময়সূচি', services: 'সেবাসমূহ', treatment: 'চিকিৎসার খরচ', investigation: 'পরীক্ষা / ইনভেস্টিগেশন খরচ',
+    contact: 'যোগাযোগ, ম্যাপ ও দূরত্ব', noAbout: 'এই ডাক্তার সম্পর্কে বিস্তারিত তথ্য এখনো যোগ করা হয়নি।',
+    noSchedule: 'সময়সূচি এখনো যোগ করা হয়নি।', noServices: 'সেবার তালিকা এখনো যোগ করা হয়নি।', noCost: 'খরচের তালিকা এখনো যোগ করা হয়নি।',
+    distance: 'আপনার অবস্থান থেকে', showDistance: 'আমার দূরত্ব দেখুন', locating: 'Location নেওয়া হচ্ছে…', map: 'ম্যাপ খুলুন',
+    open: 'এখন খোলা', closed: 'এখন বন্ধ', today: 'আজ', unavailable: 'তথ্য নেই',
+    costDisclaimer: 'খরচ সেবা, চিকিৎসা পরিকল্পনা ও রোগীর অবস্থার উপর পরিবর্তিত হতে পারে।',
+    verified: 'Verified', premium: 'Premium', new: 'নতুন', unverified: 'যাচাই হয়নি',
+    experience: 'অভিজ্ঞতা', years: 'বছর', languages: 'ভাষা',
+  },
+  en: {
+    back: 'Back to doctors',
+    degree: 'Degrees', specialty: 'Specialty', designation: 'Designation', medicalCollege: 'Medical College', presentJob: 'Present Job', bmdc: 'BMDC',
+    call: 'Call Now', whatsapp: 'WhatsApp', appointment: 'Appointment', save: 'Save',
+    followers: 'Followers', reviews: 'Reviews', rating: 'Average rating', fee: 'Visit fee',
+    about: 'About Doctor', schedule: 'Chamber Schedule', services: 'Services', treatment: 'Treatment Costs', investigation: 'Investigation Costs',
+    contact: 'Contact, Map & Distance', noAbout: 'No detailed profile information has been added yet.',
+    noSchedule: 'No schedule has been added yet.', noServices: 'No services have been added yet.', noCost: 'No cost information has been added yet.',
+    distance: 'From your location', showDistance: 'Show my distance', locating: 'Getting location…', map: 'Open map',
+    open: 'Open now', closed: 'Closed now', today: 'Today', unavailable: 'Not available',
+    costDisclaimer: 'Costs may vary based on service, treatment plan and patient condition.',
+    verified: 'Verified', premium: 'Premium', new: 'New', unverified: 'Unverified',
+    experience: 'Experience', years: 'years', languages: 'Languages',
+  },
+} as const;
+
+function localText(value: { bn?: string | null; en?: string | null } | null | undefined, language: Language) {
+  if (!value) return '';
+  return (language === 'bn' ? value.bn || value.en : value.en || value.bn) || '';
+}
+
+function rankLabel(tier: PublicRankingTier | undefined, language: Language, verified: boolean) {
+  const t = copy[language];
+  if (tier === 'premium') return t.premium;
+  if (tier === 'verified' || verified) return t.verified;
+  if (tier === 'new') return t.new;
+  return t.unverified;
+}
+
+function todayStatus(chamber: DoctorPublicProfile['chambers'][number], language: Language) {
+  const now = new Date();
+  const weekday = now.getDay();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  const schedules = chamber.schedules.filter((item) => item.day_of_week === weekday);
+  if (!schedules.length) return { open: false, text: `${copy[language].today}: ${copy[language].closed}` };
+  const current = schedules.find((item) => {
+    const [sh, sm] = cleanTime(item.start_time).split(':').map(Number);
+    const [eh, em] = cleanTime(item.end_time).split(':').map(Number);
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    return end > start ? minutes >= start && minutes <= end : minutes >= start || minutes <= end;
+  });
+  const scheduleText = schedules.map((item) => `${cleanTime(item.start_time)}–${cleanTime(item.end_time)}`).join(', ');
+  return { open: Boolean(current), text: `${current ? copy[language].open : copy[language].closed} • ${copy[language].today} ${scheduleText}` };
+}
 
 export default function DoctorProfile() {
   const { doctorId = '' } = useParams();
   const [profile, setProfile] = useState<DoctorPublicProfile | null>(null);
+  const [content, setContent] = useState<DoctorPublicContent | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
   const [profileStats, setProfileStats] = useState<PublicProfileStats | null>(null);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    getDoctorPublicProfile(doctorId)
-      .then((result) => {
-        setProfile(result);
-        document.title = result ? makePageTitle(result.doctor.name) : makePageTitle('ডাক্তার পাওয়া যায়নি');
-      })
-      .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'প্রোফাইল লোড করা যায়নি।'))
-      .finally(() => setLoading(false));
-  }, [doctorId]);
+  const [language, setLanguage] = useState<Language>('bn');
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [distances, setDistances] = useState<DoctorChamberDistance[]>([]);
+  const [distanceBusy, setDistanceBusy] = useState(false);
+  const [distanceError, setDistanceError] = useState<string | null>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const trackedView = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !doctorId) return;
     let active = true;
-    getDoctorPublicStats(doctorId)
-      .then((stats) => { if (active) setProfileStats(stats); })
-      .catch(() => undefined);
+    setLoading(true);
+    Promise.all([getDoctorPublicProfile(doctorId), getDoctorPublicContent(doctorId), getDoctorPublicStats(doctorId)])
+      .then(([profileResult, contentResult, statsResult]) => {
+        if (!active) return;
+        setProfile(profileResult);
+        setContent(contentResult);
+        setProfileStats(statsResult);
+        document.title = profileResult ? makePageTitle(profileResult.doctor.name) : makePageTitle('ডাক্তার পাওয়া যায়নি');
+      })
+      .catch((loadError: unknown) => active && setError(loadError instanceof Error ? loadError.message : 'প্রোফাইল লোড করা যায়নি।'))
+      .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [doctorId]);
 
-  const avatar = getImageUrl(profile?.doctor.avatar_url, 'avatars');
-  useEffect(() => setImageFailed(false), [avatar]);
+  useEffect(() => {
+    if (!profile?.doctor.id || trackedView.current === profile.doctor.id) return;
+    trackedView.current = profile.doctor.id;
+    void recordDoctorInteraction(profile.doctor.id, 'profile_view', 'doctor_profile').catch(() => undefined);
+  }, [profile?.doctor.id]);
 
-  const primarySpecialty = profile?.specialties[0]?.name_bn || 'বিশেষজ্ঞ চিকিৎসক';
+  useEffect(() => {
+    if (!profile?.doctor.id) return;
+    try {
+      const raw = localStorage.getItem('docbd-current-location');
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { latitude?: number; longitude?: number; capturedAt?: number };
+      if (typeof saved.latitude !== 'number' || typeof saved.longitude !== 'number') return;
+      if (saved.capturedAt && Date.now() - saved.capturedAt > 30 * 60 * 1000) return;
+      void getDoctorChamberDistances(profile.doctor.id, saved.latitude, saved.longitude).then(setDistances).catch(() => undefined);
+    } catch { /* optional local storage context */ }
+  }, [profile?.doctor.id]);
+
+  const t = copy[language];
+  const avatar = getImageUrl(profile?.doctor.avatar_url, 'avatars');
+  const sliderImages = useMemo(() => {
+    const rows = content?.slider_images ?? [];
+    if (rows.length) return rows.map((row) => ({ id: `slider-${row.id}`, src: getImageUrl(row.image, 'public-images'), caption: localText(row.caption, language) })).filter((row) => Boolean(row.src));
+    if (avatar) return [{ id: 'profile-photo', src: avatar, caption: profile?.doctor.name || '' }];
+    return [];
+  }, [avatar, content?.slider_images, language, profile?.doctor.name]);
+
+  useEffect(() => { setActiveSlide(0); }, [sliderImages.length]);
+
+  const primarySpecialty = profile ? (language === 'bn' ? profile.specialties[0]?.name_bn : profile.specialties[0]?.name_en || profile.specialties[0]?.name_bn) || (language === 'bn' ? 'চিকিৎসক' : 'Doctor') : '';
   const primaryChamber = profile?.chambers[0] ?? null;
-  const directPhone = profile?.doctor.phone || null;
-  const directWhatsapp = profile?.doctor.whatsapp || null;
-  const chamberPhone = primaryChamber?.phone || null;
-  const contactPhone = directPhone || chamberPhone;
-  const callPhone = contactPhone ? cleanPhone(contactPhone) : null;
-  const whatsapp = directWhatsapp || directPhone || null;
-  const contactSource = directPhone || directWhatsapp ? 'assistant' : chamberPhone ? 'chamber' : null;
-  const facebook = profile?.doctor.facebook_url || null;
-  const locationText = primaryChamber?.address || null;
-  const hasContactOptions = Boolean(callPhone || whatsapp || facebook);
+  const primaryPhone = primaryChamber?.phone || null;
+  const primaryWhatsapp = primaryChamber?.whatsapp || primaryPhone;
+  const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
+  const whatsapp = primaryWhatsapp ? whatsappNumber(primaryWhatsapp) : null;
   const isVerified = profile?.doctor.verification_status === 'approved';
   const canOnlineBook = Boolean(isVerified && profile?.doctor.accepting_appointments);
+  const rank = rankLabel(profileStats?.ranking_tier, language, isVerified);
+  const about = profile ? (language === 'bn' ? profile.doctor.bio_bn || content?.bio_bn || profile.doctor.bio : profile.doctor.bio_en || content?.bio_en || profile.doctor.bio_bn || content?.bio_bn || profile.doctor.bio) : null;
 
-  const details = useMemo(() => {
+  const visitingDetails = useMemo(() => {
     if (!profile) return [];
+    const specialtyNames = profile.specialties.map((item) => language === 'bn' ? item.name_bn : item.name_en || item.name_bn).filter(Boolean).join(', ');
     return [
-      { label: 'ডিগ্রি', value: profile.doctor.degree, icon: GraduationCap },
-      { label: 'বিশেষজ্ঞ', value: profile.specialties.map((item) => item.name_bn).join(', ') || null, icon: Stethoscope },
-      { label: 'পদবি', value: profile.doctor.designation || profile.doctor.professional_title, icon: BadgeCheck },
-      { label: 'মেডিকেল কলেজ', value: profile.doctor.medical_college, icon: GraduationCap },
-      { label: 'বর্তমান কর্মস্থল', value: profile.doctor.present_job, icon: Stethoscope },
-      { label: 'বিএমডিসি রেজি. নং', value: profile.doctor.bmdc_registration_no, icon: ShieldCheck },
-      { label: 'চেম্বার/হাসপাতাল', value: primaryChamber?.name_bn || null, icon: Stethoscope },
-      { label: 'ঠিকানা', value: locationText, icon: MapPin },
+      { label: t.degree, value: profile.doctor.degree, icon: GraduationCap },
+      { label: t.specialty, value: specialtyNames || primarySpecialty, icon: Stethoscope },
+      { label: t.designation, value: profile.doctor.designation || profile.doctor.professional_title, icon: BadgeCheck },
+      { label: t.bmdc, value: profile.doctor.bmdc_registration_no, icon: ShieldCheck },
+      { label: t.medicalCollege, value: profile.doctor.medical_college, icon: GraduationCap },
+      { label: t.presentJob, value: profile.doctor.present_job, icon: Stethoscope },
     ].filter((item) => Boolean(item.value));
-  }, [profile, primaryChamber, locationText]);
+  }, [language, primarySpecialty, profile, t.bmdc, t.degree, t.designation, t.medicalCollege, t.presentJob, t.specialty]);
+
+  function moveSlider(index: number) {
+    const node = sliderRef.current?.querySelectorAll<HTMLElement>('[data-doctor-slide]')[index];
+    if (node && sliderRef.current) sliderRef.current.scrollTo({ left: node.offsetLeft, behavior: 'smooth' });
+  }
+
+  function detectSlide() {
+    const root = sliderRef.current;
+    if (!root) return;
+    const nodes: HTMLElement[] = Array.from(root.querySelectorAll<HTMLElement>('[data-doctor-slide]'));
+    if (!nodes.length) return;
+    let best = 0;
+    let delta = Number.POSITIVE_INFINITY;
+    nodes.forEach((node, index) => {
+      const value = Math.abs(node.offsetLeft - root.scrollLeft);
+      if (value < delta) { delta = value; best = index; }
+    });
+    setActiveSlide(best);
+  }
+
+  async function captureDistance() {
+    if (!profile) return;
+    setDistanceBusy(true);
+    setDistanceError(null);
+    try {
+      const coordinates = await captureCurrentCoordinates();
+      const rows = await getDoctorChamberDistances(profile.doctor.id, coordinates.latitude, coordinates.longitude);
+      setDistances(rows);
+      void recordDoctorInteraction(profile.doctor.id, 'map_click', 'doctor_distance').catch(() => undefined);
+      try {
+        const current = localStorage.getItem('docbd-current-location');
+        const previous = current ? JSON.parse(current) as Record<string, unknown> : {};
+        localStorage.setItem('docbd-current-location', JSON.stringify({ ...previous, ...coordinates, capturedAt: Date.now() }));
+      } catch { /* local storage is optional */ }
+    } catch (locationError) {
+      setDistanceError(locationError instanceof Error ? locationError.message : 'Distance পাওয়া যায়নি।');
+    } finally {
+      setDistanceBusy(false);
+    }
+  }
+
+  function distanceFor(providerId: string) {
+    return distances.find((row) => row.provider_id === providerId)?.distance_km ?? null;
+  }
+
+  function track(event: 'call_click' | 'whatsapp_click' | 'appointment_click' | 'map_click') {
+    if (!profile) return;
+    void recordDoctorInteraction(profile.doctor.id, event, 'doctor_profile').catch(() => undefined);
+  }
 
   return (
-    <div className="app-shell profile-page visitor-profile-page">
+    <div className="app-shell doctor-public-v2-page">
       <PublicHeader mobileBottomNav />
-      <main className="profile-main container visitor-profile-main">
-        <Link className="back-link visitor-profile-back" to="/doctors"><ArrowLeft /> ডাক্তার তালিকায় ফিরুন</Link>
+      <main className="doctor-public-v2 container">
+        <div className="doctor-public-topline">
+          <Link className="doctor-public-back" to="/doctors"><ArrowLeft /> {t.back}</Link>
+          <div className="doctor-language-switch" role="group" aria-label="Language"><button type="button" className={language === 'bn' ? 'active' : ''} onClick={() => setLanguage('bn')}>বাংলা</button><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button></div>
+        </div>
         {!isSupabaseConfigured && <div className="directory-notice">লাইভ প্রোফাইল দেখতে Supabase environment variables প্রয়োজন।</div>}
         {loading && <div className="loading-box"><LoaderCircle className="spin" /> প্রোফাইল লোড হচ্ছে…</div>}
         {error && <div className="error-box" role="alert">{error}</div>}
-        {!loading && isSupabaseConfigured && !error && !profile && (
-          <div className="empty-state"><span><Stethoscope /></span><h3>ডাক্তার পাওয়া যায়নি</h3><p>প্রোফাইলটি অননুমোদিত, নিষ্ক্রিয় অথবা মুছে ফেলা হয়েছে।</p></div>
-        )}
+        {!loading && isSupabaseConfigured && !error && !profile && <div className="empty-state"><span><Stethoscope /></span><h3>ডাক্তার পাওয়া যায়নি</h3><p>প্রোফাইলটি অননুমোদিত, নিষ্ক্রিয় অথবা মুছে ফেলা হয়েছে।</p></div>}
 
         {profile && <>
-          <section className="visitor-profile-hero">
-            <div className="visitor-profile-photo">
-              {avatar && !imageFailed ? (
-                <img src={avatar} alt={profile.doctor.name} onError={() => setImageFailed(true)} />
-              ) : (
-                <div className="profile-photo-fallback"><Stethoscope /></div>
-              )}
+          <section className="doctor-profile-slider-shell" aria-label="Doctor images">
+            <div className="doctor-profile-slider" ref={sliderRef} onScroll={detectSlide}>
+              {sliderImages.length ? sliderImages.map((slide, index) => <figure data-doctor-slide key={slide.id}><img src={slide.src || ''} alt={slide.caption || profile.doctor.name} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" />{slide.caption && <figcaption>{slide.caption}</figcaption>}</figure>) : <div data-doctor-slide className="doctor-profile-slider-fallback"><Stethoscope /></div>}
             </div>
-            <VerifiedBadge className="profile-verified" verified={isVerified} label={isVerified ? "Verified" : "Not verified yet"} />
-            <h1>{profile.doctor.name}</h1>
-            <p>{primarySpecialty}</p>
-            <div className="public-follow-summary">
-              <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} />
-              <span><b>{(profileStats?.follower_count ?? 0).toLocaleString('bn-BD')}</b> মোট অনুসারী</span>
-            </div>
+            {sliderImages.length > 1 && <div className="doctor-slider-dots">{sliderImages.map((slide, index) => <button type="button" key={slide.id} className={index === activeSlide ? 'active' : ''} aria-label={`Slide ${index + 1}`} onClick={() => moveSlider(index)} />)}</div>}
           </section>
 
-          <section className="profile-prescription-card">
-            <div className="prescription-heading">
-              <small>ডাক্তারের পেশাগত তথ্য</small>
-              <h2>{profile.doctor.name}</h2>
-              {profile.doctor.degree && <p>{profile.doctor.degree}</p>}
+          <section className="doctor-visiting-card-v2">
+            <div className="doctor-visiting-card-v2-head">
+              <div><div className={`doctor-rank-pill ${profileStats?.ranking_tier || (isVerified ? 'verified' : 'unverified')}`}>{rank}</div><h1>{profile.doctor.name}</h1><p>{profile.doctor.degree || primarySpecialty}</p></div>
+              {avatar && <img src={avatar} alt="" loading="lazy" decoding="async" />}
             </div>
-            <div className="prescription-details">
-              {details.map(({ label, value, icon: Icon }) => (
-                <div key={label}>
-                  <span><Icon /> {label}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
+            <div className="doctor-visiting-compact-grid">{visitingDetails.map(({ label, value, icon: Icon }) => <div key={label}><span><Icon /> {label}</span><strong>{value}</strong></div>)}</div>
+            <div className="doctor-visiting-facts">{profile.doctor.experience_years != null && <span><Clock3 /> <b>{numberText(profile.doctor.experience_years, language)}</b> {t.years} {t.experience}</span>}{profile.doctor.languages?.length ? <span><Languages /> {t.languages}: <b>{profile.doctor.languages.join(', ')}</b></span> : null}{profile.doctor.consultation_fee != null && <span><strong>৳{numberText(profile.doctor.consultation_fee, language)}</strong> {t.fee}</span>}</div>
           </section>
 
-          <section className="profile-appointment-strip">
-            <div className="profile-fee-box">
-              <small>ভিজিট ফি</small>
-              <strong>{profile.doctor.consultation_fee != null ? `৳${profile.doctor.consultation_fee}` : 'যোগাযোগ করুন'}</strong>
-            </div>
-            <div className="profile-direct-actions">
-              {callPhone && (
-                <a className="profile-contact-button call" href={`tel:${callPhone}`} title={contactSource === 'assistant' ? 'ডাক্তারের সহকারীকে কল করুন' : 'চেম্বারে কল করুন'}>
-                  <Phone /><span>{contactSource === 'assistant' ? 'সহকারী' : 'কল'}</span>
-                </a>
-              )}
-              {whatsapp && (
-                <a className="profile-contact-button whatsapp" href={`https://wa.me/${whatsappNumber(whatsapp)}`} target="_blank" rel="noreferrer" title="WhatsApp">
-                  <MessageCircle /><span>WhatsApp</span>
-                </a>
-              )}
-              <button
-                type="button"
-                className="profile-appointment-button"
-                disabled={!canOnlineBook && !hasContactOptions}
-                onClick={() => setContactOpen(true)}
-              >
-                <CalendarDays /> অ্যাপয়েন্টমেন্ট নিন
-              </button>
-            </div>
+          <section className="doctor-primary-actions-v2">
+            {callPhone ? <a href={`tel:${callPhone}`} onClick={() => track('call_click')}><Phone /><span>{t.call}</span></a> : <button disabled><Phone /><span>{t.call}</span></button>}
+            {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /><span>{t.whatsapp}</span></a> : <button disabled><MessageCircle /><span>{t.whatsapp}</span></button>}
+            {canOnlineBook ? <Link to={`/doctors/${profile.doctor.id}/book`} onClick={() => track('appointment_click')}><CalendarDays /><span>{t.appointment}</span></Link> : <button type="button" disabled={!callPhone} onClick={() => { track('appointment_click'); setContactOpen(true); }}><CalendarDays /><span>{t.appointment}</span></button>}
+            <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} className="doctor-profile-follow-action" language={language} />
           </section>
 
-          <section className="profile-section visitor-about-section">
-            <h2>ডাক্তার সম্পর্কে</h2>
+          <section className="doctor-social-summary-v2">
+            <div><strong>{numberText(profileStats?.follower_count ?? 0, language)}</strong><span>{t.followers}</span></div>
+            <div><strong>{numberText(profileStats?.review_count ?? 0, language)}</strong><span>{t.reviews}</span></div>
+            <div><strong>{profileStats?.average_rating != null ? numberText(profileStats.average_rating, language, 1) : '—'}</strong><span><Star /> {t.rating}</span></div>
+          </section>
+
+          <section className="doctor-about-v2">
+            <div className="doctor-section-title"><span><Stethoscope /></span><div><small>{language === 'bn' ? 'পরিচিতি' : 'Profile'}</small><h2>{t.about}</h2></div></div>
             {profile.doctor.headline && <h3>{profile.doctor.headline}</h3>}
-            <p>{profile.doctor.bio || 'এই ডাক্তার সম্পর্কে বিস্তারিত তথ্য এখনো যোগ করা হয়নি।'}</p>
-            <div className="profile-facts">
-              {profile.doctor.experience_years != null && <span><Clock3 /> <b>{profile.doctor.experience_years}+ বছর</b> অভিজ্ঞতা</span>}
-              {profile.doctor.languages?.length ? <span><Languages /> ভাষা: <b>{profile.doctor.languages.join(', ')}</b></span> : null}
-            </div>
+            <p>{about || t.noAbout}</p>
           </section>
 
-          <section className="profile-section visitor-schedule-section">
-            <h2>চেম্বার ও সময়সূচি</h2>
-            {profile.chambers.length ? (
-              <div className="visitor-chamber-list">
-                {profile.chambers.map((chamber) => (
-                  <article key={chamber.id}>
-                    <div className="visitor-chamber-heading">
-                      <span><MapPin /></span>
-                      <div>
-                        <h3>{chamber.name_bn}</h3>
-                        <p>{chamber.address || 'ঠিকানা যোগ করা হয়নি'}</p>
-                      </div>
-                    </div>
-                    <div className="visitor-schedule-list">
-                      {chamber.schedules.length ? chamber.schedules.map((schedule, index) => (
-                        <div key={`${schedule.day_of_week}-${schedule.start_time}-${index}`}>
-                          <span>{days[schedule.day_of_week]}</span>
-                          <strong>{cleanTime(schedule.start_time)} – {cleanTime(schedule.end_time)}</strong>
-                          {schedule.fee != null && <small>৳{schedule.fee}</small>}
-                        </div>
-                      )) : <p>সময়সূচি এখনো যোগ করা হয়নি।</p>}
-                    </div>
-                    <div className="visitor-chamber-actions">
-                      {chamber.phone && <a href={`tel:${cleanPhone(chamber.phone)}`}><Phone /> কল করুন</a>}
-                      {chamber.map_url && <a href={chamber.map_url} target="_blank" rel="noreferrer"><MapPin /> ম্যাপ দেখুন</a>}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : <p>অনুমোদিত চেম্বারের তথ্য পাওয়া যায়নি।</p>}
+          <section className="doctor-accordion-stack">
+            <details className="doctor-profile-accordion">
+              <summary><span><Clock3 /> {t.schedule}</span><ChevronDown /></summary>
+              <div className="doctor-accordion-body">{profile.chambers.length ? profile.chambers.map((chamber) => <article className="doctor-schedule-public-card" key={chamber.id}><header><div><h3>{language === 'bn' ? chamber.name_bn : chamber.name_en || chamber.name_bn}</h3><p>{chamber.address || t.unavailable}</p></div><span className={todayStatus(chamber, language).open ? 'open' : 'closed'}>{todayStatus(chamber, language).text}</span></header>{chamber.schedules.length ? <div className="doctor-public-schedule-list">{chamber.schedules.map((schedule, index) => <div key={`${schedule.day_of_week}-${schedule.start_time}-${index}`}><span>{(language === 'bn' ? daysBn : daysEn)[schedule.day_of_week]}</span><strong>{cleanTime(schedule.start_time)}–{cleanTime(schedule.end_time)}</strong>{localText(schedule.note, language) && <small>{localText(schedule.note, language)}</small>}</div>)}</div> : <p className="doctor-empty-copy">{t.noSchedule}</p>}</article>) : <p className="doctor-empty-copy">{t.noSchedule}</p>}</div>
+            </details>
+
+            <details className="doctor-profile-accordion">
+              <summary><span><Stethoscope /> {t.services}</span><ChevronDown /></summary>
+              <div className="doctor-accordion-body doctor-public-service-list">{content?.services.length ? content.services.map((service) => <article key={service.id}><strong>{localText(service.name, language)}</strong>{localText(service.description, language) && <p>{localText(service.description, language)}</p>}</article>) : <p className="doctor-empty-copy">{t.noServices}</p>}</div>
+            </details>
+
+            <details className="doctor-profile-accordion">
+              <summary><span><BadgeCheck /> {t.treatment}</span><ChevronDown /></summary>
+              <div className="doctor-accordion-body doctor-public-cost-list">{content?.treatment_costs.length ? content.treatment_costs.map((item) => <article key={item.id}><div><strong>{localText(item.name, language)}</strong>{(language === 'bn' ? item.cost.note_bn : item.cost.note_en || item.cost.note_bn) && <small>{language === 'bn' ? item.cost.note_bn : item.cost.note_en || item.cost.note_bn}</small>}</div><b>৳{numberText(Number(item.cost.min ?? 0), language)}{item.cost.max != null ? ` – ৳${numberText(Number(item.cost.max), language)}` : '+'}</b></article>) : <p className="doctor-empty-copy">{t.noCost}</p>}<p className="doctor-cost-disclaimer">{t.costDisclaimer}</p></div>
+            </details>
+
+            <details className="doctor-profile-accordion">
+              <summary><span><GraduationCap /> {t.investigation}</span><ChevronDown /></summary>
+              <div className="doctor-accordion-body doctor-public-cost-list">{content?.investigation_costs.length ? content.investigation_costs.map((item) => <article key={item.id}><div><strong>{localText(item.name, language)}</strong>{(language === 'bn' ? item.cost.note_bn : item.cost.note_en || item.cost.note_bn) && <small>{language === 'bn' ? item.cost.note_bn : item.cost.note_en || item.cost.note_bn}</small>}</div><b>৳{numberText(Number(item.cost.amount ?? 0), language)}</b></article>) : <p className="doctor-empty-copy">{t.noCost}</p>}<p className="doctor-cost-disclaimer">{t.costDisclaimer}</p></div>
+            </details>
           </section>
+
+          <section className="doctor-contact-map-v2">
+            <div className="doctor-section-title"><span><MapPin /></span><div><small>{language === 'bn' ? 'চেম্বারভিত্তিক' : 'By chamber'}</small><h2>{t.contact}</h2></div></div>
+            <button className="doctor-distance-button" type="button" onClick={() => void captureDistance()} disabled={distanceBusy}>{distanceBusy ? <LoaderCircle className="spin" /> : <Navigation />}{distanceBusy ? t.locating : t.showDistance}</button>
+            {distanceError && <p className="doctor-distance-error">{distanceError}</p>}
+            <div className="doctor-contact-chamber-list">{profile.chambers.map((chamber) => {
+              const status = todayStatus(chamber, language);
+              const distance = distanceFor(chamber.id);
+              const mapHref = chamber.map_url || (chamber.latitude != null && chamber.longitude != null
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${chamber.latitude},${chamber.longitude}`)}`
+                : null);
+              return <article key={chamber.id}><div><h3>{language === 'bn' ? chamber.name_bn : chamber.name_en || chamber.name_bn}</h3><p><MapPin /> {chamber.address || t.unavailable}</p><span className={status.open ? 'open' : 'closed'}>{status.text}</span>{distance != null && <strong><Navigation /> {t.distance} {numberText(distance, language, 1)} {language === 'bn' ? 'কিমি' : 'km'}</strong>}</div><div>{chamber.phone && <a href={`tel:${cleanPhone(chamber.phone)}`} onClick={() => track('call_click')}><Phone /> {t.call}</a>}{mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={() => track('map_click')}><ExternalLink /> {t.map}</a>}</div></article>;
+            })}</div>
+            {primaryChamber?.latitude != null && primaryChamber.longitude != null && <div className="doctor-map-frame"><iframe title={language === 'bn' ? 'চেম্বার ম্যাপ' : 'Chamber map'} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${primaryChamber.latitude},${primaryChamber.longitude}`)}&z=15&output=embed`} /></div>}
+          </section>
+
+          <StructuredReviewSection targetType="doctor" targetId={profile.doctor.id} entityLabel="ডাক্তার" language={language} />
         </>}
       </main>
-
       <VisitorBottomNav />
 
-      {profile && contactOpen && (
-        <div className="appointment-sheet-backdrop" role="presentation" onClick={() => setContactOpen(false)}>
-          <section className="appointment-sheet" role="dialog" aria-modal="true" aria-label="অ্যাপয়েন্টমেন্ট যোগাযোগ" onClick={(event) => event.stopPropagation()}>
-            <div className="appointment-sheet-handle" />
-            <div className="appointment-sheet-head">
-              <div><small>যোগাযোগের মাধ্যম বেছে নিন</small><h2>অ্যাপয়েন্টমেন্ট নিন</h2></div>
-              <button type="button" aria-label="বন্ধ করুন" onClick={() => setContactOpen(false)}><X /></button>
-            </div>
-            <div className="appointment-contact-grid">
-              {callPhone && <a href={`tel:${callPhone}`}><span><Phone /></span><strong>কল করুন</strong></a>}
-              {whatsapp && <a href={`https://wa.me/${whatsappNumber(whatsapp)}`} target="_blank" rel="noreferrer"><span><MessageCircle /></span><strong>WhatsApp</strong></a>}
-              {facebook && <a href={facebook} target="_blank" rel="noreferrer"><span><ExternalLink /></span><strong>Facebook Page</strong></a>}
-            </div>
-            {!hasContactOptions && canOnlineBook && (
-              <Link className="appointment-online-link" to={`/doctors/${profile.doctor.id}/book`}>অনলাইন অ্যাপয়েন্টমেন্ট ফর্ম খুলুন</Link>
-            )}
-            {!isVerified && <p className="profile-unverified-booking-note">Online appointment booking verification approved হওয়ার পর available হবে। সরাসরি contact option থাকলে সেটি ব্যবহার করতে পারেন।</p>}
-          </section>
-        </div>
-      )}
+      {profile && contactOpen && <div className="appointment-sheet-backdrop" role="presentation" onClick={() => setContactOpen(false)}><section className="appointment-sheet" role="dialog" aria-modal="true" aria-label="অ্যাপয়েন্টমেন্ট যোগাযোগ" onClick={(event) => event.stopPropagation()}><div className="appointment-sheet-handle" /><div className="appointment-sheet-head"><div><small>{language === 'bn' ? 'সরাসরি যোগাযোগ' : 'Direct contact'}</small><h2>{t.appointment}</h2></div><button type="button" aria-label="বন্ধ করুন" onClick={() => setContactOpen(false)}><X /></button></div><div className="appointment-contact-grid">{callPhone && <a href={`tel:${callPhone}`} onClick={() => track('call_click')}><span><Phone /></span><strong>{t.call}</strong></a>}{whatsapp && <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><span><MessageCircle /></span><strong>WhatsApp</strong></a>}</div>{!canOnlineBook && <p className="profile-unverified-booking-note">{language === 'bn' ? 'Online appointment verification/availability অনুযায়ী চালু হবে। আপাতত সরাসরি যোগাযোগ করুন।' : 'Online booking depends on verification and availability. Please use direct contact for now.'}</p>}</section></div>}
     </div>
   );
 }

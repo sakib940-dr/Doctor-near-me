@@ -6,6 +6,8 @@ export interface ProviderProfileInput {
   nameBn: string;
   nameEn: string | null;
   shortDescription: string | null;
+  aboutBn: string | null;
+  aboutEn: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
   phone: string | null;
@@ -58,7 +60,14 @@ export async function saveMyProviderProfile(input: ProviderProfileInput) {
     p_gallery_paths: input.galleryPaths,
   });
   if (error) throw error;
-  return data as { provider_id: string; verification_reset: boolean };
+  const result = data as { provider_id: string; verification_reset: boolean };
+  const { error: aboutError } = await requireSupabase().rpc('update_my_provider_about', {
+    p_provider_id: result.provider_id,
+    p_about_bn: input.aboutBn?.trim() || null,
+    p_about_en: input.aboutEn?.trim() || null,
+  });
+  if (aboutError) throw aboutError;
+  return result;
 }
 
 export async function uploadProviderMedia(file: File, userId: string, kind: 'logo' | 'banner' | 'gallery') {

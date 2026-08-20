@@ -6,6 +6,7 @@ export type ProviderGalleryImage = { id:number; provider_id:string; category_id:
 export type ProviderSliderImage = { id:number; provider_id:string; image:string|null; icon:string|null; caption:LocalizedText; is_active:boolean; sort_order:number; created_at:string };
 export type ProviderReview = { id:string; provider_id:string; name:string; rating:number; text:LocalizedText|null; comment:string|null; reply:LocalizedText|null; replied_at:string|null; is_published:boolean; sort_order:number; created_at:string; review_source?:'provider'|'patient'; q1_score?:number|null; q2_score?:number|null; q3_score?:number|null; q4_score?:number|null; q5_score?:number|null; structured_rating?:number|null; edited_at?:string|null };
 export type ProviderCost = { id:number; provider_id:string; name:LocalizedText; cost:LocalizedText; sort_order:number; created_at:string; updated_at:string };
+export type ProviderOpeningHour = { id:number; provider_id:string; day_of_week:number; open_time:string|null; close_time:string|null; is_closed:boolean; is_24_hours:boolean; note:LocalizedText; created_at:string; updated_at:string };
 
 type Table = 'provider_services'|'provider_gallery_images'|'provider_slider_images'|'provider_reviews'|'provider_treatment_costs'|'provider_investigation_costs';
 
@@ -28,10 +29,55 @@ function costs(table:'provider_treatment_costs'|'provider_investigation_costs'){
 export const providerTreatmentCosts=costs('provider_treatment_costs');
 export const providerInvestigationCosts=costs('provider_investigation_costs');
 
-export async function uploadProviderWebsiteImage(providerId:string,file:File,kind:'service'|'gallery'|'slider'){
+function ensureProviderImage(file:File){
   if(!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)) throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
   if(file.size>6*1024*1024) throw new Error('ছবির আকার সর্বোচ্চ ৬ MB হতে পারবে।');
+}
+
+async function optimizeSliderImage(file:File){
+  ensureProviderImage(file);
+  if(typeof document==='undefined'||typeof createImageBitmap!=='function') return file;
+  try{
+    const bitmap=await createImageBitmap(file); const maxEdge=1920; const scale=Math.min(1,maxEdge/Math.max(bitmap.width,bitmap.height));
+    const width=Math.max(1,Math.round(bitmap.width*scale)),height=Math.max(1,Math.round(bitmap.height*scale));
+    const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height; const context=canvas.getContext('2d');
+    if(!context){bitmap.close();return file;} context.drawImage(bitmap,0,0,width,height); bitmap.close();
+    const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,'image/webp',0.84));
+    if(!blob||blob.size>=file.size)return file; const basename=file.name.replace(/\.[^.]+$/,'')||'provider-slider';
+    return new File([blob],`${basename}.webp`,{type:'image/webp',lastModified:file.lastModified});
+  }catch{return file;}
+}
+
+export async function uploadProviderWebsiteImage(providerId:string,file:File,kind:'service'|'gallery'|'slider'){
+  ensureProviderImage(file);
+  const prepared=kind==='slider'?await optimizeSliderImage(file):file;
   const {data:{user}}=await requireSupabase().auth.getUser(); if(!user) throw new Error('Authentication required');
-  const ext=file.name.split('.').pop()?.toLowerCase()||'jpg'; const path=`${user.id}/${providerId}/website/${kind}/${Date.now()}-${crypto.randomUUID().slice(0,8)}.${ext}`;
-  const {error}=await requireSupabase().storage.from('public-images').upload(path,file,{cacheControl:'3600',upsert:false}); if(error) throw error; return path;
+  const ext=prepared.name.split('.').pop()?.toLowerCase()||'jpg'; const path=`${user.id}/${providerId}/website/${kind}/${Date.now()}-${crypto.randomUUID().slice(0,8)}.${ext}`;
+  const {error}=await requireSupabase().storage.from('public-images').upload(path,prepared,{cacheControl:'86400',contentType:prepared.type,upsert:false}); if(error) throw error; return path;
+}
+
+export async function removeOwnedProviderWebsiteImage(path:string|null|undefined){
+  if(!path||/^https?:\/\//i.test(path))return; const client=requireSupabase(); const {data:{user}}=await client.auth.getUser();
+  if(!user||!path.startsWith(`${user.id}/`))return; await client.storage.from('public-images').remove([path]);
+}
+
+export async function replaceProviderSliderImage(providerId:string,row:ProviderSliderImage,file:File){
+  const next=await uploadProviderWebsiteImage(providerId,file,'slider');
+  try{const updated=await providerSlider.update(providerId,row.id,{image:next});await removeOwnedProviderWebsiteImage(row.image);return updated;}
+  catch(error){await removeOwnedProviderWebsiteImage(next);throw error;}
+}
+
+export async function deleteProviderSliderImage(providerId:string,row:ProviderSliderImage){
+  await providerSlider.remove(providerId,row.id); await removeOwnedProviderWebsiteImage(row.image);
+}
+
+export async function getProviderOpeningHours(providerId:string){
+  const {data,error}=await requireSupabase().from('provider_opening_hours').select('*').eq('provider_id',providerId).order('day_of_week');
+  if(error)throw error; return (data??[]) as ProviderOpeningHour[];
+}
+
+export async function saveProviderOpeningHour(providerId:string,input:Omit<ProviderOpeningHour,'id'|'provider_id'|'created_at'|'updated_at'>){
+  const payload={provider_id:providerId,...input};
+  const {data,error}=await requireSupabase().from('provider_opening_hours').upsert(payload,{onConflict:'provider_id,day_of_week'}).select('*').single();
+  if(error)throw error; return data as ProviderOpeningHour;
 }

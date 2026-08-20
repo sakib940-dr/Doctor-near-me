@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
-  Activity,
+  Activity, BarChart3,
   Ambulance,
   Building2,
   CalendarDays,
@@ -137,11 +137,13 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       case 'doctor':
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
           { label: 'Appointments', path: '/doctor/appointments', icon: CalendarDays },
           { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
           { label: 'Chamber Details', path: '/doctor/chambers', icon: Building2 },
           { label: 'Schedule', path: '/doctor/schedules', icon: Clock },
           { label: 'Visiting Card', path: '/doctor/visiting-card', icon: UserCircle },
+          { label: 'Public Profile Content', path: '/doctor/public-profile', icon: Stethoscope },
           { label: 'Verification', path: '/doctor/verification', icon: ShieldCheck },
           { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
           { label: 'Providers / Invitations', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
@@ -182,6 +184,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       case 'hospital':
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
           { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
           { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
           { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },
@@ -191,6 +194,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       case 'chamber':
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
           { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
           { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
           { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },

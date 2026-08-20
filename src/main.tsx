@@ -6,7 +6,9 @@ import { VisitorLanguageProvider } from './contexts/VisitorLanguageContext';
 import App from './App';
 import './styles.css';
 import { registerPwaServiceWorker } from './lib/pwa';
+import { installGlobalImageUploadGuard } from './lib/imageOptimization';
 
+installGlobalImageUploadGuard();
 registerPwaServiceWorker();
 
 createRoot(document.getElementById('root')!).render(

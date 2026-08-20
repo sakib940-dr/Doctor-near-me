@@ -182,7 +182,7 @@ export default function DoctorVerificationPage() {
                     {Object.entries(doctorDocuments).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
                   </select>
                   <label><FilePlus2 /> {file?.name || 'ফাইল নির্বাচন'}<input type="file" required accept="image/jpeg,image/png,image/webp,image/avif,application/pdf" onChange={(event: ChangeEvent<HTMLInputElement>) => setFile(event.target.files?.[0] || null)} /></label>
-                  <small className="image-upload-hint">ছবি হলে প্রস্তাবিত সর্বোচ্চ 2200×2200 px • স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে • PDF অপরিবর্তিত</small>
+                  <small className="image-upload-hint">ছবি হলে প্রস্তাবিত সর্বোচ্চ 2200×2200 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে • PDF অপরিবর্তিত</small>
                   <button disabled={!file || working === 'upload'}>{working === 'upload' ? <LoaderCircle className="spin" /> : 'Upload'}</button>
                 </form>
               ) : <p className="evidence-locked">Approved অবস্থায় existing evidence locked থাকে। Verified identity information বদলালে review আবার pending হবে।</p>}

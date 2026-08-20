@@ -15,7 +15,8 @@ const providerWeb = read('src/services/providerWebsiteContent.ts');
 const admin = read('src/services/adminCms.ts');
 const css = read('src/styles.css');
 
-assert(optimizer.includes("MAX_SOURCE_IMAGE_BYTES = 12 * MB"), '5–6 MB source images are not accepted safely');
+assert(optimizer.includes("MAX_SOURCE_IMAGE_BYTES = 3 * MB"), 'Global 3 MB source image limit missing');
+assert(optimizer.includes("ছবির সর্বোচ্চ সাইজ 3 MB"), 'Exact 3 MB Bengali error missing');
 for (const preset of ['profile','logo','slider','banner','category','gallery','service','verification']) {
   assert(optimizer.includes(`${preset}: {`), `Missing ${preset} image preset`);
 }

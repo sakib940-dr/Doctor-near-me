@@ -1,7 +1,7 @@
 {
   "name": "docbd-info",
   "private": true,
-  "version": "0.31.1",
+  "version": "0.31.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,8 @@
     "admin:top-doctors:validate": "node scripts/validate-admin-top-doctors.mjs",
     "admin:hospitals:validate": "node scripts/validate-admin-hospital-engagement.mjs",
     "admin:action-center:validate": "node scripts/validate-admin-action-center-premium.mjs",
-    "admin:final:validate": "node scripts/validate-admin-final-polish.mjs"
+    "admin:final:validate": "node scripts/validate-admin-final-polish.mjs",
+    "images:global:validate": "node scripts/validate-global-image-upload-policy.mjs && node --experimental-strip-types scripts/test-image-size-gate.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

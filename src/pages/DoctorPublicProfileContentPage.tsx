@@ -208,9 +208,9 @@ function SliderManager({ rows, reload, setError, setNotice }: EditorCommon & { r
   return (
     <section className="doctor-content-editor-card">
       <header><div><small>{rows.length}/4 images</small><h2>Profile Image Slider</h2></div><ImagePlus /></header>
-      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • ছবি স্বয়ংক্রিয়ভাবে WebP-তে অপটিমাইজ হবে। 5–6 MB source image-ও গ্রহণ করা যাবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
+      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 3 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
       <form className="doctor-content-compact-form" onSubmit={submit}>
-        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
         <input value={captionBn} onChange={(event) => setCaptionBn(event.target.value)} placeholder="বাংলা caption (optional)" />
         <input value={captionEn} onChange={(event) => setCaptionEn(event.target.value)} placeholder="English caption (optional)" />
         <label className="doctor-content-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Public-এ দেখান</label>

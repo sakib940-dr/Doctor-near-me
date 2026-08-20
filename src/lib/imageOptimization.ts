@@ -22,7 +22,9 @@ interface PresetConfig {
 }
 
 const MB = 1024 * 1024;
-export const MAX_SOURCE_IMAGE_BYTES = 12 * MB;
+export const MAX_SOURCE_IMAGE_BYTES = 3 * MB;
+export const IMAGE_MAX_SIZE_ERROR = 'ছবির সর্বোচ্চ সাইজ 3 MB';
+export const IMAGE_UPLOAD_LIMIT_HINT = 'সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে';
 
 export const IMAGE_PRESETS: Record<ImageOptimizationPreset, PresetConfig> = {
   profile: {
@@ -88,8 +90,51 @@ export function assertOptimizableImage(file: File) {
     throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
   }
   if (file.size > MAX_SOURCE_IMAGE_BYTES) {
-    throw new Error('ছবির আকার সর্বোচ্চ ১২ MB হতে পারবে।');
+    throw new Error(IMAGE_MAX_SIZE_ERROR);
   }
+}
+
+export function validateSelectedImage(file: File | null) {
+  if (!file) return null;
+  assertOptimizableImage(file);
+  return file;
+}
+
+export function validateSelectedImages(files: File[]) {
+  files.forEach(assertOptimizableImage);
+  return files;
+}
+
+export function guardImageFileInput(input: HTMLInputElement) {
+  const imageFiles = Array.from(input.files ?? []).filter((file) => file.type.startsWith('image/'));
+  try {
+    validateSelectedImages(imageFiles);
+    return true;
+  } catch (error) {
+    input.value = '';
+    const message = error instanceof Error ? error.message : IMAGE_MAX_SIZE_ERROR;
+    input.setCustomValidity(message);
+    input.reportValidity();
+    input.setCustomValidity('');
+    return false;
+  }
+}
+
+export function imageUploadHint(recommended: string) {
+  return `প্রস্তাবিত সাইজ: ${recommended} px • ${IMAGE_UPLOAD_LIMIT_HINT}`;
+}
+
+let globalImageGuardInstalled = false;
+
+export function installGlobalImageUploadGuard() {
+  if (globalImageGuardInstalled || typeof document === 'undefined') return;
+  globalImageGuardInstalled = true;
+  document.addEventListener('change', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.type !== 'file' || !target.files?.length) return;
+    const hasImage = Array.from(target.files).some((file) => file.type.startsWith('image/'));
+    if (hasImage) guardImageFileInput(target);
+  }, true);
 }
 
 function baseName(name: string) {
@@ -215,7 +260,7 @@ async function encodeWebpWithinTarget(
 async function optimizeWithConfig(file: File, config: PresetConfig | NonNullable<PresetConfig['thumbnail']>): Promise<OptimizedImageResult> {
   assertOptimizableImage(file);
   if (typeof document === 'undefined') {
-    return { file, originalBytes: file.size, optimizedBytes: file.size, width: 0, height: 0, changed: false };
+    throw new Error('এই environment-এ image optimization support নেই।');
   }
   const decoded = await decodeImage(file);
   try {
@@ -224,7 +269,7 @@ async function optimizeWithConfig(file: File, config: PresetConfig | NonNullable
     const canvas = drawToCanvas(decoded.source, decoded.width, decoded.height, config.width, config.height, config.fit);
     const blob = await encodeWebpWithinTarget(canvas, config.targetBytes, config.softMaxBytes, startQuality, minQuality);
     if (!blob) {
-      return { file, originalBytes: file.size, optimizedBytes: file.size, width: decoded.width, height: decoded.height, changed: false };
+      throw new Error('এই browser-এ image optimization সম্পন্ন করা যায়নি। অন্য JPG/PNG/WebP ছবি চেষ্টা করুন।');
     }
     const optimized = new File([blob], `${baseName(file.name)}.webp`, { type: 'image/webp', lastModified: file.lastModified });
     return {

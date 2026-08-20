@@ -170,7 +170,7 @@ export async function searchDoctors(input: {
       p_max_fee: input.maxFee ?? null,
       p_available_today: input.availableToday ?? false,
       p_sort: input.sort ?? 'name',
-      p_limit: input.limit ?? 20,
+      p_limit: Math.min(Math.max(input.limit ?? 20, 1), 20),
       p_offset: input.offset ?? 0,
     },
   );

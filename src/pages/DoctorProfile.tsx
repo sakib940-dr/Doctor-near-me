@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
@@ -27,6 +28,7 @@ import { makePageTitle } from '../lib/brand';
 import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
 import { getDoctorPublicProfile } from '../services/discovery';
 import {
   getDoctorPublicStats,
@@ -44,18 +46,11 @@ import type {
   PublicRankingTier,
 } from '../types';
 
-type Language = 'bn' | 'en';
-
 const daysBn = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
 const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const cleanTime = (time: string) => time.slice(0, 5);
 const cleanPhone = (value: string) => value.replace(/[^0-9+]/g, '');
-const whatsappNumber = (value: string) => {
-  let digits = value.replace(/\D/g, '');
-  if (digits.startsWith('0')) digits = `88${digits}`;
-  return digits;
-};
-const numberText = (value: number, language: Language, digits = 0) => value.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+const numberText = (value: number, language: VisitorLanguage, digits = 0) => value.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 
 const copy = {
   bn: {
@@ -88,12 +83,12 @@ const copy = {
   },
 } as const;
 
-function localText(value: { bn?: string | null; en?: string | null } | null | undefined, language: Language) {
+function localText(value: { bn?: string | null; en?: string | null } | null | undefined, language: VisitorLanguage) {
   if (!value) return '';
   return (language === 'bn' ? value.bn || value.en : value.en || value.bn) || '';
 }
 
-function rankLabel(tier: PublicRankingTier | undefined, language: Language, verified: boolean) {
+function rankLabel(tier: PublicRankingTier | undefined, language: VisitorLanguage, verified: boolean) {
   const t = copy[language];
   if (tier === 'premium') return t.premium;
   if (tier === 'verified' || verified) return t.verified;
@@ -101,7 +96,7 @@ function rankLabel(tier: PublicRankingTier | undefined, language: Language, veri
   return t.unverified;
 }
 
-function todayStatus(chamber: DoctorPublicProfile['chambers'][number], language: Language) {
+function todayStatus(chamber: DoctorPublicProfile['chambers'][number], language: VisitorLanguage) {
   const now = new Date();
   const weekday = now.getDay();
   const minutes = now.getHours() * 60 + now.getMinutes();
@@ -126,7 +121,7 @@ export default function DoctorProfile() {
   const [error, setError] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [profileStats, setProfileStats] = useState<PublicProfileStats | null>(null);
-  const [language, setLanguage] = useState<Language>('bn');
+  const { language } = useVisitorLanguage();
   const [activeSlide, setActiveSlide] = useState(0);
   const [distances, setDistances] = useState<DoctorChamberDistance[]>([]);
   const [distanceBusy, setDistanceBusy] = useState(false);
@@ -185,7 +180,7 @@ export default function DoctorProfile() {
   const primaryPhone = primaryChamber?.phone || null;
   const primaryWhatsapp = primaryChamber?.whatsapp || primaryPhone;
   const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
-  const whatsapp = primaryWhatsapp ? whatsappNumber(primaryWhatsapp) : null;
+  const whatsappUrl = primaryWhatsapp ? buildWhatsAppAppointmentUrl(primaryWhatsapp, profile?.doctor.name) : null;
   const isVerified = profile?.doctor.verification_status === 'approved';
   const canOnlineBook = Boolean(isVerified && profile?.doctor.accepting_appointments);
   const rank = rankLabel(profileStats?.ranking_tier, language, isVerified);
@@ -259,7 +254,6 @@ export default function DoctorProfile() {
       <main className="doctor-public-v2 container">
         <div className="doctor-public-topline">
           <Link className="doctor-public-back" to="/doctors"><ArrowLeft /> {t.back}</Link>
-          <div className="doctor-language-switch" role="group" aria-label="Language"><button type="button" className={language === 'bn' ? 'active' : ''} onClick={() => setLanguage('bn')}>বাংলা</button><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button></div>
         </div>
         {!isSupabaseConfigured && <div className="directory-notice">লাইভ প্রোফাইল দেখতে Supabase environment variables প্রয়োজন।</div>}
         {loading && <div className="loading-box"><LoaderCircle className="spin" /> প্রোফাইল লোড হচ্ছে…</div>}
@@ -285,7 +279,7 @@ export default function DoctorProfile() {
 
           <section className="doctor-primary-actions-v2">
             {callPhone ? <a href={`tel:${callPhone}`} onClick={() => track('call_click')}><Phone /><span>{t.call}</span></a> : <button disabled><Phone /><span>{t.call}</span></button>}
-            {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /><span>{t.whatsapp}</span></a> : <button disabled><MessageCircle /><span>{t.whatsapp}</span></button>}
+            {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /><span>{t.whatsapp}</span></a> : <button disabled><MessageCircle /><span>{t.whatsapp}</span></button>}
             {canOnlineBook ? <Link to={`/doctors/${profile.doctor.id}/book`} onClick={() => track('appointment_click')}><CalendarDays /><span>{t.appointment}</span></Link> : <button type="button" disabled={!callPhone} onClick={() => { track('appointment_click'); setContactOpen(true); }}><CalendarDays /><span>{t.appointment}</span></button>}
             <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} className="doctor-profile-follow-action" language={language} />
           </section>
@@ -344,7 +338,7 @@ export default function DoctorProfile() {
       </main>
       <VisitorBottomNav />
 
-      {profile && contactOpen && <div className="appointment-sheet-backdrop" role="presentation" onClick={() => setContactOpen(false)}><section className="appointment-sheet" role="dialog" aria-modal="true" aria-label="অ্যাপয়েন্টমেন্ট যোগাযোগ" onClick={(event) => event.stopPropagation()}><div className="appointment-sheet-handle" /><div className="appointment-sheet-head"><div><small>{language === 'bn' ? 'সরাসরি যোগাযোগ' : 'Direct contact'}</small><h2>{t.appointment}</h2></div><button type="button" aria-label="বন্ধ করুন" onClick={() => setContactOpen(false)}><X /></button></div><div className="appointment-contact-grid">{callPhone && <a href={`tel:${callPhone}`} onClick={() => track('call_click')}><span><Phone /></span><strong>{t.call}</strong></a>}{whatsapp && <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><span><MessageCircle /></span><strong>WhatsApp</strong></a>}</div>{!canOnlineBook && <p className="profile-unverified-booking-note">{language === 'bn' ? 'Online appointment verification/availability অনুযায়ী চালু হবে। আপাতত সরাসরি যোগাযোগ করুন।' : 'Online booking depends on verification and availability. Please use direct contact for now.'}</p>}</section></div>}
+      {profile && contactOpen && <div className="appointment-sheet-backdrop" role="presentation" onClick={() => setContactOpen(false)}><section className="appointment-sheet" role="dialog" aria-modal="true" aria-label="অ্যাপয়েন্টমেন্ট যোগাযোগ" onClick={(event) => event.stopPropagation()}><div className="appointment-sheet-handle" /><div className="appointment-sheet-head"><div><small>{language === 'bn' ? 'সরাসরি যোগাযোগ' : 'Direct contact'}</small><h2>{t.appointment}</h2></div><button type="button" aria-label="বন্ধ করুন" onClick={() => setContactOpen(false)}><X /></button></div><div className="appointment-contact-grid">{callPhone && <a href={`tel:${callPhone}`} onClick={() => track('call_click')}><span><Phone /></span><strong>{t.call}</strong></a>}{whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><span><MessageCircle /></span><strong>WhatsApp</strong></a>}</div>{!canOnlineBook && <p className="profile-unverified-booking-note">{language === 'bn' ? 'Online appointment verification/availability অনুযায়ী চালু হবে। আপাতত সরাসরি যোগাযোগ করুন।' : 'Online booking depends on verification and availability. Please use direct contact for now.'}</p>}</section></div>}
     </div>
   );
 }

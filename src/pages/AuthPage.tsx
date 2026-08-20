@@ -1,5 +1,5 @@
-import { FormEvent, useState } from 'react';
-import { ArrowRight, Building2, HeartPulse, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
+import { FormEvent, useMemo, useState } from 'react';
+import { ArrowRight, Building2, HeartPulse, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, Sparkles, Stethoscope, UserRound } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,11 +8,18 @@ import { isSupabaseConfigured, requireSupabase } from '../lib/supabase';
 import type { PublicRegistrationRole } from '../types';
 
 const roles: Array<{ value: PublicRegistrationRole; title: string; detail: string; icon: typeof UserRound }> = [
-  { value: 'patient', title: 'রোগী / সাধারণ ব্যবহারকারী', detail: 'ডাক্তার খুঁজুন ও অ্যাপয়েন্টমেন্ট রাখুন', icon: UserRound },
-  { value: 'doctor', title: 'ডাক্তার', detail: 'প্রোফাইল, চেম্বার ও verification পরিচালনা করুন', icon: Stethoscope },
-  { value: 'hospital', title: 'হাসপাতাল / ক্লিনিক', detail: 'প্রতিষ্ঠান ও ডাক্তার তালিকা পরিচালনা করুন', icon: Building2 },
-  { value: 'ambulance', title: 'অ্যাম্বুলেন্স সেবা', detail: 'সেবা নিবন্ধন ও availability দিন', icon: HeartPulse },
+  { value: 'patient', title: 'রোগী / সাধারণ ব্যবহারকারী', detail: 'ডাক্তার খুঁজুন, সংরক্ষণ ও অ্যাপয়েন্টমেন্ট নিন', icon: UserRound },
+  { value: 'doctor', title: 'ডাক্তার', detail: 'Public profile, chamber, schedule ও appointment পরিচালনা করুন', icon: Stethoscope },
+  { value: 'hospital', title: 'হাসপাতাল / ক্লিনিক', detail: 'প্রতিষ্ঠান, সেবা ও linked Doctor profile পরিচালনা করুন', icon: Building2 },
+  { value: 'ambulance', title: 'অ্যাম্বুলেন্স সেবা', detail: 'সেবা ও availability তথ্য প্রকাশ করুন', icon: HeartPulse },
 ];
+
+const roleHighlights: Record<PublicRegistrationRole, { title: string; text: string }> = {
+  patient: { title: 'Patient account', text: 'পছন্দের ডাক্তার/হাসপাতাল সংরক্ষণ করুন, structured rating দিন এবং appointment history এক জায়গায় রাখুন।' },
+  doctor: { title: 'Doctor account', text: 'Professional profile, chamber schedule, public content, appointment এবং analytics পরিচালনা করুন।' },
+  hospital: { title: 'Hospital account', text: 'Hospital profile, services, opening hours, linked Doctors এবং visitor analytics পরিচালনা করুন।' },
+  ambulance: { title: 'Ambulance account', text: 'আপনার ambulance service-এর availability ও প্রয়োজনীয় যোগাযোগ তথ্য প্রকাশ করুন।' },
+};
 
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
 
@@ -32,6 +39,8 @@ export default function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const selectedRole = useMemo(() => roles.find((item) => item.value === role) || roles[0], [role]);
+  const SelectedRoleIcon = selectedRole.icon;
 
   if (!sessionLoading && user && !submitting) return <Navigate to="/dashboard" replace />;
 
@@ -46,7 +55,7 @@ export default function AuthPage() {
     setError(null);
     setNotice(null);
     if (!isSupabaseConfigured) {
-      setError('লাইভ authentication-এর জন্য Supabase environment variables যোগ করুন।');
+      setError('Authentication service configuration পাওয়া যায়নি।');
       return;
     }
     if (mode === 'register' && password !== confirmPassword) {
@@ -85,12 +94,12 @@ export default function AuthPage() {
         });
         if (signupError) throw signupError;
         if (data.session) navigate('/onboarding', { replace: true });
-        else setNotice('Registration request নেওয়া হয়েছে। Email confirmation চালু থাকলে confirmation link থেকে account verify করে login করুন। Phone Number account-এর সাথে সংরক্ষিত আছে। Phone/SMS verification provider পরে চালু করা যাবে; এখন onboarding verification ছাড়াই সম্পূর্ণ করা যাবে।');
+        else setNotice('Registration সম্পন্ন হয়েছে। প্রয়োজন হলে আপনার Email confirmation link ব্যবহার করে তারপর Login করুন।');
       }
     } catch (submitError) {
       const message = messageFrom(submitError);
       setError(/duplicate|already|registered|phone.*use|user_already_exists/i.test(message)
-        ? 'এই email/phone দিয়ে নতুন account তৈরি করা যাচ্ছে না। আগে Login চেষ্টা করুন অথবা অন্য verified contact ব্যবহার করুন।'
+        ? 'এই email/phone দিয়ে নতুন account তৈরি করা যাচ্ছে না। আগে Login চেষ্টা করুন অথবা অন্য contact ব্যবহার করুন।'
         : message);
     } finally {
       setSubmitting(false);
@@ -99,7 +108,7 @@ export default function AuthPage() {
 
   async function sendReset() {
     setError(null); setNotice(null);
-    if (!isSupabaseConfigured) { setError('Supabase configuration প্রয়োজন।'); return; }
+    if (!isSupabaseConfigured) { setError('Authentication service configuration পাওয়া যায়নি।'); return; }
     const resetEmail = identifier.trim();
     if (!isEmailIdentifier(resetEmail)) { setError('Password reset-এর জন্য account-এর Email Address লিখুন।'); return; }
     setSubmitting(true);
@@ -109,17 +118,26 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="app-shell auth-page">
+    <div className="app-shell auth-page auth-page-premium">
       <PublicHeader />
-      <main className="auth-main container">
-        <section className="auth-benefits">
-          <span className="auth-kicker"><ShieldCheck size={17} /> নিরাপদ স্বাস্থ্যসেবা অ্যাকাউন্ট</span>
-          <h1>{mode === 'login' ? 'আবার স্বাগতম' : 'আপনার অ্যাকাউন্ট তৈরি করুন'}</h1>
-          <p>{mode === 'login' ? 'Email দিয়ে login করুন; Supabase Phone provider/linking চালু হলে একই account-এ Phone Number দিয়েও login করা যাবে।' : 'Registration-এর জন্য Email Address এবং Phone Number দুটোই required। Phone verification এখন onboarding block করবে না।'}</p>
-          <ul><li>Password শুধু Supabase Auth পরিচালনা করে</li><li>Role অনুযায়ী guided onboarding</li><li>Existing verification ও RLS policy অক্ষত</li></ul>
+      <main className="auth-main container auth-main-premium">
+        <section className="auth-benefits auth-benefits-premium">
+          <span className="auth-kicker"><Sparkles size={17} /> docbd.info account</span>
+          <h1>{mode === 'login' ? 'স্বাস্থ্যসেবা, এক জায়গায়' : 'আপনার সঠিক account দিয়ে শুরু করুন'}</h1>
+          <p>{mode === 'login' ? 'নিজের dashboard-এ ফিরে গিয়ে appointment, saved profile এবং professional tools পরিচালনা করুন।' : 'Patient, Doctor বা Hospital—যে role আপনার জন্য প্রযোজ্য সেটি বেছে নিয়ে কয়েক ধাপে profile প্রস্তুত করুন।'}</p>
+          <div className="auth-premium-points">
+            <span><ShieldCheck /> এক account, role-based experience</span>
+            <span><Stethoscope /> Doctor ও Hospital discovery</span>
+            <span><HeartPulse /> Saved, review ও appointment tools</span>
+          </div>
           <Link to="/doctors">অ্যাকাউন্ট ছাড়াই ডাক্তার খুঁজুন <ArrowRight size={17} /></Link>
         </section>
-        <section className="auth-card">
+
+        <section className="auth-card auth-card-premium">
+          <div className="auth-card-heading">
+            <small>{mode === 'login' ? 'Welcome back' : 'Create account'}</small>
+            <h2>{mode === 'login' ? 'আপনার account-এ লগইন করুন' : 'নতুন account তৈরি করুন'}</h2>
+          </div>
           <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} type="button" onClick={() => switchMode('login')}>লগইন</button><button className={mode === 'register' ? 'active' : ''} type="button" onClick={() => switchMode('register')}>রেজিস্ট্রেশন</button></div>
           <form onSubmit={submit}>
             {mode === 'register' && <>
@@ -127,7 +145,7 @@ export default function AuthPage() {
               <fieldset className="role-picker"><legend>অ্যাকাউন্টের ধরন</legend>{roles.map((item) => { const Icon = item.icon; return <label className={role === item.value ? 'selected' : ''} key={item.value}><input type="radio" name="role" value={item.value} checked={role === item.value} onChange={() => setRole(item.value)} /><Icon /><span><strong>{item.title}</strong><small>{item.detail}</small></span></label>; })}</fieldset>
               <label className="auth-field"><span>ইমেইল Address</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" /></div></label>
               <label className="auth-field"><span>Phone Number</span><div><Phone /><input required inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="01XXXXXXXXX" /></div></label>
-              <p className="auth-helper-note">Phone Number required এবং registration-এর সময় account profile-এ save হবে। SMS/Phone provider পরে configure করলে phone verification/linking চালু করা যাবে; onboarding-এ এখন কোনো Phone OTP নেই।</p>
+              <p className="auth-helper-note">Email ও Phone Number দুটোই সঠিকভাবে দিন, যাতে account information নির্ভুল থাকে।</p>
             </>}
             {mode === 'login' && <label className="auth-field"><span>Email অথবা Phone Number</span><div>{isEmailIdentifier(identifier) || !identifier ? <Mail /> : <Phone />}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="name@example.com অথবা 01XXXXXXXXX" /></div></label>}
             <label className="auth-field"><span>পাসওয়ার্ড</span><div><LockKeyhole /><input required minLength={8} type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="কমপক্ষে ৮ অক্ষর" /></div></label>
@@ -138,6 +156,8 @@ export default function AuthPage() {
             <button className="auth-submit" type="submit" disabled={submitting}>{submitting ? <LoaderCircle className="spin" /> : mode === 'login' ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'}</button>
             <p className="auth-terms">রেজিস্ট্রেশন করে আপনি প্ল্যাটফর্মের Terms ও Privacy Policy মেনে নিচ্ছেন।</p>
           </form>
+
+          {mode === 'register' ? <div className="auth-role-highlight"><SelectedRoleIcon /><div><strong>{roleHighlights[role].title}</strong><p>{roleHighlights[role].text}</p></div></div> : <div className="auth-login-role-strip"><span><UserRound /> Patient: Saved + Appointment</span><span><Stethoscope /> Doctor: Profile + Analytics</span><span><Building2 /> Hospital: Services + Doctors</span></div>}
         </section>
       </main>
     </div>

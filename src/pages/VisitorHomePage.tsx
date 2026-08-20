@@ -165,6 +165,20 @@ export default function VisitorHomePage() {
   const secondaryGateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!pickerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPickerOpen(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [pickerOpen]);
+
+  useEffect(() => {
     let hasSavedLocation = false;
     try {
       const raw = localStorage.getItem(LOCATION_STORAGE_KEY) || localStorage.getItem(LEGACY_LOCATION_STORAGE_KEY);
@@ -492,9 +506,9 @@ export default function VisitorHomePage() {
 
         {pickerOpen && (
           <div className="visitor-picker-backdrop" role="presentation" onClick={() => setPickerOpen(null)}>
-            <section className="visitor-picker-sheet" role="dialog" aria-modal="true" aria-label={pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'} onClick={(event) => event.stopPropagation()}>
+            <section className="visitor-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="visitor-area-picker-title" onClick={(event) => event.stopPropagation()}>
               <div className="visitor-picker-handle" />
-              <div className="visitor-picker-head"><div><span>এলাকা বেছে নিন</span><h2>{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'}</h2></div><button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button></div>
+              <div className="visitor-picker-head"><div><span>এলাকা বেছে নিন</span><h2 id="visitor-area-picker-title">{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'}</h2></div><button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button></div>
               <div className="visitor-picker-list">
                 <button className={((!districtId && pickerOpen === 'district') || (!upazilaId && pickerOpen === 'upazila')) ? 'active visitor-picker-clear' : 'visitor-picker-clear'} type="button" onClick={() => { if (pickerOpen === 'district') selectDistrict(''); else selectUpazila(''); setPickerOpen(null); }}><span>{pickerOpen === 'district' ? 'সারা বাংলাদেশ / সকল জেলা' : 'সকল উপজেলা'}</span>{((pickerOpen === 'district' && !districtId) || (pickerOpen === 'upazila' && !upazilaId)) && <BadgeCheck />}</button>
                 {(pickerOpen === 'district' ? districts : upazilas).map((item) => {

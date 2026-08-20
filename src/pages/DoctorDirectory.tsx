@@ -33,13 +33,24 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [degreeOptions, setDegreeOptions] = useState<DegreeMasterItem[]>([]);
   const [rows, setRows] = useState<DoctorSearchRow[]>([]);
   const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(params.get('advanced') === '1');
 
   const page = Math.max(1, numberParam(params.get('page')) ?? 1);
   const total = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasSearchCriteria = Boolean(
+    (params.get('q') ?? '').trim()
+      || params.get('district')
+      || params.get('upazila')
+      || params.get('specialties')
+      || params.get('degrees')
+      || params.get('classification')
+      || params.get('minFee')
+      || params.get('maxFee')
+      || params.get('today') === '1'
+  );
 
   useEffect(() => {
     document.title = makePageTitle('ডাক্তার খুঁজুন');
@@ -89,6 +100,13 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    if (!hasSearchCriteria) {
+      setRows([]);
+      setStats({});
+      setLoading(false);
+      setError(null);
+      return;
+    }
     const classification = params.get('classification');
     if (classification && !degreeOptions.length) return;
     const explicitDegrees = listParam(params.get('degrees'));
@@ -117,7 +135,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       .catch((searchError: unknown) => { if (active) setError(messageFrom(searchError)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [params, page, degreeOptions]);
+  }, [params, page, degreeOptions, hasSearchCriteria]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !rows.length) { setStats({}); return; }
@@ -203,8 +221,8 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
             <div className="directory-toolbar"><div><strong>{loading ? 'ডাক্তার খোঁজা হচ্ছে…' : `${total} জন ডাক্তার পাওয়া গেছে`}</strong><small>সক্রিয় ও প্রকাশযোগ্য প্রোফাইল</small></div><select aria-label="ফলাফল সাজান" value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">নাম অনুযায়ী</option><option value="newest">নতুন আগে</option><option value="fee_low">কম ফি আগে</option><option value="fee_high">বেশি ফি আগে</option></select></div>
             {!isSupabaseConfigured && <div className="directory-notice">লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার UI preview করা যাচ্ছে।</div>}
             {error && <div className="error-box" role="alert">{error}</div>}
-            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
-            {!loading && totalPages > 1 && <nav className="pagination" aria-label="ফলাফলের পৃষ্ঠা"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>পৃষ্ঠা {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
+            {!hasSearchCriteria ? <div className="directory-search-prompt"><Search /><h3>অনুসন্ধান শুরু করুন</h3><p>ডাক্তারের নাম লিখুন অথবা Degree, Specialty, জেলা/উপজেলা থেকে অন্তত একটি ফিল্টার নির্বাচন করুন। কোনো search না করা পর্যন্ত profile data load হবে না।</p></div> : loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
+            {!loading && hasSearchCriteria && totalPages > 1 && <nav className="pagination" aria-label="ফলাফলের পৃষ্ঠা"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>পৃষ্ঠা {page} / {totalPages} · প্রতি পৃষ্ঠায় {PAGE_SIZE} জন</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
           </div>
         </section>
       </main>

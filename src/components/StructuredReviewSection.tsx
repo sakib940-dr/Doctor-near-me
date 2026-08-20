@@ -80,7 +80,6 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
   const [reviews, setReviews] = useState<StructuredReview[]>([]);
   const [myReview, setMyReview] = useState<StructuredReview | null>(null);
   const [scores, setScores] = useState<number[]>([0, 0, 0, 0, 0]);
-  const [comment, setComment] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -129,10 +128,8 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
   useEffect(() => {
     if (myReview) {
       setScores([myReview.q1_score, myReview.q2_score, myReview.q3_score, myReview.q4_score, myReview.q5_score]);
-      setComment(myReview.comment || '');
     } else if (!formOpen) {
       setScores([0, 0, 0, 0, 0]);
-      setComment('');
     }
   }, [myReview, formOpen]);
 
@@ -154,7 +151,7 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
     }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const input = { q1Score: scores[0], q2Score: scores[1], q3Score: scores[2], q4Score: scores[3], q5Score: scores[4], comment: comment.trim() || null };
+      const input = { q1Score: scores[0], q2Score: scores[1], q3Score: scores[2], q4Score: scores[3], q5Score: scores[4], comment: null };
       if (targetType === 'doctor') await saveMyDoctorReview(targetId, input);
       else await saveMyProviderReview(targetId, input);
       await Promise.all([loadPublic(), loadMine()]);
@@ -205,7 +202,7 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
           const index = scoreIndex(question.score_key);
           return <div className="structured-question" key={question.key}><p>{question[lang]}</p><StarRow interactive value={scores[index] ?? 0} label={question[lang]} onChange={(value) => setScores((current) => current.map((score, i) => i === index ? value : score))} /></div>;
         })}
-        <label className="structured-review-comment"><span>{lang === 'bn' ? 'সংক্ষিপ্ত মন্তব্য (ঐচ্ছিক)' : 'Short comment (optional)'}</span><textarea rows={3} maxLength={1000} value={comment} onChange={(event) => setComment(event.target.value)} placeholder={lang === 'bn' ? 'আপনার অভিজ্ঞতা সংক্ষেপে লিখতে পারেন' : 'You may briefly describe your experience'} /></label>
+        <p className="structured-review-rating-only-note">{lang === 'bn' ? 'বর্তমানে Patient review শুধু ৫টি রেটিংয়ের মাধ্যমে নেওয়া হচ্ছে। লিখিত মন্তব্য সাময়িকভাবে বন্ধ আছে।' : 'Patient reviews currently use the five ratings only. Written comments are temporarily disabled.'}</p>
         <button className="structured-review-save" type="submit" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <Star />} {myReview ? (lang === 'bn' ? 'রিভিউ আপডেট করুন' : 'Update review') : (lang === 'bn' ? 'রিভিউ জমা দিন' : 'Submit review')}</button>
       </form>}
 
@@ -217,7 +214,6 @@ export default function StructuredReviewSection({ targetType, targetId, entityLa
         {reviews.length ? reviews.map((review) => <article className="structured-review-card" key={review.review_id}>
           <div className="structured-review-card-head"><div><strong>{review.reviewer_name || (lang === 'bn' ? 'রোগী' : 'Patient')}</strong><small>{new Intl.DateTimeFormat(lang === 'bn' ? 'bn-BD' : 'en-GB', { dateStyle: 'medium' }).format(new Date(review.created_at))}{review.edited_at ? ` · ${lang === 'bn' ? 'সম্পাদিত' : 'edited'}` : ''}</small></div><div className="structured-review-score"><Star fill="currentColor" /><b>{Number(review.rating).toFixed(1)}</b></div></div>
           <div className="structured-review-mini-scores">{questions.map((question) => <span key={question.key}>{compactQuestionLabel(question, lang)} <b>{reviewScore(review, question.score_key)}</b></span>)}</div>
-          {review.comment && <p>{review.comment}</p>}
           {review.reply && (review.reply[lang] || review.reply.bn || review.reply.en) ? <div className="structured-review-reply"><strong>{lang === 'bn' ? 'প্রতিষ্ঠানের উত্তর' : 'Provider reply'}</strong><p>{review.reply[lang] || review.reply.bn || review.reply.en}</p></div> : null}
         </article>) : <div className="structured-review-empty">{lang === 'bn' ? 'এখনও কোনো Patient review নেই।' : 'No patient reviews yet.'}</div>}
       </div>

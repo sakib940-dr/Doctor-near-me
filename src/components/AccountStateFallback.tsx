@@ -3,8 +3,8 @@ import { LoaderCircle, LogOut, RefreshCw, TriangleAlert } from 'lucide-react';
 interface AccountStateFallbackProps {
   loading?: boolean;
   message?: string | null;
-  onRetry?: () => void | Promise<void>;
-  onSignOut?: () => void | Promise<void>;
+  onRetry?: () => unknown | Promise<unknown>;
+  onSignOut?: () => unknown | Promise<unknown>;
 }
 
 export default function AccountStateFallback({ loading = false, message, onRetry, onSignOut }: AccountStateFallbackProps) {

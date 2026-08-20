@@ -64,7 +64,7 @@ export default function AuthPage() {
           : { phone: normalizeAuthPhone(loginId) || '', password };
         if ('phone' in credentials && !credentials.phone) throw new Error('সঠিক email অথবা phone number দিন।');
 
-        const { data, error: loginError } = await client.auth.signInWithPassword(credentials);
+        const { error: loginError } = await client.auth.signInWithPassword(credentials);
         if (loginError) throw loginError;
 
         const from = (location.state as { from?: string } | null)?.from;

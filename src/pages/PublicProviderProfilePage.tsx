@@ -82,7 +82,7 @@ export default function PublicProviderProfilePage(){
       const [c,d,s]=await Promise.all([getProviderPublicPageContent(route.id),getDoctorsForProvider(route.id),getProviderPublicStats(route.id)]);
       return [p,c,d,s,route.slug] as const;
     })
-    .then(([p,c,d,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors(d);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
+    .then(([p,c,d,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors([...d]);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
     .catch((e:unknown)=>alive&&setError(e instanceof Error?e.message:'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।')).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[providerId,location.pathname,navigate]);
 
   useEffect(()=>{if(!provider?.id||trackedView.current===provider.id)return;trackedView.current=provider.id;void recordProviderInteraction(provider.id,'profile_view','provider_profile_v2').catch(()=>undefined)},[provider?.id]);

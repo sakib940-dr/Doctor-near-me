@@ -1,33 +1,23 @@
-import { requireSupabase } from '../lib/supabase';
 import { normalizeAuthPhone } from '../lib/authIdentifiers';
 
+const DISABLED_MESSAGE = 'Phone verification এখন বন্ধ আছে। SMS/Phone provider configure করার পরে এই flow আবার enable করা হবে।';
+
+/**
+ * Temporary rollout guard.
+ *
+ * Keep the public service shape so a later provider rollout can restore native
+ * Supabase phone identity linking without changing callers. Right now these
+ * functions deliberately DO NOT call auth.updateUser(), verifyOtp(), or any SMS
+ * provider. Guided onboarding is completely independent from phone verification.
+ */
 export async function startPhoneIdentityLink(phoneInput: string) {
   const phone = normalizeAuthPhone(phoneInput);
   if (!phone) throw new Error('সঠিক মোবাইল নম্বর দিন। বাংলাদেশি নম্বর 01XXXXXXXXX format-এ দিতে পারেন।');
-
-  const client = requireSupabase();
-  const { data: prepared, error: prepareError } = await client.rpc('prepare_my_phone_link', { p_phone: phone });
-  if (prepareError) throw prepareError;
-
-  const { error } = await client.auth.updateUser({ phone });
-  if (error) throw error;
-  return (prepared as { phone: string }).phone || phone;
+  throw new Error(DISABLED_MESSAGE);
 }
 
-export async function verifyPhoneIdentityLink(phoneInput: string, token: string) {
+export async function verifyPhoneIdentityLink(phoneInput: string, _token: string) {
   const phone = normalizeAuthPhone(phoneInput);
   if (!phone) throw new Error('সঠিক মোবাইল নম্বর দিন।');
-  if (!/^\d{6}$/.test(token.trim())) throw new Error('৬ সংখ্যার verification code দিন।');
-
-  const client = requireSupabase();
-  const { error: prepareError } = await client.rpc('prepare_my_phone_link', { p_phone: phone });
-  if (prepareError) throw prepareError;
-
-  const { error } = await client.auth.verifyOtp({ phone, token: token.trim(), type: 'phone_change' });
-  if (error) throw error;
-
-  const { data, error: confirmError } = await client.rpc('confirm_my_verified_phone');
-  if (confirmError) throw confirmError;
-  await client.auth.refreshSession();
-  return data as { phone: string; verified: boolean };
+  throw new Error(DISABLED_MESSAGE);
 }

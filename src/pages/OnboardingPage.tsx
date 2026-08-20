@@ -7,7 +7,6 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
-import { formatAuthPhoneForDisplay, normalizeAuthPhone } from '../lib/authIdentifiers';
 import { captureCurrentCoordinates, validateCoordinates } from '../lib/geolocation';
 import { completeAccountOnboarding, finishMyRoleOnboarding, setMyOnboardingStep } from '../services/account';
 import {
@@ -97,7 +96,6 @@ export default function OnboardingPage() {
           {step === 1 && <BasicStep
             userEmail={user?.email || account?.email || ''}
             initialName={account?.full_name || user?.user_metadata.full_name || ''}
-            initialPhone={account?.phone || user?.user_metadata.phone || ''}
             initialRole={role}
             roleLocked={account?.role === 'doctor' || account?.role === 'hospital'}
             initialDistrictId={account?.district_id ?? null}
@@ -132,12 +130,11 @@ function ProgressSteps({ labels, current }: { labels: string[]; current: number 
   })}</ol>;
 }
 
-function BasicStep({ userEmail, initialName, initialPhone, initialRole, roleLocked, initialDistrictId, initialUpazilaId, onRole, onError, onSaved }: {
-  userEmail: string; initialName: string; initialPhone: string; initialRole: PublicRegistrationRole; roleLocked: boolean; initialDistrictId: number | null; initialUpazilaId: number | null;
+function BasicStep({ userEmail, initialName, initialRole, roleLocked, initialDistrictId, initialUpazilaId, onRole, onError, onSaved }: {
+  userEmail: string; initialName: string; initialRole: PublicRegistrationRole; roleLocked: boolean; initialDistrictId: number | null; initialUpazilaId: number | null;
   onRole: (role: PublicRegistrationRole) => void; onError: (message: string | null) => void; onSaved: (role: PublicRegistrationRole) => Promise<void>;
 }) {
   const [fullName, setFullName] = useState(initialName);
-  const [phone, setPhone] = useState(formatAuthPhoneForDisplay(initialPhone));
   const [role, setRole] = useState(initialRole);
   const [districtId, setDistrictId] = useState(initialDistrictId ? String(initialDistrictId) : '');
   const [upazilaId, setUpazilaId] = useState(initialUpazilaId ? String(initialUpazilaId) : '');
@@ -149,16 +146,15 @@ function BasicStep({ userEmail, initialName, initialPhone, initialRole, roleLock
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); onError(null);
-    if (!normalizeAuthPhone(phone)) { onError('Valid Phone Number দিন। বাংলাদেশি নম্বর 01XXXXXXXXX format-এ দিতে পারেন।'); return; }
     setWorking(true);
     try {
-      await completeAccountOnboarding({ fullName, phone, role, districtId: districtId ? Number(districtId) : null, upazilaId: upazilaId ? Number(upazilaId) : null });
+      await completeAccountOnboarding({ fullName, role, districtId: districtId ? Number(districtId) : null, upazilaId: upazilaId ? Number(upazilaId) : null });
       await onSaved(role);
     } catch (saveError) { onError(messageFrom(saveError)); }
     finally { setWorking(false); }
   }
 
-  return <div className="onboarding-step-stack"><form className="onboarding-card professional-step-card" onSubmit={submit}><header><UserRound /><div><small>Step 1</small><h2>Account / Basic Information</h2></div></header><div className="patient-form-grid"><label className="auth-field"><span>পূর্ণ নাম</span><div><UserRound /><input required minLength={2} value={fullName} onChange={(e) => setFullName(e.target.value)} /></div></label><label className="auth-field"><span>Email Address</span><div><Mail /><input readOnly value={userEmail} /></div></label><label className="auth-field"><span>Phone Number</span><div><Phone /><input required inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></div></label><label className="auth-field"><span>Account Type</span><div><UserRound /><select value={role} disabled={roleLocked} onChange={(e) => { const next=e.target.value as PublicRegistrationRole; setRole(next); onRole(next); }}>{allowedRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></div>{roleLocked && <small className="field-helper">Professional account type signup-এর পরে self-change করা যায় না।</small>}</label></div><div className="onboarding-locations"><label className="auth-field"><span>জেলা</span><div><MapPin /><select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); }}><option value="">জেলা নির্বাচন করুন</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name_bn}</option>)}</select></div></label><label className="auth-field"><span>উপজেলা</span><div><MapPin /><select disabled={!districtId} value={upazilaId} onChange={(e) => setUpazilaId(e.target.value)}><option value="">উপজেলা নির্বাচন করুন</option>{upazilas.map((u) => <option key={u.id} value={u.id}>{u.name_bn}</option>)}</select></div></label></div>{isProfessionalRole(role) && <div className="identity-status pending"><ShieldCheck /><span><strong>Phone verification temporarily disabled</strong><small>Valid Phone Number save হলেই এখন Next করা যাবে। SMS provider যোগ করার পরে verification restriction আবার enable করা যাবে।</small></span></div>}<button className="auth-submit" disabled={working}>{working ? <LoaderCircle className="spin" /> : <>Save & Continue <ArrowRight /></>}</button></form></div>;
+  return <div className="onboarding-step-stack"><form className="onboarding-card professional-step-card" onSubmit={submit}><header><UserRound /><div><small>Step 1</small><h2>Account / Basic Information</h2><p>Phone Number registration-এর সময় account-এ save হয়েছে। Onboarding-এ কোনো Phone OTP বা verification step নেই।</p></div></header><div className="patient-form-grid"><label className="auth-field"><span>পূর্ণ নাম</span><div><UserRound /><input required minLength={2} value={fullName} onChange={(e) => setFullName(e.target.value)} /></div></label><label className="auth-field"><span>Email Address</span><div><Mail /><input readOnly value={userEmail} /></div></label><label className="auth-field"><span>Account Type</span><div><UserRound /><select value={role} disabled={roleLocked} onChange={(e) => { const next=e.target.value as PublicRegistrationRole; setRole(next); onRole(next); }}>{allowedRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></div>{roleLocked && <small className="field-helper">Professional account type signup-এর পরে self-change করা যায় না।</small>}</label></div><div className="onboarding-locations"><label className="auth-field"><span>জেলা</span><div><MapPin /><select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); }}><option value="">জেলা নির্বাচন করুন</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name_bn}</option>)}</select></div></label><label className="auth-field"><span>উপজেলা</span><div><MapPin /><select disabled={!districtId} value={upazilaId} onChange={(e) => setUpazilaId(e.target.value)}><option value="">উপজেলা নির্বাচন করুন</option>{upazilas.map((u) => <option key={u.id} value={u.id}>{u.name_bn}</option>)}</select></div></label></div><button className="auth-submit" disabled={working}>{working ? <LoaderCircle className="spin" /> : <>Save & Continue <ArrowRight /></>}</button></form></div>;
 }
 
 function StepActions({ onPrevious, saving, label='Save & Continue' }: { onPrevious: () => void; saving: boolean; label?: string }) {
@@ -239,7 +235,7 @@ function EvidenceEditor({ evidence,file,setFile,documentType,setDocumentType,onU
 }
 
 function CompleteStep({ role,working,onFinish,onPrevious }:{role:'doctor'|'hospital';working:boolean;onFinish:()=>void;onPrevious:()=>void}) {
-  return <section className="onboarding-card professional-step-card onboarding-complete-card"><span className="complete-icon"><Check/></span><small>Step 5</small><h2>Registration setup সম্পূর্ণ করার জন্য প্রস্তুত</h2><p>{role==='doctor'?'Visiting Card, Chamber Details এবং Verification information canonical records-এ save হয়েছে।':'Hospital profile, location/contact এবং verification evidence existing provider records-এ save হয়েছে।'}</p><div className="onboarding-complete-note"><ShieldCheck/><span><strong>Final server validation</strong><small>Required role data যাচাই হবে। Phone/Email verification এখন completion block করবে না; provider চালু হলে পরে restriction enable করা যাবে।</small></span></div><div className="onboarding-step-actions"><button className="secondary-action" type="button" onClick={onPrevious}><ArrowLeft/> Previous</button><button className="auth-submit" type="button" disabled={working} onClick={onFinish}>{working?<LoaderCircle className="spin"/>:<><Check/> Complete & Open Dashboard</>}</button></div></section>;
+  return <section className="onboarding-card professional-step-card onboarding-complete-card"><span className="complete-icon"><Check/></span><small>Step 5</small><h2>Registration setup সম্পূর্ণ করার জন্য প্রস্তুত</h2><p>{role==='doctor'?'Visiting Card, Chamber Details এবং Verification information canonical records-এ save হয়েছে।':'Hospital profile, location/contact এবং verification evidence existing provider records-এ save হয়েছে।'}</p><div className="onboarding-complete-note"><ShieldCheck/><span><strong>Final server validation</strong><small>Required role data যাচাই হবে। Identity OTP/Phone verification এই onboarding flow-এর অংশ নয়।</small></span></div><div className="onboarding-step-actions"><button className="secondary-action" type="button" onClick={onPrevious}><ArrowLeft/> Previous</button><button className="auth-submit" type="button" disabled={working} onClick={onFinish}>{working?<LoaderCircle className="spin"/>:<><Check/> Complete & Open Dashboard</>}</button></div></section>;
 }
 
 function splitCsv(value:string){return value.split(',').map(x=>x.trim()).filter(Boolean);}

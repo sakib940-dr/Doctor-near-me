@@ -1,8 +1,14 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Award,
+  BadgeCheck,
+  Building2,
   Check,
+  Clock3,
   Crown,
+  ExternalLink,
+  Gauge,
   LoaderCircle,
   RefreshCw,
   Save,
@@ -11,8 +17,9 @@ import {
   UserCheck,
   UserX,
   Users,
+  X,
 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   decidePremiumMembership,
@@ -47,6 +54,21 @@ const defaultPolicy: PremiumPolicy = {
 };
 
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'Premium admin data লোড করা যায়নি।';
+type PremiumTargetFilter = 'all' | 'pending' | 'active' | 'expiring' | 'eligible';
+const targetFilters: readonly [PremiumTargetFilter,string][] = [['all','All'],['pending','Requests'],['active','Active'],['expiring','Expiring'],['eligible','Criteria Ready']];
+const validTargetFilter = (value: string | null): value is PremiumTargetFilter => !!value && targetFilters.some(([key]) => key === value);
+const daysUntil = (value: string | null) => value ? Math.ceil((new Date(value).getTime() - Date.now()) / 86400000) : null;
+function premiumCriteriaProgress(target: PremiumAdminTarget, policy: PremiumPolicy) {
+  const checks: boolean[] = [];
+  if (policy.min_followers > 0) checks.push(target.follower_count >= policy.min_followers);
+  if (policy.min_approved_referrals > 0) checks.push(target.approved_referral_count >= policy.min_approved_referrals);
+  if (policy.require_profile_completion) checks.push(target.profile_completion_percent >= policy.min_profile_completion_percent);
+  if (policy.require_verification) checks.push(target.verification_label === 'approved');
+  if (policy.min_achievement_count > 0) checks.push(target.achievement_count >= policy.min_achievement_count);
+  if (!checks.length) return { complete: target.requirements_complete ? 1 : 0, total: 0, percent: target.requirements_complete ? 100 : 0 };
+  const complete = checks.filter(Boolean).length;
+  return { complete, total: checks.length, percent: Math.round((complete / checks.length) * 100) };
+}
 
 function emptyRule(): Omit<PremiumAchievementRule, 'id' | 'created_by' | 'created_at' | 'updated_at'> & { id: number | null } {
   return { id: null, code: '', title_bn: '', title_en: '', description_bn: '', counts_toward_premium: true, is_active: true, sort_order: 0 };
@@ -54,12 +76,15 @@ function emptyRule(): Omit<PremiumAchievementRule, 'id' | 'created_by' | 'create
 
 export default function PremiumAdminPage() {
   const { account } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [policy, setPolicy] = useState<PremiumPolicy>(defaultPolicy);
   const [targets, setTargets] = useState<PremiumAdminTarget[]>([]);
   const [rules, setRules] = useState<PremiumAchievementRule[]>([]);
   const [referrals, setReferrals] = useState<PremiumReferralRow[]>([]);
   const [query, setQuery] = useState('');
   const [referralStatus, setReferralStatus] = useState<PremiumReferralRow['status']>('pending');
+  const [targetFilter, setTargetFilter] = useState<PremiumTargetFilter>(() => validTargetFilter(searchParams.get('filter')) ? searchParams.get('filter') as PremiumTargetFilter : 'all');
+  const [decisionConfirm, setDecisionConfirm] = useState<{ target: PremiumAdminTarget; action: 'approve' | 'revoke' } | null>(null);
   const [rule, setRule] = useState(emptyRule());
   const [awardRuleByTarget, setAwardRuleByTarget] = useState<Record<string, number | ''>>({});
   const [loading, setLoading] = useState(true);
@@ -77,7 +102,7 @@ export default function PremiumAdminPage() {
     try {
       const [nextPolicy, nextTargets, nextRules, nextReferrals] = await Promise.all([
         getAdminPremiumPolicy(),
-        getAdminPremiumTargets(nextQuery, 80),
+        getAdminPremiumTargets(nextQuery, 150),
         getPremiumAchievementRules(),
         getAdminReferralQueue(nextReferralStatus, 100),
       ]);
@@ -93,8 +118,36 @@ export default function PremiumAdminPage() {
   }
 
   useEffect(() => { if (allowed) void load('', 'pending'); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [account?.role]);
+  useEffect(() => {
+    const requested = searchParams.get('filter');
+    if (validTargetFilter(requested) && requested !== targetFilter) setTargetFilter(requested);
+  }, [searchParams, targetFilter]);
 
   const activeRules = useMemo(() => rules.filter((item) => item.is_active && item.counts_toward_premium), [rules]);
+  const filteredTargets = useMemo(() => {
+    const now = Date.now();
+    const expiringCutoff = now + 30 * 86400000;
+    const rows = targets.filter((target) => {
+      if (targetFilter === 'pending') return target.membership_status === 'pending';
+      if (targetFilter === 'active') return target.is_premium && target.membership_status === 'active';
+      if (targetFilter === 'expiring') {
+        const expiry = target.expires_at ? new Date(target.expires_at).getTime() : 0;
+        return target.is_premium && expiry > now && expiry <= expiringCutoff;
+      }
+      if (targetFilter === 'eligible') return target.requirements_complete && !target.is_premium;
+      return true;
+    });
+    return [...rows].sort((a,b) => {
+      const score = (target: PremiumAdminTarget) => target.membership_status === 'pending' ? 0 : (target.expires_at && daysUntil(target.expires_at)! <= 30 && daysUntil(target.expires_at)! >= 0 ? 1 : target.is_premium ? 2 : target.requirements_complete ? 3 : 4);
+      return score(a) - score(b) || a.name.localeCompare(b.name);
+    });
+  }, [targets,targetFilter]);
+  const premiumCounts = useMemo(() => ({
+    requests: targets.filter((item) => item.membership_status === 'pending').length,
+    active: targets.filter((item) => item.is_premium && item.membership_status === 'active').length,
+    expiring: targets.filter((item) => { const days=daysUntil(item.expires_at); return item.is_premium && days != null && days >= 0 && days <= 30; }).length,
+    eligible: targets.filter((item) => item.requirements_complete && !item.is_premium).length,
+  }), [targets]);
 
   if (account && !allowed) return <Navigate to="/dashboard" replace />;
 
@@ -114,6 +167,11 @@ export default function PremiumAdminPage() {
     await load(query, referralStatus);
   }
 
+  function changeTargetFilter(next: PremiumTargetFilter) {
+    setTargetFilter(next);
+    setSearchParams(next === 'all' ? {} : { filter: next });
+  }
+
   async function decide(target: PremiumAdminTarget, action: 'approve' | 'revoke' | 'expire' | 'pending') {
     const key = `${target.target_type}:${target.target_id}:${action}`;
     setBusyKey(key); setError(null); setNotice(null);
@@ -122,7 +180,7 @@ export default function PremiumAdminPage() {
       setNotice(action === 'approve' ? 'Premium active করা হয়েছে।' : 'Premium status update হয়েছে।');
       await load(query, referralStatus);
     } catch (actionError) { setError(messageFrom(actionError)); }
-    finally { setBusyKey(''); }
+    finally { setBusyKey(''); setDecisionConfirm(null); }
   }
 
   async function saveRule(event: FormEvent) {
@@ -198,22 +256,48 @@ export default function PremiumAdminPage() {
       <button className="cms-save" disabled={saving}>{saving ? <LoaderCircle className="spin" /> : <><Save /> Criteria সংরক্ষণ করুন</>}</button>
     </form>
 
-    <section className="premium-admin-targets">
-      <header><div><small>Doctor / Hospital status</small><h2>Premium accounts</h2></div><form onSubmit={searchTargets}><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="নাম দিয়ে খুঁজুন" /><button>Search</button></form></header>
+    <section className="premium-admin-targets premium-management-center">
+      <header><div><small>Doctor / Hospital management</small><h2>Premium accounts</h2><p>Request, criteria progress, expiry এবং membership action দ্রুত manage করুন।</p></div><form onSubmit={searchTargets}><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="নাম দিয়ে খুঁজুন" /><button>Search</button></form></header>
+
+      <div className="premium-management-snapshot" aria-label="Premium management summary">
+        <button type="button" className={targetFilter === 'pending' ? 'active' : ''} onClick={() => changeTargetFilter('pending')}><Crown /><span><strong>{premiumCounts.requests}</strong><small>Premium Requests</small></span></button>
+        <button type="button" className={targetFilter === 'active' ? 'active' : ''} onClick={() => changeTargetFilter('active')}><BadgeCheck /><span><strong>{premiumCounts.active}</strong><small>Active Premium</small></span></button>
+        <button type="button" className={targetFilter === 'expiring' ? 'active' : ''} onClick={() => changeTargetFilter('expiring')}><Clock3 /><span><strong>{premiumCounts.expiring}</strong><small>Expiring ≤ 30d</small></span></button>
+        <button type="button" className={targetFilter === 'eligible' ? 'active' : ''} onClick={() => changeTargetFilter('eligible')}><Gauge /><span><strong>{premiumCounts.eligible}</strong><small>Criteria Ready</small></span></button>
+      </div>
+
+      <div className="premium-target-filters" aria-label="Premium account filters">
+        {targetFilters.map(([value,label]) => <button type="button" key={value} className={targetFilter === value ? 'active' : ''} onClick={() => changeTargetFilter(value)}>{label}</button>)}
+      </div>
+
       {loading ? <div className="premium-loading"><LoaderCircle className="spin" /> Loading…</div> : <div className="premium-target-list">
-        {targets.map((target) => {
+        {filteredTargets.map((target) => {
           const rowKey = `${target.target_type}:${target.target_id}`;
-          return <article key={rowKey} className={`premium-target-row ${target.membership_status}`}>
-            <div className="premium-target-main"><span className="premium-target-icon">{target.target_type === 'doctor' ? <Users /> : <Crown />}</span><div><strong>{target.name}</strong><small>{target.target_type === 'doctor' ? 'Doctor' : 'Hospital/Chamber'} • {target.verification_label}</small></div></div>
-            <div className="premium-target-metrics"><span>Followers <b>{target.follower_count}</b></span><span>Referrals <b>{target.approved_referral_count}</b></span><span>Profile <b>{target.profile_completion_percent}%</b></span><span>Achievements <b>{target.achievement_count}</b></span></div>
-            <div className="premium-target-status"><b>{target.is_premium ? 'Premium Active' : target.membership_status}</b><small>{target.requirements_complete ? 'Criteria complete' : 'Criteria incomplete'}</small>{target.expires_at && <small>Expiry {new Date(target.expires_at).toLocaleDateString()}</small>}</div>
+          const criteria = premiumCriteriaProgress(target, policy);
+          const expiryDays = daysUntil(target.expires_at);
+          const expirySoon = expiryDays != null && expiryDays >= 0 && expiryDays <= 30;
+          const statusLabel = target.is_premium ? 'Premium Active' : target.membership_status === 'pending' ? 'Premium Request' : target.membership_status;
+          const profilePath = target.target_type === 'doctor' ? `/doctors/${target.target_id}` : `/providers/${target.target_id}`;
+          return <article key={rowKey} className={`premium-target-row ${target.membership_status} ${expirySoon ? 'expiring' : ''}`}>
+            <div className="premium-target-main"><span className="premium-target-icon">{target.target_type === 'doctor' ? <Users /> : <Building2 />}</span><div><small>Provider</small><strong>{target.name}</strong><em>{target.target_type === 'doctor' ? 'Doctor' : 'Hospital / Chamber'} • {target.verification_label}</em></div></div>
+
+            <div className="premium-target-state"><small>Current status</small><b className={`premium-state-badge ${target.membership_status}`}>{statusLabel}</b><span>{target.requirements_complete ? <><Check /> Criteria complete</> : <><AlertTriangle /> Criteria incomplete</>}</span></div>
+
+            <div className="premium-target-metrics"><span>Followers <b>{target.follower_count}{policy.min_followers > 0 ? ` / ${policy.min_followers}` : ''}</b></span><span>Referrals <b>{target.approved_referral_count}{policy.min_approved_referrals > 0 ? ` / ${policy.min_approved_referrals}` : ''}</b></span><span>Profile <b>{target.profile_completion_percent}%</b></span><span>Achievements <b>{target.achievement_count}{policy.min_achievement_count > 0 ? ` / ${policy.min_achievement_count}` : ''}</b></span></div>
+
+            <div className="premium-target-progress"><div className="premium-criteria-head"><span>Premium criteria</span><b>{criteria.percent}%</b></div><div className="premium-progress-track" aria-label={`Premium criteria ${criteria.percent}%`}><i style={{ width: `${criteria.percent}%` }} /></div><small>{criteria.total ? `${criteria.complete} of ${criteria.total} enabled criteria complete` : target.requirements_complete ? 'Current policy criteria complete' : 'No threshold configured'}</small><div className="premium-achievement-progress"><Award /><span>Badge / Achievement</span><b>{target.achievement_count}{policy.min_achievement_count > 0 ? ` / ${policy.min_achievement_count}` : ' earned'}</b></div></div>
+
+            <div className="premium-target-expiry"><Clock3 /><div><small>Expiry</small><strong>{target.expires_at ? new Date(target.expires_at).toLocaleDateString('en-GB') : 'No expiry'}</strong>{expiryDays != null && <em className={expirySoon ? 'soon' : ''}>{expiryDays < 0 ? 'Expired' : `${expiryDays} day${expiryDays === 1 ? '' : 's'} left`}</em>}</div></div>
+
             <div className="premium-target-actions">
-              <button type="button" className="approve" disabled={!!busyKey} onClick={() => void decide(target, 'approve')}>{busyKey === `${rowKey}:approve` ? <LoaderCircle className="spin" /> : <UserCheck />} Approve</button>
-              {(target.is_premium || target.membership_status === 'pending') && <button type="button" disabled={!!busyKey} onClick={() => void decide(target, 'revoke')}><UserX /> Revoke</button>}
+              {!target.is_premium && <button type="button" className="approve" disabled={!!busyKey} onClick={() => setDecisionConfirm({ target, action: 'approve' })}>{busyKey === `${rowKey}:approve` ? <LoaderCircle className="spin" /> : <UserCheck />} Approve</button>}
+              {(target.is_premium || target.membership_status === 'pending') && <button type="button" className="revoke" disabled={!!busyKey} onClick={() => setDecisionConfirm({ target, action: 'revoke' })}><UserX /> Revoke</button>}
+              <Link className="premium-view-link" to={profilePath}><ExternalLink /> View</Link>
               {activeRules.length > 0 && <div className="premium-award-inline"><select value={awardRuleByTarget[rowKey] ?? ''} onChange={(e) => setAwardRuleByTarget({ ...awardRuleByTarget, [rowKey]: e.target.value ? Number(e.target.value) : '' })}><option value="">Achievement…</option>{activeRules.map((item) => <option key={item.id} value={item.id}>{item.title_bn}</option>)}</select><button type="button" disabled={!awardRuleByTarget[rowKey] || !!busyKey} onClick={() => void award(target)}><Award /> Add</button></div>}
             </div>
           </article>;
         })}
+        {!filteredTargets.length && <div className="premium-target-empty"><Crown /><div><strong>এই filter-এ Premium account নেই</strong><small>অন্য filter নির্বাচন করুন অথবা search পরিবর্তন করুন।</small></div></div>}
       </div>}
     </section>
 
@@ -235,6 +319,8 @@ export default function PremiumAdminPage() {
         <div className="premium-referral-admin-list">{referrals.map((row) => <article key={row.id}><div><strong>{row.referrer_name}</strong><small>referred → {row.referred_name || 'Unknown'} • {row.referral_code}</small><small>{new Date(row.created_at).toLocaleString()}</small></div>{row.status === 'pending' && <span><button type="button" disabled={!!busyKey} onClick={() => void referralDecision(row, 'approved')}><Check /> Approve</button><button type="button" disabled={!!busyKey} onClick={() => void referralDecision(row, 'rejected')}><UserX /> Reject</button></span>}</article>)}</div>
       </section>
     </div>
+
+    {decisionConfirm && <div className="verification-overlay" role="dialog" aria-modal="true" aria-label="Premium membership confirmation"><section className="admin-action-dialog premium-decision-dialog"><header><div><small>Admin-only Premium action</small><h2>{decisionConfirm.action === 'approve' ? 'Approve Premium membership?' : 'Revoke Premium membership?'}</h2></div><button type="button" aria-label="Close" onClick={() => setDecisionConfirm(null)}><X /></button></header><p><strong>{decisionConfirm.target.name}</strong> • {decisionConfirm.target.target_type === 'doctor' ? 'Doctor' : 'Hospital / Chamber'}<br />Current status: {decisionConfirm.target.is_premium ? 'Premium Active' : decisionConfirm.target.membership_status}</p><div className={`premium-decision-warning ${decisionConfirm.action}`}><AlertTriangle /><span>{decisionConfirm.action === 'approve' ? 'Approve করলে existing Premium policy অনুযায়ী membership active হবে এবং audit log তৈরি হবে।' : 'Revoke করলে Premium ranking/status immediately বন্ধ হবে। এই action audit log-এ থাকবে।'}</span></div><footer><button type="button" onClick={() => setDecisionConfirm(null)}>বাতিল</button><button type="button" className={decisionConfirm.action === 'revoke' ? 'premium-danger' : 'primary'} disabled={!!busyKey} onClick={() => void decide(decisionConfirm.target, decisionConfirm.action)}>{busyKey ? <LoaderCircle className="spin" /> : decisionConfirm.action === 'approve' ? <><UserCheck /> Confirm Approve</> : <><UserX /> Confirm Revoke</>}</button></footer></section></div>}
   </main></div>;
 }
 

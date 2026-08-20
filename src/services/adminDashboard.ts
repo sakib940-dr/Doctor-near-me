@@ -1,16 +1,60 @@
 import { requireSupabase } from '../lib/supabase';
-import type { AdminActivityRow, AdminAppointmentRow, AdminOperationalSummary, AdminOperationalTrendRow, AdminUserRow, AppointmentStatus, UserRole } from '../types';
+import type { AdminActivityRow, AdminAnalyticsRangeKey, AdminAppointmentRow, AdminHighLevelAnalytics, AdminHospitalEngagementAnalytics, AdminOperationalSummary, AdminOperationalTrendRow, AdminTopDoctorRangeKey, AdminTopDoctorsAnalytics, AdminUserRow, AppointmentStatus, UserRole } from '../types';
+
+
+const adminReadInflight = new Map<string, Promise<unknown>>();
+
+function dedupeAdminRead<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const current = adminReadInflight.get(key) as Promise<T> | undefined;
+  if (current) return current;
+  const request = task().finally(() => adminReadInflight.delete(key));
+  adminReadInflight.set(key, request as Promise<unknown>);
+  return request;
+}
 
 export async function getAdminOperationalSummary() {
-  const { data, error } = await requireSupabase().rpc('get_admin_operational_summary');
-  if (error) throw error;
-  return data as AdminOperationalSummary;
+  return dedupeAdminRead('admin:summary', async () => {
+    const { data, error } = await requireSupabase().rpc('get_admin_operational_summary');
+    if (error) throw error;
+    return data as AdminOperationalSummary;
+  });
 }
 
 export async function getAdminOperationalTrends() {
-  const { data, error } = await requireSupabase().rpc('get_admin_operational_trends');
-  if (error) throw error;
-  return (data ?? []) as AdminOperationalTrendRow[];
+  return dedupeAdminRead('admin:trends', async () => {
+    const { data, error } = await requireSupabase().rpc('get_admin_operational_trends');
+    if (error) throw error;
+    return (data ?? []) as AdminOperationalTrendRow[];
+  });
+}
+
+export async function getAdminHighLevelAnalytics(input: { range: AdminAnalyticsRangeKey; from?: string | null; to?: string | null }) {
+  const key = `admin:analytics:${input.range}:${input.range === 'custom' ? input.from || '' : ''}:${input.range === 'custom' ? input.to || '' : ''}`;
+  return dedupeAdminRead(key, async () => {
+    const { data, error } = await requireSupabase().rpc('get_admin_high_level_analytics', {
+      p_range: input.range,
+      p_from: input.range === 'custom' ? input.from || null : null,
+      p_to: input.range === 'custom' ? input.to || null : null,
+    });
+    if (error) throw error;
+    return data as AdminHighLevelAnalytics;
+  });
+}
+
+export async function getAdminTopDoctorsAnalytics(range: AdminTopDoctorRangeKey, limit = 5) {
+  return dedupeAdminRead(`admin:top-doctors:${range}:${limit}`, async () => {
+    const { data, error } = await requireSupabase().rpc('get_admin_top_doctors_analytics', { p_range: range, p_limit: limit });
+    if (error) throw error;
+    return data as AdminTopDoctorsAnalytics;
+  });
+}
+
+export async function getAdminHospitalEngagementAnalytics(range: AdminTopDoctorRangeKey, limit = 5) {
+  return dedupeAdminRead(`admin:hospitals:${range}:${limit}`, async () => {
+    const { data, error } = await requireSupabase().rpc('get_admin_hospital_engagement_analytics', { p_range: range, p_limit: limit });
+    if (error) throw error;
+    return data as AdminHospitalEngagementAnalytics;
+  });
 }
 
 export async function getAdminUserDirectory(filters: {

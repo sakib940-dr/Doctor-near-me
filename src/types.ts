@@ -623,6 +623,21 @@ export interface AdminOperationalSummary {
   doctors: number;
   providers: number;
   ambulances: number;
+  patients?: number;
+  hospitals?: number;
+  premium_members?: number;
+  verified_doctors?: number;
+  total_appointments?: number;
+  total_prescriptions?: number;
+  total_reviews?: number;
+  pending_premium_memberships?: number;
+  premium_requests?: number;
+  expiring_premium_memberships?: number;
+  pending_doctor_verifications?: number;
+  pending_hospital_verifications?: number;
+  flagged_reviews_supported?: boolean;
+  flagged_reviews?: number;
+  failed_push_deliveries?: number;
   pending_doctors: number;
   pending_providers: number;
   pending_ambulances: number;
@@ -637,6 +652,89 @@ export interface AdminOperationalTrendRow {
   day: string;
   new_users: number;
   appointments: number;
+}
+
+export type AdminAnalyticsRangeKey = 'today' | '7d' | '30d' | '90d' | '1y' | 'custom';
+
+export interface AdminAnalyticsMetric {
+  current: number;
+  previous: number;
+  growth_pct: number | null;
+}
+
+export interface AdminAnalyticsSeriesRow {
+  period: string;
+  users: number;
+  doctors: number;
+  hospitals: number;
+  patients: number;
+  appointments: number;
+  prescriptions: number;
+  follows: number;
+  calls: number;
+  whatsapp: number;
+  reviews: number;
+  premium: number;
+}
+
+export interface AdminHighLevelAnalytics {
+  range: { key: AdminAnalyticsRangeKey; from: string; to: string; days: number; bucket: 'day' | 'week' | 'month' };
+  metrics: Partial<Record<'users' | 'doctors' | 'hospitals' | 'patients' | 'appointments' | 'prescriptions' | 'follows' | 'calls' | 'whatsapp' | 'reviews' | 'premium', AdminAnalyticsMetric>>;
+  series: AdminAnalyticsSeriesRow[];
+}
+
+export type AdminTopDoctorRangeKey = 'today' | '7d' | '30d' | 'all';
+export type AdminTopDoctorMetricKey = 'prescriptions' | 'follows' | 'calls' | 'whatsapp' | 'appointments' | 'views' | 'reviews' | 'rating';
+
+export interface AdminTopDoctorRow {
+  rank: number;
+  doctor_id: string;
+  name: string;
+  photo_url: string | null;
+  degree: string | null;
+  specialty: string | null;
+  status: 'premium' | 'verified' | 'new' | 'unverified' | string;
+  verification_status: string;
+  profile_slug: string | null;
+  metric_value: number;
+  sample_count: number;
+}
+
+export interface AdminTopDoctorsAnalytics {
+  range: { key: AdminTopDoctorRangeKey; from: string | null; to: string };
+  rankings: Record<AdminTopDoctorMetricKey, AdminTopDoctorRow[]>;
+}
+
+export type AdminTopHospitalMetricKey = 'follows' | 'calls' | 'whatsapp' | 'appointments' | 'views' | 'reviews' | 'rating';
+
+export interface AdminTopHospitalRow {
+  rank: number;
+  provider_id: string;
+  name: string;
+  photo_url: string | null;
+  subtitle: string | null;
+  status: 'premium' | 'verified' | 'new' | 'unverified' | string;
+  verification_status: string;
+  slug: string | null;
+  metric_value: number;
+  sample_count: number;
+}
+
+export interface AdminVisitorEngagementSummary {
+  doctor_saves: number;
+  hospital_saves: number;
+  calls: number;
+  whatsapp: number;
+  appointments: number;
+  reviews: number;
+  shares: number;
+  map_clicks: number;
+}
+
+export interface AdminHospitalEngagementAnalytics {
+  range: { key: AdminTopDoctorRangeKey; from: string | null; to: string };
+  rankings: Record<AdminTopHospitalMetricKey, AdminTopHospitalRow[]>;
+  engagement: AdminVisitorEngagementSummary;
 }
 
 export interface AdminUserRow {

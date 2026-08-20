@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
 import type {
   DoctorChamberDistance,
   DoctorInvestigationCostItem,
@@ -36,60 +37,27 @@ export async function saveMyDoctorAbout(bioBn: string, bioEn: string) {
   return Boolean(data);
 }
 
-function ensureDoctorImage(file: File) {
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
-  }
-  if (file.size > 5 * 1024 * 1024) throw new Error('Slider ছবির আকার সর্বোচ্চ ৫ MB হতে পারবে।');
-}
-
-async function optimizeDoctorSliderFile(file: File) {
-  ensureDoctorImage(file);
-  if (typeof document === 'undefined' || typeof createImageBitmap !== 'function') return file;
-  try {
-    const bitmap = await createImageBitmap(file);
-    const maxEdge = 1920;
-    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) { bitmap.close(); return file; }
-    context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.84));
-    if (!blob || blob.size >= file.size) return file;
-    const basename = file.name.replace(/\.[^.]+$/, '') || 'doctor-slider';
-    return new File([blob], `${basename}.webp`, { type: 'image/webp', lastModified: file.lastModified });
-  } catch {
-    return file;
-  }
-}
-
 export async function uploadDoctorSliderImage(file: File) {
-  const optimized = await optimizeDoctorSliderFile(file);
   const client = requireSupabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) throw new Error('Authentication required');
-  const extension = optimized.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const path = `${user.id}/doctor-public/slider/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
-  const { error } = await client.storage.from('public-images').upload(path, optimized, {
-    cacheControl: '86400',
-    contentType: optimized.type,
-    upsert: false,
+  const result = await uploadOptimizedImage({
+    file,
+    bucket: 'public-images',
+    ownerPrefix: user.id,
+    folder: 'doctor-public/slider',
+    preset: 'slider',
   });
-  if (error) throw error;
-  return path;
+  return result.path;
 }
+
 
 async function removeOwnedPublicImage(path: string) {
   if (!path || /^https?:\/\//i.test(path)) return;
   const client = requireSupabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user || !path.startsWith(`${user.id}/`)) return;
-  await client.storage.from('public-images').remove([path]);
+  await removeOptimizedImageVariants('public-images', path);
 }
 
 export async function createDoctorSliderImage(input: {

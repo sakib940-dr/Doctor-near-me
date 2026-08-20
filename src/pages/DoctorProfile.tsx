@@ -285,7 +285,7 @@ export default function DoctorProfile() {
         {profile && <>
           <section className="doctor-profile-slider-shell" aria-label="Doctor images">
             <div className="doctor-profile-slider" ref={sliderRef} onScroll={detectSlide}>
-              {sliderImages.length ? sliderImages.map((slide, index) => <figure data-doctor-slide key={slide.id}><img src={slide.src || ''} alt={slide.caption || profile.doctor.name} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" />{slide.caption && <figcaption>{slide.caption}</figcaption>}</figure>) : <div data-doctor-slide className="doctor-profile-slider-fallback"><Stethoscope /></div>}
+              {sliderImages.length ? sliderImages.map((slide, index) => <figure data-doctor-slide key={slide.id}><img src={slide.src || ''} alt={slide.caption || profile.doctor.name} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" width="1600" height="900" onError={(event) => { event.currentTarget.style.display = 'none'; }} />{slide.caption && <figcaption>{slide.caption}</figcaption>}</figure>) : <div data-doctor-slide className="doctor-profile-slider-fallback"><Stethoscope /></div>}
             </div>
             {sliderImages.length > 1 && <div className="doctor-slider-dots">{sliderImages.map((slide, index) => <button type="button" key={slide.id} className={index === activeSlide ? 'active' : ''} aria-label={`Slide ${index + 1}`} onClick={() => moveSlider(index)} />)}</div>}
           </section>
@@ -293,7 +293,7 @@ export default function DoctorProfile() {
           <section className="doctor-visiting-card-v2">
             <div className="doctor-visiting-card-v2-head">
               <div><div className={`doctor-rank-pill ${profileStats?.ranking_tier || (isVerified ? 'verified' : 'unverified')}`}>{rank}</div><h1>{profile.doctor.name}</h1><p>{profile.doctor.degree || primarySpecialty}</p></div>
-              {avatar && <img src={avatar} alt="" loading="lazy" decoding="async" />}
+              {avatar && <img src={avatar} alt="" loading="lazy" decoding="async" width="320" height="320" onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
             </div>
             <div className="doctor-visiting-compact-grid">{visitingDetails.map(({ label, value, icon: Icon }) => <div key={label}><span><Icon /> {label}</span><strong>{value}</strong></div>)}</div>
             <div className="doctor-visiting-facts">{profile.doctor.experience_years != null && <span><Clock3 /> <b>{numberText(profile.doctor.experience_years, language)}</b> {t.years} {t.experience}</span>}{profile.doctor.languages?.length ? <span><Languages /> {t.languages}: <b>{profile.doctor.languages.join(', ')}</b></span> : null}{profile.doctor.consultation_fee != null && <span><strong>৳{numberText(profile.doctor.consultation_fee, language)}</strong> {t.fee}</span>}</div>

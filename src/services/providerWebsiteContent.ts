@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
 
 export type LocalizedText = { bn?: string; en?: string };
 export type ProviderService = { id:number; provider_id:string; name:LocalizedText; description:LocalizedText|null; icon:string|null; image:string|null; is_active:boolean; sort_order:number; created_at:string; updated_at:string };
@@ -29,36 +30,24 @@ function costs(table:'provider_treatment_costs'|'provider_investigation_costs'){
 export const providerTreatmentCosts=costs('provider_treatment_costs');
 export const providerInvestigationCosts=costs('provider_investigation_costs');
 
-function ensureProviderImage(file:File){
-  if(!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)) throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
-  if(file.size>6*1024*1024) throw new Error('ছবির আকার সর্বোচ্চ ৬ MB হতে পারবে।');
-}
-
-async function optimizeSliderImage(file:File){
-  ensureProviderImage(file);
-  if(typeof document==='undefined'||typeof createImageBitmap!=='function') return file;
-  try{
-    const bitmap=await createImageBitmap(file); const maxEdge=1920; const scale=Math.min(1,maxEdge/Math.max(bitmap.width,bitmap.height));
-    const width=Math.max(1,Math.round(bitmap.width*scale)),height=Math.max(1,Math.round(bitmap.height*scale));
-    const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height; const context=canvas.getContext('2d');
-    if(!context){bitmap.close();return file;} context.drawImage(bitmap,0,0,width,height); bitmap.close();
-    const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,'image/webp',0.84));
-    if(!blob||blob.size>=file.size)return file; const basename=file.name.replace(/\.[^.]+$/,'')||'provider-slider';
-    return new File([blob],`${basename}.webp`,{type:'image/webp',lastModified:file.lastModified});
-  }catch{return file;}
-}
-
 export async function uploadProviderWebsiteImage(providerId:string,file:File,kind:'service'|'gallery'|'slider'){
-  ensureProviderImage(file);
-  const prepared=kind==='slider'?await optimizeSliderImage(file):file;
-  const {data:{user}}=await requireSupabase().auth.getUser(); if(!user) throw new Error('Authentication required');
-  const ext=prepared.name.split('.').pop()?.toLowerCase()||'jpg'; const path=`${user.id}/${providerId}/website/${kind}/${Date.now()}-${crypto.randomUUID().slice(0,8)}.${ext}`;
-  const {error}=await requireSupabase().storage.from('public-images').upload(path,prepared,{cacheControl:'86400',contentType:prepared.type,upsert:false}); if(error) throw error; return path;
+  const {data:{user}}=await requireSupabase().auth.getUser();
+  if(!user) throw new Error('Authentication required');
+  const preset=kind==='slider'?'slider':kind==='service'?'service':'gallery';
+  const result=await uploadOptimizedImage({
+    file,
+    bucket:'public-images',
+    ownerPrefix:user.id,
+    folder:`${providerId}/website/${kind}`,
+    preset,
+  });
+  return result.path;
 }
+
 
 export async function removeOwnedProviderWebsiteImage(path:string|null|undefined){
   if(!path||/^https?:\/\//i.test(path))return; const client=requireSupabase(); const {data:{user}}=await client.auth.getUser();
-  if(!user||!path.startsWith(`${user.id}/`))return; await client.storage.from('public-images').remove([path]);
+  if(!user||!path.startsWith(`${user.id}/`))return; await removeOptimizedImageVariants('public-images',path);
 }
 
 export async function replaceProviderSliderImage(providerId:string,row:ProviderSliderImage,file:File){

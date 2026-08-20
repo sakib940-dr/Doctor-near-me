@@ -28,7 +28,7 @@ function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number) {
 export default function ProviderCard({ provider, stats, onStatsChange, viewerLocation }: Props) {
   const [localStats, setLocalStats] = useState<PublicProfileStats | null>(stats ?? null);
   const [imageFailed, setImageFailed] = useState(false);
-  const image = getImageUrl(provider.banner_url || provider.logo_url, 'public-images');
+  const image = getImageUrl(provider.banner_url || provider.logo_url, 'public-images', 'thumbnail');
   const TypeIcon = provider.provider_type === 'hospital' ? Hospital : Building2;
   const publicHref = providerPublicPath(provider.provider_type, provider.slug, provider.id);
   const distance = viewerLocation && provider.latitude != null && provider.longitude != null

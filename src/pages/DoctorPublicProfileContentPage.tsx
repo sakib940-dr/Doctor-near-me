@@ -208,9 +208,9 @@ function SliderManager({ rows, reload, setError, setNotice }: EditorCommon & { r
   return (
     <section className="doctor-content-editor-card">
       <header><div><small>{rows.length}/4 images</small><h2>Profile Image Slider</h2></div><ImagePlus /></header>
-      <p className="doctor-editor-help">JPG/PNG/WebP/AVIF, সর্বোচ্চ ৫ MB। বড় ছবি browser-এ সর্বোচ্চ 1920px edge-এ optimize হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
+      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • ছবি স্বয়ংক্রিয়ভাবে WebP-তে অপটিমাইজ হবে। 5–6 MB source image-ও গ্রহণ করা যাবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
       <form className="doctor-content-compact-form" onSubmit={submit}>
-        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
+        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
         <input value={captionBn} onChange={(event) => setCaptionBn(event.target.value)} placeholder="বাংলা caption (optional)" />
         <input value={captionEn} onChange={(event) => setCaptionEn(event.target.value)} placeholder="English caption (optional)" />
         <label className="doctor-content-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Public-এ দেখান</label>
@@ -219,7 +219,7 @@ function SliderManager({ rows, reload, setError, setNotice }: EditorCommon & { r
       </form>
       <div className="doctor-slider-admin-list">
         {rows.map((row, index) => <article key={row.id}>
-          <img src={getImageUrl(row.image, 'public-images') || ''} alt={row.caption?.bn || 'Doctor slider'} loading="lazy" decoding="async" />
+          <img src={getImageUrl(row.image, 'public-images', 'thumbnail') || ''} alt={row.caption?.bn || 'Doctor slider'} loading="lazy" decoding="async" width="640" height="360" />
           <div><strong>{row.caption?.bn || row.caption?.en || `Slide ${index + 1}`}</strong><small>{row.is_active ? 'Public' : 'Hidden'}</small></div>
           <div className="doctor-content-row-actions"><button type="button" onClick={() => void move(index, -1)} disabled={index === 0} aria-label="উপরে"><ArrowUp /></button><button type="button" onClick={() => void move(index, 1)} disabled={index === rows.length - 1} aria-label="নিচে"><ArrowDown /></button><button type="button" onClick={() => startEdit(row)} aria-label="সম্পাদনা"><Pencil /></button><button type="button" onClick={() => void remove(row)} aria-label="মুছুন"><Trash2 /></button></div>
         </article>)}

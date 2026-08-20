@@ -74,7 +74,7 @@ type AreaSelectionSource = 'none' | 'gps' | 'manual';
 type StatsMap = Record<string, PublicProfileStats>;
 
 function TopicImage({ path }: { path: string | null }) {
-  const imageUrl = getImageUrl(path, 'public-images');
+  const imageUrl = getImageUrl(path, 'public-images', 'thumbnail');
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [imageUrl]);
   return (

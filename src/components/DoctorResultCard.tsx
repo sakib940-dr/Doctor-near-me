@@ -23,7 +23,7 @@ const rankingLabel: Record<PublicProfileStats['ranking_tier'], string> = {
 export default function DoctorResultCard({ doctor, stats, onStatsChange }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const [localStats, setLocalStats] = useState<PublicProfileStats | null>(stats ?? null);
-  const avatar = getImageUrl(doctor.avatar_url, 'avatars');
+  const avatar = getImageUrl(doctor.avatar_url, 'avatars', 'thumbnail');
   const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
   const specialtyLabel = doctor.professional_title || primarySpecialty?.name_bn || 'General Practitioner';
   const institutionParts = Array.from(new Set([doctor.nearest_provider_name, doctor.present_job].filter((value): value is string => Boolean(value))));

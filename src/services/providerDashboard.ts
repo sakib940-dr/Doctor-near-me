@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { uploadOptimizedImage } from './imageUpload';
 import type { DoctorProviderInvitation, ProviderDashboardItem, ProviderDoctorSearchRow } from '../types';
 
 export interface ProviderProfileInput {
@@ -71,16 +72,17 @@ export async function saveMyProviderProfile(input: ProviderProfileInput) {
 }
 
 export async function uploadProviderMedia(file: File, userId: string, kind: 'logo' | 'banner' | 'gallery') {
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
-  }
-  if (file.size > 6 * 1024 * 1024) throw new Error('প্রতিটি ছবির আকার সর্বোচ্চ ৬ MB হতে পারবে।');
-  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const path = `${userId}/provider-${kind}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
-  const { error } = await requireSupabase().storage.from('public-images').upload(path, file, { cacheControl: '3600', upsert: false });
-  if (error) throw error;
-  return path;
+  const preset = kind === 'logo' ? 'logo' : kind === 'banner' ? 'banner' : 'gallery';
+  const result = await uploadOptimizedImage({
+    file,
+    bucket: 'public-images',
+    ownerPrefix: userId,
+    folder: `provider-${kind}`,
+    preset,
+  });
+  return result.path;
 }
+
 
 export async function searchApprovedDoctorsForProvider(query: string) {
   const { data, error } = await requireSupabase().rpc('search_approved_doctors_for_provider', { p_query: query.trim() || null, p_limit: 20 });

@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { optimizeVerificationImageIfNeeded } from './imageUpload';
 import type { AmbulanceDocument, AmbulanceDocumentType, AmbulanceVehicleType, ApprovedHospitalRow, HospitalAmbulanceLinkRequest, MyAmbulanceService } from '../types';
 
 export interface AmbulanceProfileInput {
@@ -67,13 +68,14 @@ export async function getMyAmbulanceDocuments(ambulanceId: string) {
 }
 
 export async function uploadAmbulanceDocument(input: { ambulanceId: string; documentType: AmbulanceDocumentType; file: File }) {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-  if (!allowed.includes(input.file.type)) throw new Error('JPG, PNG, WebP অথবা PDF document দিন।');
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'application/pdf'];
+  if (!allowed.includes(input.file.type)) throw new Error('JPG, PNG, WebP, AVIF অথবা PDF document দিন।');
   if (input.file.size > 10 * 1024 * 1024) throw new Error('Document সর্বোচ্চ ১০ MB হতে পারবে।');
-  const extension = input.file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const prepared = await optimizeVerificationImageIfNeeded(input.file);
+  const extension = prepared.name.split('.').pop()?.toLowerCase() || 'bin';
   const path = `ambulances/${input.ambulanceId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
   const client = requireSupabase();
-  const { error: uploadError } = await client.storage.from('verification-documents').upload(path, input.file, { upsert: false });
+  const { error: uploadError } = await client.storage.from('verification-documents').upload(path, prepared, { contentType: prepared.type, upsert: false });
   if (uploadError) throw uploadError;
   const { error } = await client.rpc('add_my_ambulance_document', { p_ambulance_id: input.ambulanceId, p_document_type: input.documentType, p_storage_path: path });
   if (error) {

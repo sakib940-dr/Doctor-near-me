@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { uploadOptimizedImage } from './imageUpload';
 import type { MyDoctorProfile } from '../types';
 import { resolvePublicDoctorRoute } from './discovery';
 
@@ -180,20 +181,16 @@ export async function updateMyDoctorVisitingCard(input: DoctorVisitingCardUpdate
 }
 
 export async function uploadDoctorPhoto(file: File, userId: string) {
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
-  }
-  if (file.size > 3 * 1024 * 1024) throw new Error('ছবির আকার সর্বোচ্চ ৩ MB হতে পারবে।');
-
-  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const path = `${userId}/doctor-profile-${Date.now()}.${extension}`;
-  const { error } = await requireSupabase().storage.from('avatars').upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
+  const result = await uploadOptimizedImage({
+    file,
+    bucket: 'avatars',
+    ownerPrefix: userId,
+    folder: 'doctor-profile',
+    preset: 'profile',
   });
-  if (error) throw error;
-  return path;
+  return result.path;
 }
+
 
 
 export interface DoctorChamberInput {

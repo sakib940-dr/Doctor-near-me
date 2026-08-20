@@ -208,10 +208,10 @@ export default function DoctorVisitingCardPage() {
                 </div>
                 <div className="visiting-card-photo-editor">
                   <div className="doctor-photo-preview">
-                    {avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" /> : <Stethoscope />}
+                    {avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" width="800" height="800" decoding="async" /> : <Stethoscope />}
                   </div>
                   <label><Camera /> Profile Photo<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
-                  <small>JPG/PNG/WebP/AVIF, সর্বোচ্চ ৩ MB</small>
+                  <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small>
                 </div>
                 <div className="patient-form-grid visiting-card-form-grid">
                   <label className="auth-field"><span>Doctor Name</span><div><input required minLength={2} value={profile.doctor.full_name || ''} onChange={(event) => setDoctor('full_name', event.target.value)} /></div></label>

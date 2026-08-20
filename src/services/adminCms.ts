@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
 import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic, DegreeMasterItem } from '../types';
 
 export async function getAdminCmsSnapshot() {
@@ -54,17 +55,19 @@ export async function saveAdminBanner(item: Omit<AdminCmsBanner, 'id'> & { id?: 
 }
 
 export async function uploadAdminBanner(file: File) {
-  if (file.size > 5 * 1024 * 1024) throw new Error('Banner image সর্বোচ্চ ৫ MB হতে পারবে।');
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('JPG, PNG, WebP বা AVIF image দিন।');
   const client = requireSupabase();
   const { data: userData, error: userError } = await client.auth.getUser();
   if (userError || !userData.user) throw userError || new Error('Authentication required');
-  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `${userData.user.id}/cms/banners/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from('public-images').upload(path, file, { contentType: file.type, upsert: false });
-  if (error) throw error;
-  return path;
+  const result = await uploadOptimizedImage({
+    file,
+    bucket: 'public-images',
+    ownerPrefix: userData.user.id,
+    folder: 'cms/banners',
+    preset: 'banner',
+  });
+  return result.path;
 }
+
 
 export async function saveAdminContentPage(item: AdminCmsContentPage) {
   const { data, error } = await requireSupabase().rpc('save_admin_content_page', {
@@ -88,22 +91,23 @@ export async function saveAdminPublicSetting(key: string, value: Record<string, 
 const specialtyImagePathPattern = /^[0-9a-f-]+\/cms\/specialties\//i;
 
 export async function uploadAdminSpecialtyImage(file: File) {
-  if (file.size > 5 * 1024 * 1024) throw new Error('Specialty image সর্বোচ্চ ৫ MB হতে পারবে।');
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('JPG, PNG, WebP বা AVIF image দিন।');
   const client = requireSupabase();
   const { data: userData, error: userError } = await client.auth.getUser();
   if (userError || !userData.user) throw userError || new Error('Authentication required');
-  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const path = `${userData.user.id}/cms/specialties/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from('public-images').upload(path, file, { contentType: file.type, upsert: false });
-  if (error) throw error;
-  return path;
+  const result = await uploadOptimizedImage({
+    file,
+    bucket: 'public-images',
+    ownerPrefix: userData.user.id,
+    folder: 'cms/specialties',
+    preset: 'category',
+  });
+  return result.path;
 }
+
 
 export async function deleteAdminSpecialtyImage(path: string | null | undefined) {
   if (!path || /^https?:\/\//i.test(path) || !specialtyImagePathPattern.test(path)) return false;
-  const { error } = await requireSupabase().storage.from('public-images').remove([path]);
-  if (error) throw error;
+  await removeOptimizedImageVariants('public-images', path);
   return true;
 }
 

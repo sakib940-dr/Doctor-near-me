@@ -44,18 +44,50 @@ export async function getDistricts() {
   }, 15 * 60_000);
 }
 
+function isMissingDhakaLocationMetadata(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { code?: string; message?: string; details?: string };
+  const text = `${value.message ?? ''} ${value.details ?? ''}`.toLowerCase();
+  return value.code === '42703' || text.includes('location_type') || text.includes('city_corporation');
+}
+
 export async function getUpazilas(districtId: number) {
-  return publicCachedRequest(`public:upazilas:v2:${districtId}`, async () => {
-    const { data, error } = await requireSupabase()
+  return publicCachedRequest(`public:upazilas:v3:${districtId}`, async () => {
+    const client = requireSupabase();
+    const primary = await client
       .from('upazilas')
       .select('id,district_id,name_bn,name_en,slug,location_type,city_corporation')
       .eq('is_active', true)
       .eq('district_id', districtId)
       .order('name_bn');
-    if (error) throw error;
+
+    let rows: Upazila[];
+    if (!primary.error) {
+      rows = (primary.data ?? []) as Upazila[];
+    } else if (isMissingDhakaLocationMetadata(primary.error)) {
+      // Migration 60 may not yet be applied in a deployment. Location metadata
+      // is optional for old records and must never make authenticated/profile
+      // pages unusable. Fall back to the pre-STEP60 column set until migration
+      // 60 is applied; existing Upazila IDs remain fully compatible.
+      const legacy = await client
+        .from('upazilas')
+        .select('id,district_id,name_bn,name_en,slug')
+        .eq('is_active', true)
+        .eq('district_id', districtId)
+        .order('name_bn');
+      if (legacy.error) throw legacy.error;
+      rows = ((legacy.data ?? []) as Array<Omit<Upazila, 'location_type' | 'city_corporation'>>).map((row) => ({
+        ...row,
+        location_type: 'upazila' as const,
+        city_corporation: null,
+      }));
+    } else {
+      throw primary.error;
+    }
+
     const hiddenLegacyDhakaSlugs = new Set(['dhaka-sadar', 'main-dhaka', 'main-dhaka-city', 'dhaka-city']);
-    const rows = ((data ?? []) as Upazila[]).filter((row) => !hiddenLegacyDhakaSlugs.has(row.slug.toLowerCase()));
-    return [...rows].sort((a, b) => {
+    const visibleRows = rows.filter((row) => !hiddenLegacyDhakaSlugs.has(row.slug.toLowerCase()));
+    return [...visibleRows].sort((a, b) => {
       const typeOrder = (a.location_type === 'upazila' ? 0 : 1) - (b.location_type === 'upazila' ? 0 : 1);
       return typeOrder || a.name_bn.localeCompare(b.name_bn, 'bn');
     });

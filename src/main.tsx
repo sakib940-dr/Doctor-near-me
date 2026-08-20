@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { VisitorLanguageProvider } from './contexts/VisitorLanguageContext';
 import App from './App';
+import AppErrorBoundary from './components/AppErrorBoundary';
 import './styles.css';
 import { registerPwaServiceWorker } from './lib/pwa';
 import { installGlobalImageUploadGuard } from './lib/imageOptimization';
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <VisitorLanguageProvider>
         <AuthProvider>
-          <App />
+          <AppErrorBoundary>
+            <App />
+          </AppErrorBoundary>
         </AuthProvider>
       </VisitorLanguageProvider>
     </BrowserRouter>

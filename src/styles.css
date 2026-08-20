@@ -8048,3 +8048,11 @@ img { max-width: 100%; height: auto; }
 
 /* STEP 59: bounded public pagination keeps free-tier reads and mobile DOM size small. */
 .public-load-more-wrap{display:flex;justify-content:center;padding:14px 0 4px}.public-load-more-button{min-height:44px;padding:10px 18px;border:1px solid var(--border,#dfe7e4);border-radius:999px;background:var(--surface,#fff);font:inherit;font-weight:700;color:var(--brand,#087f5b);display:inline-flex;align-items:center;gap:8px;justify-content:center}.public-load-more-button:disabled{opacity:.65;cursor:wait}@media(max-width:430px){.public-load-more-button{width:100%;max-width:320px}}
+
+/* Auth/dashboard regression safety states */
+.route-state-error { color: var(--muted); }
+.route-state-error > svg { color: #b42318; }
+.route-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+.route-state-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 9px 14px; border: 1px solid rgba(15, 118, 110, .22); border-radius: 10px; background: #fff; color: var(--green-950); font: inherit; font-weight: 700; cursor: pointer; }
+.route-state-actions button:hover { background: rgba(15, 118, 110, .06); }
+.route-state-actions button svg { width: 17px; height: 17px; }

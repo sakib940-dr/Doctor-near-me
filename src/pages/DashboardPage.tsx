@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, Droplets, Eye, FileCheck2, Heart, Link2, LoaderCircle, LogOut, MessageCircle, PhoneCall, Settings, ShieldCheck, Star, Stethoscope, UserRound, UsersRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
+import AccountStateFallback from '../components/AccountStateFallback';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
 import { saveMyCurrentLocation } from '../services/discovery';
@@ -17,7 +18,7 @@ const LEGACY_LOCATION_STORAGE_KEY = 'sirajganj-current-location';
 const roleLabels: Record<UserRole, string> = { patient: 'রোগী', doctor: 'ডাক্তার', chamber: 'চেম্বার', hospital: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স সেবা', verification_officer: 'ভেরিফিকেশন অফিসার', admin: 'অ্যাডমিন', super_admin: 'সুপার অ্যাডমিন' };
 
 export default function DashboardPage() {
-  const { account, accountError, loading, signOut } = useAuth();
+  const { account, accountError, loading, refreshAccount, signOut } = useAuth();
   const [context, setContext] = useState<DashboardContext | null>(null);
   const [contextLoading, setContextLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,8 +125,6 @@ export default function DashboardPage() {
     }).catch(() => undefined);
   }, [account]);
 
-  if (!loading && account && ((['doctor', 'hospital'].includes(account.role) && !account.onboarding_completed) || (!['doctor', 'hospital'].includes(account.role) && !account.profile_completed))) return <Navigate to="/onboarding" replace />;
-
   async function logout() { await signOut(); navigate('/', { replace: true }); }
 
   const patientMetrics = patientSummary;
@@ -134,7 +133,18 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5), [patientAppointments]);
 
-  const role = context?.role ?? account?.role ?? 'patient';
+  // Keep all hooks above every redirect/return. Returning before the useMemo above
+  // caused a hook-order crash when auth loading changed to an incomplete account.
+  if (!loading && account && ((['doctor', 'hospital'].includes(account.role) && !account.onboarding_completed) || (!['doctor', 'hospital'].includes(account.role) && !account.profile_completed))) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (!loading && !account) {
+    return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={logout} />;
+  }
+
+  // Account context is the canonical role source. A secondary dashboard RPC may
+  // fail or be stale, but that must never switch the shell role or create a loop.
+  const role = account?.role ?? 'patient';
   const cards = role === 'patient'
     ? [{ icon: CalendarDays, title: 'আমার অ্যাপয়েন্টমেন্ট', detail: 'আসন্ন ও আগের appointment দেখুন', path: '/appointments' }, { icon: UserRound, title: 'আমার প্রোফাইল', detail: 'ব্যক্তিগত ও জরুরি যোগাযোগের তথ্য', path: '/profile' }]
     : role === 'doctor'

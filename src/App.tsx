@@ -6,6 +6,7 @@ import PwaInstallPromotion from './components/PwaInstallPromotion';
 import PushPermissionPromotion from './components/PushPermissionPromotion';
 import PushNotificationManager from './components/PushNotificationManager';
 import DashboardShell from './components/DashboardShell';
+import AccountStateFallback from './components/AccountStateFallback';
 import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
 import AdminCmsPage from './pages/AdminCmsPage';
@@ -119,16 +120,18 @@ function DoctorDirectoryRoute() {
 
 
 function NotificationCenterRoute() {
-  const { account, loading } = useAuth();
-  if (loading) return null;
-  if (!account) return <Navigate to="/auth" replace />;
+  const { user, account, loading, accountError, refreshAccount, signOut } = useAuth();
+  if (loading) return <AccountStateFallback loading />;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!account) return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={signOut} />;
   return <DashboardShell role={account.role as DashboardRole}><NotificationsPage /></DashboardShell>;
 }
 
 function RoleAwareDashboardShell({ allowed, children }: { allowed: DashboardRole[]; children: ReactNode }) {
-  const { account, loading } = useAuth();
-  if (loading) return null;
-  if (!account || !allowed.includes(account.role as DashboardRole)) return <Navigate to="/dashboard" replace />;
+  const { account, loading, accountError, refreshAccount, signOut } = useAuth();
+  if (loading) return <AccountStateFallback loading />;
+  if (!account) return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={signOut} />;
+  if (!allowed.includes(account.role as DashboardRole)) return <Navigate to="/dashboard" replace />;
   return <DashboardShell role={account.role as DashboardRole}>{children}</DashboardShell>;
 }
 

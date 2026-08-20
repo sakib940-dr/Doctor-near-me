@@ -18,7 +18,13 @@ interface AuthValue {
 
 const AuthContext = createContext<AuthValue | null>(null);
 
-const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অ্যাকাউন্ট তথ্য লোড করা যায়নি।';
+const messageFrom = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+    return (error as { message: string }).message;
+  }
+  return 'অ্যাকাউন্ট তথ্য লোড করা যায়নি।';
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccountError(null);
     try {
       const nextAccount = await getMyAccountContext();
+      if (!nextAccount) {
+        throw new Error('Authenticated session পাওয়া গেছে, কিন্তু account profile/context পাওয়া যায়নি।');
+      }
       setAccount(nextAccount);
       return nextAccount;
     } catch (error) {

@@ -31,6 +31,7 @@ import { getMyPendingVerificationCount } from '../services/verification';
 import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
 import NotificationBell from './NotificationBell';
+import AccountStateFallback from './AccountStateFallback';
 
 interface DashboardShellProps {
   role: DashboardRole;
@@ -69,7 +70,7 @@ const panelLabels: Record<DashboardRole, string> = {
 };
 
 export default function DashboardShell({ role, children }: DashboardShellProps) {
-  const { account, loading, signOut } = useAuth();
+  const { account, loading, accountError, refreshAccount, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -216,8 +217,9 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     }
   }, [pendingAppointments, pendingInvitations, pendingVerification, role]);
 
-  if (loading) return null;
-  if (!account || account.role !== role) return <Navigate to="/dashboard" replace />;
+  if (loading) return <AccountStateFallback loading />;
+  if (!account) return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={signOut} />;
+  if (account.role !== role) return <Navigate to="/dashboard" replace />;
 
   async function logout() {
     if (loggingOut) return;

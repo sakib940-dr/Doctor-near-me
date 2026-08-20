@@ -90,32 +90,54 @@ interface PublicDoctorVisitingCardRow {
   verification_status: 'pending' | 'approved' | 'rejected' | 'expired';
 }
 
+interface PublicDoctorCardContextRow {
+  doctor_id: string;
+  provider_id: string | null;
+  provider_name: string | null;
+  provider_type: string | null;
+  provider_address: string | null;
+  provider_latitude: number | null;
+  provider_longitude: number | null;
+}
+
 async function hydrateDoctorVisitingCards(rows: DoctorSearchRow[]) {
   if (!rows.length) return rows;
   const ids = Array.from(new Set(rows.map((row) => row.doctor_id)));
-  const { data, error } = await requireSupabase().rpc('get_public_doctor_visiting_cards', {
-    p_doctor_ids: ids,
-  });
-  // Never infer a Verified badge client-side. If the canonical status hydration
-  // is temporarily unavailable, fail closed to Not verified yet.
-  if (error) return rows.map((row) => ({ ...row, verification_status: row.verification_status ?? 'pending' }));
+  const client = requireSupabase();
+  const [cardResult, contextResult] = await Promise.all([
+    client.rpc('get_public_doctor_visiting_cards', { p_doctor_ids: ids }),
+    client.rpc('get_public_doctor_card_context', { p_doctor_ids: ids }),
+  ]);
+
+  // Never infer a Verified badge client-side. If canonical hydration is
+  // temporarily unavailable, fail closed while keeping the directory usable.
   const byDoctor = new Map(
-    ((data ?? []) as PublicDoctorVisitingCardRow[]).map((row) => [row.doctor_id, row]),
+    cardResult.error ? [] : ((cardResult.data ?? []) as PublicDoctorVisitingCardRow[]).map((item) => [item.doctor_id, item]),
   );
+  const byContext = new Map(
+    contextResult.error ? [] : ((contextResult.data ?? []) as PublicDoctorCardContextRow[]).map((item) => [item.doctor_id, item]),
+  );
+
   return rows.map((row) => {
     const card = byDoctor.get(row.doctor_id);
-    if (!card) return row;
+    const context = byContext.get(row.doctor_id);
     return {
       ...row,
-      doctor_name: card.doctor_name || row.doctor_name,
-      avatar_url: card.avatar_url,
-      degree: card.degree,
-      professional_title: card.professional_title,
-      designation: card.designation,
-      bmdc_registration_no: card.bmdc_registration_no,
-      medical_college: card.medical_college,
-      present_job: card.present_job,
-      verification_status: card.verification_status,
+      doctor_name: card?.doctor_name || row.doctor_name,
+      avatar_url: card?.avatar_url ?? row.avatar_url,
+      degree: card?.degree ?? row.degree,
+      professional_title: card?.professional_title ?? row.professional_title,
+      designation: card?.designation ?? row.designation,
+      bmdc_registration_no: card?.bmdc_registration_no ?? row.bmdc_registration_no ?? null,
+      medical_college: card?.medical_college ?? row.medical_college ?? null,
+      present_job: card?.present_job ?? row.present_job ?? null,
+      verification_status: card?.verification_status ?? row.verification_status ?? 'pending',
+      nearest_provider_id: row.nearest_provider_id ?? context?.provider_id ?? null,
+      nearest_provider_name: row.nearest_provider_name ?? context?.provider_name ?? null,
+      nearest_provider_type: row.nearest_provider_type ?? context?.provider_type ?? null,
+      nearest_provider_address: row.nearest_provider_address ?? context?.provider_address ?? null,
+      nearest_provider_latitude: row.nearest_provider_latitude ?? context?.provider_latitude ?? null,
+      nearest_provider_longitude: row.nearest_provider_longitude ?? context?.provider_longitude ?? null,
     };
   });
 }

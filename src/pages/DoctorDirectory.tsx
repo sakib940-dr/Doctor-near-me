@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Filter, LoaderCircle, RotateCcw, Search, Sli
 import { useSearchParams } from 'react-router-dom';
 import DoctorResultCard from '../components/DoctorResultCard';
 import PublicHeader from '../components/PublicHeader';
+import VisitorBottomNav from '../components/VisitorBottomNav';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDegreeMaster, getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
 import { getPublicProfileStatsBatch } from '../services/engagement';
@@ -34,7 +35,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(params.get('advanced') === '1');
 
   const page = Math.max(1, numberParam(params.get('page')) ?? 1);
   const total = rows[0]?.total_count ?? 0;
@@ -75,6 +76,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     setMaxFee(params.get('maxFee') ?? '');
     setToday(params.get('today') === '1');
     setSort(params.get('sort') ?? 'name');
+    if (params.get('advanced') === '1') setFiltersOpen(true);
   }, [params, degreeOptions]);
 
   useEffect(() => {
@@ -169,13 +171,13 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
 
   return (
     <div className="app-shell directory-page">
-      {!embedded && <PublicHeader />}
+      {!embedded && <PublicHeader mobileBottomNav />}
       <main>
         <section className="directory-hero">
           <div className="container">
             <span>ভেরিফায়েড ডাক্তার ডিরেক্টরি</span>
             <h1>আপনার প্রয়োজনের সঠিক ডাক্তার খুঁজুন</h1>
-            <p>নাম, রোগ, বিশেষজ্ঞতা ও এলাকা অনুযায়ী অনুসন্ধান করুন</p>
+            <p>সারা বাংলাদেশের ডাক্তার নাম, ডিগ্রি, স্পেশালিটি, জেলা ও উপজেলা অনুযায়ী অনুসন্ধান করুন</p>
             <form className="directory-search" onSubmit={apply}>
               <Search size={21} />
               <input aria-label="ডাক্তার খুঁজুন" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ডাক্তারের নাম, রোগ বা স্পেশালিটি" />
@@ -206,6 +208,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
           </div>
         </section>
       </main>
+      {!embedded && <VisitorBottomNav />}
     </div>
   );
 }

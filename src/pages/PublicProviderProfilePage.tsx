@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BadgeCheck, Building2, LoaderCircle, MapPin, Navigation, Phone } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import DoctorResultCard from '../components/DoctorResultCard';
+import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDoctorsForProvider, getPublicProvider } from '../services/discovery';
-import { getPublicProfileStatsBatch } from '../services/engagement';
+import { getProviderPublicStats, getPublicProfileStatsBatch } from '../services/engagement';
 import type { DoctorSearchRow, ProviderDirectoryRow, PublicProfileStats } from '../types';
 
 export default function PublicProviderProfilePage() {
@@ -14,6 +15,7 @@ export default function PublicProviderProfilePage() {
   const [provider, setProvider] = useState<ProviderDirectoryRow | null>(null);
   const [doctors, setDoctors] = useState<DoctorSearchRow[]>([]);
   const [doctorStats, setDoctorStats] = useState<Record<string, PublicProfileStats>>({});
+  const [providerStats, setProviderStats] = useState<PublicProfileStats | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +25,15 @@ export default function PublicProviderProfilePage() {
       .then(([providerRow, doctorRows]) => { setProvider(providerRow); setDoctors(doctorRows); })
       .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।'))
       .finally(() => setLoading(false));
+  }, [providerId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !providerId) return;
+    let active = true;
+    getProviderPublicStats(providerId)
+      .then((stats) => { if (active) setProviderStats(stats); })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, [providerId]);
 
   useEffect(() => {
@@ -59,7 +70,7 @@ export default function PublicProviderProfilePage() {
         {provider && <>
           <section className="public-provider-hero-card">
             <div className="provider-big-icon"><Building2 /></div>
-            <div><span>{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'} {provider.verified && <><BadgeCheck /> যাচাইকৃত</>}</span><h1>{provider.name_bn}</h1><p><MapPin /> {provider.address || 'ঠিকানা যোগ করা হয়নি'}</p></div>
+            <div><span>{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'} {provider.verified && <><BadgeCheck /> যাচাইকৃত</>}</span><h1>{provider.name_bn}</h1><p><MapPin /> {provider.address || 'ঠিকানা যোগ করা হয়নি'}</p><div className="public-follow-summary provider-follow-summary"><FollowSaveButton targetType="provider" targetId={provider.id} stats={providerStats} variant="button" entityLabel={provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'} onStatsChange={setProviderStats} /><span><b>{(providerStats?.follower_count ?? 0).toLocaleString('bn-BD')}</b> মোট অনুসারী</span></div></div>
             {provider.phone && <a href={`tel:${provider.phone}`}><Phone /> {provider.phone}</a>}
           </section>
 

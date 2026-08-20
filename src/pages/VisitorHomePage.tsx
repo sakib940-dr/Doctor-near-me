@@ -451,13 +451,15 @@ export default function VisitorHomePage() {
   if (districtId) viewAllParams.set('district', districtId);
   if (upazilaId) viewAllParams.set('upazila', upazilaId);
   const contextDoctorsHref = `/doctors${viewAllParams.size ? `?${viewAllParams}` : ''}`;
-  const selectedDistrictName = districts.find((district) => String(district.id) === districtId)?.name_bn || detectedLocation?.district_name_bn || 'জেলা';
-  const selectedUpazilaName = upazilas.find((upazila) => String(upazila.id) === upazilaId)?.name_bn || 'উপজেলা';
+  const selectedDistrictName = districtId ? (districts.find((district) => String(district.id) === districtId)?.name_bn || detectedLocation?.district_name_bn || 'জেলা') : 'সকল জেলা';
+  const selectedUpazilaName = upazilas.find((upazila) => String(upazila.id) === upazilaId)?.name_bn || 'সকল উপজেলা';
   const areaTitle = upazilaId ? selectedUpazilaName : districtId ? selectedDistrictName : 'সারা বাংলাদেশ';
   const dentalTopic = topics.find((topic) => topic.slug === 'dental' || topic.name_en?.toLowerCase().includes('dental') || topic.name_bn.includes('দাঁত'));
   const dentalDoctors = dentalTopic ? specialtyDoctors[dentalTopic.id] ?? [] : [];
   const savedHref = user ? '/saved' : '/auth';
   const savedState = user ? undefined : { from: '/saved' };
+  const bloodHref = user ? '/blood' : '/auth';
+  const bloodState = user ? undefined : { from: '/blood' };
   const updateDoctorStats = (doctorId: string, next: PublicProfileStats) => setDoctorStats((current) => ({ ...current, [doctorId]: next }));
   const updateProviderStats = (providerId: string, next: PublicProfileStats) => setProviderStats((current) => ({ ...current, [providerId]: next }));
 
@@ -472,10 +474,10 @@ export default function VisitorHomePage() {
               <label className="marketplace-search-input"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ডাক্তার, রোগ বা স্পেশালিটি" aria-label="ডাক্তার খুঁজুন" /></label>
               <button type="submit" className="marketplace-search-button" aria-label="Search"><Search /></button>
             </form>
-            <div className="marketplace-location-row">
-              <button type="button" onClick={() => setPickerOpen('district')}><MapPin /><span>{selectedDistrictName}</span><ChevronDown /></button>
-              <button type="button" onClick={() => districtId && setPickerOpen('upazila')} disabled={!districtId}><span>{selectedUpazilaName}</span><ChevronDown /></button>
-              <button type="button" className={`near-me-chip ${locationState === 'granted' ? 'active' : ''}`} onClick={requestLocation}>{locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}<span>{locationState === 'granted' ? 'Near Me On' : 'Near Me'}</span></button>
+            <div className="marketplace-location-row marketplace-location-selectors">
+              <button className="marketplace-location-select" type="button" onClick={() => setPickerOpen('district')}><MapPin /><span><small>জেলা</small><strong>{selectedDistrictName}</strong></span><ChevronDown /></button>
+              <button className="marketplace-location-select" type="button" onClick={() => districtId && setPickerOpen('upazila')} disabled={!districtId}><MapPin /><span><small>উপজেলা</small><strong>{selectedUpazilaName}</strong></span><ChevronDown /></button>
+              <button type="button" className={`near-me-chip marketplace-near-me-button ${locationState === 'granted' ? 'active' : ''}`} onClick={requestLocation}>{locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}<span><small>GPS</small><strong>{locationState === 'granted' ? 'Near Me On' : 'Near Me'}</strong></span></button>
             </div>
             <div className="marketplace-quick-row">
               <Link to={contextDoctorsHref}><Stethoscope /> সব ডাক্তার</Link>
@@ -494,6 +496,7 @@ export default function VisitorHomePage() {
               <div className="visitor-picker-handle" />
               <div className="visitor-picker-head"><div><span>এলাকা বেছে নিন</span><h2>{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'}</h2></div><button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button></div>
               <div className="visitor-picker-list">
+                <button className={((!districtId && pickerOpen === 'district') || (!upazilaId && pickerOpen === 'upazila')) ? 'active visitor-picker-clear' : 'visitor-picker-clear'} type="button" onClick={() => { if (pickerOpen === 'district') selectDistrict(''); else selectUpazila(''); setPickerOpen(null); }}><span>{pickerOpen === 'district' ? 'সারা বাংলাদেশ / সকল জেলা' : 'সকল উপজেলা'}</span>{((pickerOpen === 'district' && !districtId) || (pickerOpen === 'upazila' && !upazilaId)) && <BadgeCheck />}</button>
                 {(pickerOpen === 'district' ? districts : upazilas).map((item) => {
                   const active = pickerOpen === 'district' ? String(item.id) === districtId : String(item.id) === upazilaId;
                   return <button className={active ? 'active' : ''} type="button" key={item.id} onClick={() => { if (pickerOpen === 'district') selectDistrict(String(item.id)); else selectUpazila(String(item.id)); setPickerOpen(null); }}><span>{item.name_bn}</span>{active && <BadgeCheck />}</button>;
@@ -507,7 +510,7 @@ export default function VisitorHomePage() {
 
         <section className="marketplace-section marketplace-category-section" id="categories">
           <div className="container">
-            <SectionHead eyebrow="ক্যাটাগরি" title="বিশেষজ্ঞতা বেছে নিন" href={contextDoctorsHref} icon={<Stethoscope />} />
+            <SectionHead eyebrow="ক্যাটাগরি" title="বিশেষজ্ঞতা বেছে নিন" href="/categories" icon={<Stethoscope />} />
             <div className="marketplace-category-rail">
               {topics.slice(0, 10).map((topic) => <Link className="marketplace-category-card" to={topicHref(topic)} key={topic.id}><TopicImage path={topicImagePath(topic)} /><strong>{topic.name_bn}</strong></Link>)}
             </div>
@@ -576,7 +579,7 @@ export default function VisitorHomePage() {
         {secondaryReady && Object.keys(specialtyDoctors).length > 0 && (
           <section className="marketplace-section marketplace-specialty-rows marketplace-soft-section">
             <div className="container">
-              <SectionHead eyebrow="Popular" title="স্পেশালিটি অনুযায়ী" href={contextDoctorsHref} icon={<HeartPulse />} />
+              <SectionHead eyebrow="Popular" title="স্পেশালিটি অনুযায়ী" href="/categories" icon={<HeartPulse />} />
               <div className="compact-specialty-list">
                 {topics.slice(0, 4).map((topic) => {
                   if (topic.id === dentalTopic?.id) return null;
@@ -591,13 +594,13 @@ export default function VisitorHomePage() {
         <section className="marketplace-section marketplace-hospital-section" id="hospitals">
           <div className="container">
             <SectionHead eyebrow={areaTitle} title="Hospitals & Chambers" href="/providers" icon={<Building2 />} />
-            {resultsLoading ? <div className="marketplace-horizontal-rail provider-marketplace-rail"><div className="visitor-doctor-skeleton" /><div className="visitor-doctor-skeleton" /></div> : providers.length ? <div className="marketplace-horizontal-rail provider-marketplace-rail">{providers.map((provider) => <ProviderCard provider={provider} stats={providerStats[provider.id]} onStatsChange={updateProviderStats} key={provider.id} />)}</div> : <div className="marketplace-empty">এই এলাকায় হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
+            {resultsLoading ? <div className="marketplace-horizontal-rail provider-marketplace-rail"><div className="visitor-doctor-skeleton" /><div className="visitor-doctor-skeleton" /></div> : providers.length ? <div className="marketplace-horizontal-rail provider-marketplace-rail">{providers.map((provider) => <ProviderCard provider={provider} stats={providerStats[provider.id]} onStatsChange={updateProviderStats} viewerLocation={currentLocation} key={provider.id} />)}</div> : <div className="marketplace-empty">এই এলাকায় হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
           </div>
         </section>
 
         <section className="marketplace-emergency-strip">
           <div className="container marketplace-emergency-rail">
-            <Link to="/auth" className="marketplace-emergency-card" id="blood"><Users /><span><strong>Blood Bank</strong><small>জরুরি রক্ত সহায়তা</small></span><ArrowRight /></Link>
+            <Link to={bloodHref} state={bloodState} className="marketplace-emergency-card" id="blood"><Users /><span><strong>Blood Bank</strong><small>জরুরি রক্ত সহায়তা</small></span><ArrowRight /></Link>
             <article className="marketplace-emergency-card" id="ambulance"><Ambulance /><span><strong>Ambulance</strong><small>{ambulances[0]?.operator_name || 'জরুরি পরিবহন'}</small></span>{ambulances[0]?.phone ? <a href={`tel:${ambulances[0].phone}`}>কল</a> : <ArrowRight />}</article>
           </div>
         </section>

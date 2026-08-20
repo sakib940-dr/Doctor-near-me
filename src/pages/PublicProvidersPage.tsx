@@ -17,10 +17,18 @@ export default function PublicProvidersPage() {
   const [upazilaId, setUpazilaId] = useState('');
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
+  const [viewerLocation, setViewerLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     getDistricts().then(setDistricts).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('docbd-current-location') || 'null') as { latitude?: number; longitude?: number } | null;
+      if (saved && Number.isFinite(saved.latitude) && Number.isFinite(saved.longitude)) setViewerLocation({ latitude: Number(saved.latitude), longitude: Number(saved.longitude) });
+    } catch { /* optional local preference */ }
   }, []);
 
   useEffect(() => {
@@ -67,7 +75,7 @@ export default function PublicProvidersPage() {
           </div>
         </section>
         {error && <div className="error-box">{error}</div>}
-        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রতিষ্ঠান লোড হচ্ছে…</div> : rows.length ? <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} stats={stats[provider.id]} onStatsChange={(providerId, next) => setStats((current) => ({ ...current, [providerId]: next }))} key={provider.id} />)}</div> : <div className="visitor-empty">কোনো অনুমোদিত হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
+        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রতিষ্ঠান লোড হচ্ছে…</div> : rows.length ? <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} stats={stats[provider.id]} onStatsChange={(providerId, next) => setStats((current) => ({ ...current, [providerId]: next }))} viewerLocation={viewerLocation} key={provider.id} />)}</div> : <div className="visitor-empty">কোনো অনুমোদিত হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
       </main>
       <VisitorBottomNav />
     </div>

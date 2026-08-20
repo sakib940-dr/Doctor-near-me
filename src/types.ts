@@ -57,6 +57,60 @@ export interface PatientProfile {
   profile_completed: boolean;
 }
 
+export interface BloodDonorProfile {
+  blood_group: string;
+  is_volunteer: boolean;
+  phone_public: boolean;
+  last_donation_date: string | null;
+  available_for_requests: boolean;
+  district_id: number | null;
+  upazila_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  updated_at: string;
+}
+
+export interface BloodDonorSearchRow {
+  donor_id: string;
+  donor_name: string;
+  phone: string | null;
+  blood_group: string;
+  district_id: number | null;
+  upazila_id: number | null;
+  last_donation_date: string | null;
+}
+
+export interface BloodRequestRow {
+  request_id: string;
+  patient_name: string;
+  blood_group: string;
+  units_needed: number;
+  hospital_name: string | null;
+  hospital_address: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  needed_at: string | null;
+  reason: string | null;
+  contact_phone: string | null;
+  status: string;
+  response_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BloodRequestResponseRow {
+  response_id: string;
+  donor_id: string;
+  donor_name: string;
+  phone: string | null;
+  blood_group: string;
+  district_id: number | null;
+  upazila_id: number | null;
+  last_donation_date: string | null;
+  status: string;
+  created_at: string;
+}
+
 export type AppointmentStatus = 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed' | 'no_show';
 
 export interface AppointmentRow {
@@ -801,6 +855,9 @@ export interface InteractionSummary {
   appointment_clicks: number;
   map_clicks: number;
   followers: number;
+  followers_new: number;
+  followers_lost: number;
+  followers_net: number;
   reviews: number;
   average_rating: number | null;
   days: number;

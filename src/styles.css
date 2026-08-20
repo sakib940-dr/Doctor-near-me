@@ -5710,3 +5710,327 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .cms-ranking-policy h3 { margin: 0 0 4px; color: #173f33; font-size: 15px; }
 .cms-ranking-policy .cms-help { margin: 0 0 10px; }
 .cms-save.secondary { margin-top: 8px; background: #fff; color: #0b805b; border: 1px solid #b9d9cc; }
+
+/* STEP 42 — canonical Patient Follow / Save UI */
+.follow-save-button { font: inherit; cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease; }
+.follow-save-button svg { flex: 0 0 auto; }
+.follow-save-button:active { transform: scale(.96); }
+.follow-save-button:disabled { opacity: .62; cursor: wait; }
+.follow-save-button-labeled { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid #cfe0d9; border-radius: 999px; color: #31594c; background: #fff; font-size: 12px; font-weight: 850; }
+.follow-save-button-labeled svg { width: 17px; height: 17px; }
+.follow-save-button-labeled.is-saved { border-color: #f0c6cf; color: #d94761; background: #fff7f9; }
+.public-follow-summary { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 9px 12px; margin-top: 12px; }
+.public-follow-summary > span { display: inline-flex; align-items: baseline; gap: 4px; color: inherit; font-size: 12px; font-weight: 700; }
+.public-follow-summary > span b { font-size: 16px; }
+.visitor-profile-hero .public-follow-summary .follow-save-button-labeled { color: #0d6d54; border-color: rgba(255,255,255,.75); background: rgba(255,255,255,.96); }
+.visitor-profile-hero .public-follow-summary .follow-save-button-labeled.is-saved { color: #d94761; }
+.provider-follow-summary { justify-content: flex-start; margin-top: 10px; }
+.provider-follow-summary > span { color: #60736b; }
+.provider-site-actions .follow-save-button-labeled { border-color: rgba(255,255,255,.95); color: #075b50; background: #fff; }
+.provider-site-actions .follow-save-button-labeled.is-saved { color: #d94761; background: #fff7f9; }
+.provider-site-followers { margin-top: 8px; color: rgba(255,255,255,.88); font-size: 12px; font-weight: 750; }
+.provider-site-followers b { color: #fff; font-size: 15px; }
+.saved-profile-section { margin-top: 22px; }
+.saved-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.saved-section-head h2 { margin: 0; color: #173d31; font-size: 17px; }
+.saved-section-head span { min-width: 30px; min-height: 26px; display: inline-grid; place-items: center; padding: 0 8px; border-radius: 999px; color: #0a7f5b; background: #e9f5f0; font-size: 11px; font-weight: 850; }
+.saved-profile-link h3 { margin: 2px 0 3px; overflow: hidden; color: #183d31; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-loading-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.saved-skeleton { min-height: 132px; border: 1px solid #e4ebe8; border-radius: 16px; background: linear-gradient(90deg,#f1f4f3 25%,#f8faf9 40%,#f1f4f3 65%); background-size: 400% 100%; animation: skeletonShimmer 1.35s ease infinite; }
+
+@media (max-width: 767px) {
+  .public-follow-summary { gap: 8px; }
+  .follow-save-button-labeled { min-height: 42px; padding: 0 14px; font-size: 12px; }
+  .saved-loading-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .provider-site { padding-bottom: 64px; }
+}
+
+@media (max-width: 430px) {
+  .public-follow-summary { width: 100%; justify-content: center; }
+  .provider-follow-summary { justify-content: flex-start; }
+  .saved-loading-grid { grid-template-columns: 1fr; }
+  .saved-profile-section { margin-top: 18px; }
+}
+@keyframes skeletonShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* ============================================================
+   PHASE 2 STEP 43 — Visitor horizontal visiting-card layout,
+   clear location selectors, categories directory and Blood Bank
+   ============================================================ */
+.visitor-horizontal-profile-card {
+  position: relative;
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: minmax(112px, 38%) minmax(0, 62%);
+  min-height: 166px;
+  overflow: hidden;
+  border: 1px solid #dfe8e4 !important;
+  border-radius: 18px !important;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(7,62,47,.055) !important;
+}
+.visitor-horizontal-profile-card .visitor-horizontal-profile-media {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 166px;
+  overflow: hidden;
+  border-radius: 0 !important;
+  background: #eef6f3;
+}
+.visitor-horizontal-profile-card .visitor-horizontal-profile-media > a { display: grid; width: 100%; height: 100%; place-items: center; }
+.visitor-horizontal-profile-card .visitor-horizontal-profile-media img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.visitor-horizontal-profile-card .visitor-horizontal-profile-media .doctor-photo-fallback { width: 100%; height: 100%; display: grid; place-items: center; }
+.visitor-horizontal-profile-body,
+.visitor-horizontal-profile-card .marketplace-doctor-body,
+.visitor-horizontal-profile-card .provider-card-primary {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  display: block !important;
+  padding: 0 !important;
+  color: inherit;
+  text-decoration: none;
+}
+.visitor-horizontal-profile-card .visitor-doctor-copy,
+.visitor-horizontal-profile-card .provider-card-copy { min-width: 0; padding: 12px 42px 11px 13px !important; }
+.visitor-horizontal-profile-card .visitor-doctor-copy h2,
+.visitor-horizontal-profile-card .provider-card-copy h3 {
+  margin: 0 0 5px !important;
+  overflow: hidden;
+  color: #173b30;
+  font-size: 15px !important;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+}
+.visitor-horizontal-profile-card .visitor-doctor-degree {
+  margin: 0 0 4px !important;
+  overflow: hidden;
+  color: #466f63 !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.visitor-horizontal-profile-card .visitor-doctor-copy > strong {
+  display: block;
+  margin: 0 0 6px !important;
+  overflow: hidden;
+  color: #277366;
+  font-size: 11.5px !important;
+  font-weight: 760;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.visitor-horizontal-profile-card .visitor-doctor-bmdc,
+.visitor-horizontal-profile-card .visitor-doctor-work,
+.visitor-horizontal-profile-card .visitor-doctor-college,
+.visitor-horizontal-profile-card .visitor-doctor-location,
+.visitor-horizontal-profile-card .provider-card-copy p {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 4px 0 0 !important;
+  color: #627c73 !important;
+  font-size: 10.5px !important;
+  line-height: 1.32;
+}
+.visitor-horizontal-profile-card .visitor-doctor-bmdc svg,
+.visitor-horizontal-profile-card .visitor-doctor-work svg,
+.visitor-horizontal-profile-card .visitor-doctor-college svg,
+.visitor-horizontal-profile-card .visitor-doctor-location svg,
+.visitor-horizontal-profile-card .provider-card-copy p svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #5b8b7c;
+}
+.visitor-horizontal-profile-card .visitor-doctor-bmdc span,
+.visitor-horizontal-profile-card .visitor-doctor-work span,
+.visitor-horizontal-profile-card .visitor-doctor-college span,
+.visitor-horizontal-profile-card .visitor-doctor-location span,
+.visitor-horizontal-profile-card .provider-card-copy p span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.visitor-horizontal-profile-card .visitor-doctor-location b,
+.visitor-horizontal-profile-card .provider-card-copy p b { color: #0a7758; font-weight: 850; }
+.visitor-horizontal-profile-card .visitor-card-social-proof { min-height: 18px; margin-top: 7px; gap: 8px; font-size: 9.5px; }
+.visitor-horizontal-profile-card .visitor-horizontal-save-button { position: absolute !important; top: 8px !important; right: 8px !important; z-index: 4; }
+.visitor-horizontal-profile-card .visitor-horizontal-badges { top: 7px; left: 7px; right: auto; bottom: auto; max-width: calc(100% - 14px); }
+.visitor-horizontal-profile-card .rank-badge,
+.visitor-horizontal-profile-card .verified-badge { font-size: 8px !important; }
+.visitor-horizontal-profile-card .provider-type-label { display: inline-flex; margin-bottom: 3px; color: #087a59; font-size: 9px; font-weight: 850; }
+.visitor-horizontal-profile-card .provider-card-english-name { display: block; margin: -1px 0 5px; overflow: hidden; color: #778880; font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+.visitor-horizontal-profile-card .provider-card-opening { margin-top: 5px !important; }
+
+.visitor-marketplace-home .doctor-horizontal-scroll,
+.visitor-marketplace-home .provider-marketplace-rail,
+.marketplace-horizontal-rail { grid-auto-columns: min(90vw, 360px) !important; }
+.visitor-marketplace-home .doctor-horizontal-scroll .visitor-horizontal-profile-card,
+.visitor-marketplace-home .provider-marketplace-rail .visitor-horizontal-profile-card,
+.marketplace-horizontal-rail .visitor-horizontal-profile-card {
+  width: min(90vw, 360px) !important;
+  max-width: min(90vw, 360px) !important;
+  flex-basis: min(90vw, 360px) !important;
+}
+.directory-grid,.provider-list-vertical { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.directory-grid .visitor-horizontal-profile-card,
+.provider-list-vertical .visitor-horizontal-profile-card,
+.provider-doctor-vertical .visitor-horizontal-profile-card,
+.saved-profile-section .visitor-horizontal-profile-card { width: 100% !important; max-width: none !important; }
+
+.marketplace-location-selectors { display: grid !important; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 7px; }
+.marketplace-location-selectors > button {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.marketplace-location-select { display: grid !important; grid-template-columns: 17px minmax(0,1fr) 15px; align-items: center; gap: 7px; padding: 6px 9px !important; text-align: left; }
+.marketplace-location-select > svg { width: 17px !important; height: 17px !important; }
+.marketplace-location-select > span,.marketplace-near-me-button > span { min-width: 0; display: grid; gap: 1px; }
+.marketplace-location-select small,.marketplace-near-me-button small { color: rgba(235,253,247,.72); font-size: 8.5px; font-weight: 750; line-height: 1.1; }
+.marketplace-location-select strong,.marketplace-near-me-button strong { overflow: hidden; color: #fff; font-size: 11px; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.marketplace-location-select:disabled { opacity: .48; cursor: not-allowed; }
+.marketplace-near-me-button { min-width: 92px; display: flex !important; align-items: center; justify-content: center; gap: 7px; padding: 5px 10px !important; }
+.marketplace-near-me-button.active { background: rgba(255,255,255,.24) !important; border-color: rgba(255,255,255,.55) !important; }
+.visitor-picker-clear { border-bottom: 1px solid #dce9e4 !important; font-weight: 850 !important; }
+
+.all-categories-main { padding-top: 16px; padding-bottom: 90px; }
+.all-categories-heading { display: grid; gap: 12px; margin-bottom: 18px; padding: 18px; border: 1px solid #e0e9e5; border-radius: 18px; background: linear-gradient(135deg,#f0f8f5,#fff); }
+.all-categories-heading > a { width: max-content; display: inline-flex; align-items: center; gap: 5px; color: #0b7f5c; text-decoration: none; font-size: 12px; font-weight: 800; }
+.all-categories-heading > a svg { width: 16px; height: 16px; }
+.all-categories-heading > div > span { color: #0b8661; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+.all-categories-heading h1 { margin: 3px 0 4px; color: #173e32; font-size: clamp(23px,5vw,32px); line-height: 1.15; }
+.all-categories-heading p { margin: 0; color: #6d7e77; font-size: 12px; }
+.all-categories-heading > label { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #dce7e2; border-radius: 12px; background: #fff; }
+.all-categories-heading > label svg { width: 18px; color: #5b7e72; }
+.all-categories-heading input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; }
+.all-category-section { margin-top: 20px; }
+.all-category-section > header { display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.all-category-section > header small { color: #74847d; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.all-category-section > header h2 { margin: 2px 0 0; color: #173d31; font-size: 18px; }
+.all-category-section > header b { min-width: 30px; min-height: 26px; display: grid; place-items: center; padding: 0 8px; border-radius: 999px; color: #087b59; background: #e9f5f0; font-size: 11px; }
+.all-category-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.all-category-grid > a { min-width: 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 18px; align-items: center; gap: 10px; padding: 10px; border: 1px solid #e1e9e6; border-radius: 15px; color: inherit; background: #fff; text-decoration: none; box-shadow: 0 3px 12px rgba(5,57,43,.035); }
+.all-category-media { width: 54px; height: 54px; display: grid; place-items: center; overflow: hidden; border-radius: 13px; color: #0c8a63; background: #edf7f3; }
+.all-category-media img { width: 100%; height: 100%; object-fit: cover; }
+.all-category-media svg { width: 24px; height: 24px; }
+.all-category-grid > a > span { min-width: 0; display: grid; gap: 2px; }
+.all-category-grid strong { overflow: hidden; color: #194236; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.all-category-grid small { overflow: hidden; color: #7a8a83; font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+.all-category-grid > a > svg { width: 16px; color: #78a094; }
+
+.blood-bank-page { width: 100%; max-width: 1080px; margin: 0 auto; padding: 6px 0 32px; }
+.blood-bank-heading { padding: 20px; border: 1px solid #f0dede; border-radius: 18px; background: linear-gradient(135deg,#fff6f6,#fff); }
+.blood-bank-heading > span { display: inline-flex; align-items: center; gap: 7px; color: #b72c3c; font-size: 11px; font-weight: 900; }
+.blood-bank-heading > span svg { width: 18px; }
+.blood-bank-heading h1 { margin: 5px 0; color: #44262b; font-size: clamp(23px,4vw,31px); }
+.blood-bank-heading p { margin: 0; color: #806b6f; font-size: 12px; }
+.blood-bank-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 14px 0; }
+.blood-bank-tabs button { min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #e6dedf; border-radius: 12px; color: #664d51; background: #fff; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.blood-bank-tabs button svg { width: 17px; height: 17px; }
+.blood-bank-tabs button.active { border-color: #d7959e; color: #a92537; background: #fff3f5; }
+.blood-bank-panel { padding: 16px; border: 1px solid #e6e9e7; border-radius: 18px; background: #fff; }
+.blood-search-form { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr auto; gap: 8px; align-items: end; }
+.blood-search-form label,.blood-form-grid label { min-width: 0; display: grid; gap: 5px; color: #5b6e66; font-size: 10px; font-weight: 800; }
+.blood-search-form select,.blood-form-grid select,.blood-form-grid input,.blood-form-grid textarea { width: 100%; min-height: 42px; border: 1px solid #dce5e1; border-radius: 10px; padding: 8px 10px; background: #fff; font: inherit; font-size: 12px; }
+.blood-search-form button,.blood-primary-button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 10px; padding: 0 14px; color: #fff; background: #ad2739; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.blood-search-form button svg,.blood-primary-button svg { width: 16px; height: 16px; }
+.blood-donor-results { display: grid; gap: 8px; margin-top: 14px; }
+.blood-donor-results > article { display: grid; grid-template-columns: 50px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #eee5e6; border-radius: 13px; background: #fffafa; }
+.blood-group-chip { width: 46px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: #a92134; background: #fdebed; font-size: 13px; font-weight: 900; }
+.blood-donor-results strong { color: #3e3033; font-size: 12px; }
+.blood-donor-results small { display: flex; align-items: center; gap: 4px; margin-top: 3px; color: #806f73; font-size: 9.5px; }
+.blood-donor-results small svg { width: 12px; }
+.blood-donor-results a { display: inline-flex; align-items: center; gap: 5px; padding: 8px 9px; border-radius: 9px; color: #fff; background: #aa2939; text-decoration: none; font-size: 10px; font-weight: 850; }
+.blood-donor-results a svg { width: 14px; }
+.blood-private-phone { display: inline-flex; align-items: center; gap: 4px; color: #8c7d80; font-size: 9px; }
+.blood-private-phone svg { width: 13px; }
+.blood-request-layout { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(300px,.8fr); gap: 14px; }
+.blood-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.blood-form-grid .wide { grid-column: 1/-1; }
+.blood-request-form .blood-primary-button,.blood-donor-form .blood-primary-button { margin-top: 12px; }
+.my-blood-requests { min-width: 0; padding: 13px; border: 1px solid #eee5e6; border-radius: 14px; background: #fffafa; }
+.my-blood-requests > header,.blood-donor-form > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.my-blood-requests > header small,.blood-donor-form > header small { color: #9a7f84; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.my-blood-requests h2,.blood-donor-form h2 { margin: 2px 0 0; color: #493336; font-size: 16px; }
+.my-blood-requests > header button { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #eadfe0; border-radius: 9px; color: #8a5d64; background: #fff; }
+.my-blood-requests > header button svg { width: 15px; }
+.my-blood-requests > article { padding: 10px 0; border-top: 1px solid #eee2e4; }
+.my-blood-requests > article:first-of-type { border-top: 0; }
+.blood-request-main { display: grid; grid-template-columns: 48px minmax(0,1fr); align-items: center; gap: 9px; }
+.blood-request-main strong { display: block; color: #493336; font-size: 11px; }
+.blood-request-main small { display: block; margin-top: 2px; color: #8b7377; font-size: 9.5px; }
+.blood-request-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.blood-request-actions button { min-height: 30px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e0d6d8; border-radius: 8px; padding: 0 8px; color: #6f5257; background: #fff; font: inherit; font-size: 9px; font-weight: 800; }
+.blood-request-actions button.danger { color: #a62436; }
+.blood-request-actions svg { width: 13px; }
+.blood-response-list { display: grid; gap: 5px; margin-top: 8px; padding: 8px; border-radius: 9px; background: #fff; }
+.blood-response-list > div { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 7px; font-size: 9.5px; }
+.blood-response-list a { color: #9f2536; text-decoration: none; font-weight: 800; }
+.blood-donor-form { max-width: 760px; }
+.blood-toggle { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; color: #56464a; font-size: 11px; }
+.blood-toggle input { margin-top: 2px; }
+.blood-toggle span { display: grid; gap: 2px; }
+.blood-toggle small { color: #88777a; font-size: 9.5px; line-height: 1.35; }
+.donor-active-badge { padding: 5px 8px; border-radius: 999px; color: #267553; background: #eaf7f1; font-size: 9px; font-weight: 850; }
+.success-box { margin: 10px 0; padding: 10px 12px; border: 1px solid #bde2ce; border-radius: 10px; color: #176643; background: #effaf5; font-size: 11px; font-weight: 700; }
+
+.patient-dashboard-panels > .patient-recent-card { grid-row: span 2; }
+.patient-blood-bank-card { border-color: #f0d9dc; background: linear-gradient(145deg,#fff5f6 0%,#fff 72%); }
+.patient-blood-bank-card .patient-find-doctor-icon { color: #ad2739; background: #fdebed; }
+.patient-blood-bank-card small { color: #ad2739; }
+.patient-blood-bank-card button { background: #ad2739; }
+.patient-blood-bank-card button:hover { background: #8f2030; }
+
+@media (max-width: 900px) {
+  .directory-grid,.provider-list-vertical { grid-template-columns: 1fr; }
+  .all-category-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .blood-request-layout { grid-template-columns: 1fr; }
+  .blood-search-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .patient-dashboard-panels > .patient-recent-card { grid-row: auto; }
+}
+@media (max-width: 600px) {
+  .visitor-horizontal-profile-card { grid-template-columns: minmax(112px, 39%) minmax(0,61%); min-height: 160px; border-radius: 16px !important; }
+  .visitor-horizontal-profile-card .visitor-horizontal-profile-media { min-height: 160px; }
+  .visitor-horizontal-profile-card .visitor-doctor-copy,.visitor-horizontal-profile-card .provider-card-copy { padding: 10px 38px 9px 11px !important; }
+  .visitor-horizontal-profile-card .visitor-doctor-copy h2,.visitor-horizontal-profile-card .provider-card-copy h3 { font-size: 14px !important; }
+  .visitor-horizontal-profile-card .visitor-doctor-bmdc,.visitor-horizontal-profile-card .visitor-doctor-work,.visitor-horizontal-profile-card .visitor-doctor-college,.visitor-horizontal-profile-card .visitor-doctor-location,.visitor-horizontal-profile-card .provider-card-copy p { font-size: 9.7px !important; }
+  .visitor-marketplace-home .doctor-horizontal-scroll,.visitor-marketplace-home .provider-marketplace-rail,.marketplace-horizontal-rail { grid-auto-columns: min(92vw,350px) !important; }
+  .visitor-marketplace-home .doctor-horizontal-scroll .visitor-horizontal-profile-card,.visitor-marketplace-home .provider-marketplace-rail .visitor-horizontal-profile-card,.marketplace-horizontal-rail .visitor-horizontal-profile-card { width: min(92vw,350px) !important; max-width: min(92vw,350px) !important; flex-basis: min(92vw,350px) !important; }
+  .marketplace-location-selectors { grid-template-columns: 1fr 1fr; }
+  .marketplace-near-me-button { grid-column: 1/-1; min-height: 43px !important; }
+  .all-category-grid { grid-template-columns: 1fr; }
+  .all-category-grid > a { grid-template-columns: 50px minmax(0,1fr) 17px; }
+  .all-category-media { width: 50px; height: 50px; }
+  .blood-bank-tabs { gap: 5px; }
+  .blood-bank-tabs button { min-height: 50px; flex-direction: column; gap: 2px; padding: 4px; font-size: 9px; }
+  .blood-search-form,.blood-form-grid { grid-template-columns: 1fr; }
+  .blood-form-grid .wide { grid-column: auto; }
+  .blood-donor-results > article { grid-template-columns: 46px minmax(0,1fr); }
+  .blood-donor-results > article > a,.blood-donor-results > article > .blood-private-phone { grid-column: 1/-1; justify-self: stretch; justify-content: center; }
+  .blood-response-list > div { grid-template-columns: 1fr auto; }
+  .blood-response-list > div > a,.blood-response-list > div > small { grid-column: 1/-1; }
+}
+@media (max-width: 390px) {
+  .visitor-marketplace-home .doctor-horizontal-scroll,.visitor-marketplace-home .provider-marketplace-rail,.marketplace-horizontal-rail { grid-auto-columns: min(93vw,344px) !important; }
+  .visitor-marketplace-home .doctor-horizontal-scroll .visitor-horizontal-profile-card,.visitor-marketplace-home .provider-marketplace-rail .visitor-horizontal-profile-card,.marketplace-horizontal-rail .visitor-horizontal-profile-card { width: min(93vw,344px) !important; max-width: min(93vw,344px) !important; flex-basis: min(93vw,344px) !important; }
+  .visitor-horizontal-profile-card { grid-template-columns: 118px minmax(0,1fr); }
+  .marketplace-location-selectors { grid-template-columns: 1fr; }
+  .marketplace-near-me-button { grid-column: auto; }
+}

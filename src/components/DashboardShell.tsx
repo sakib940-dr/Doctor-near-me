@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  Droplets,
   FileCheck2,
   HeartPulse,
   LayoutDashboard,
@@ -150,6 +151,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { label: 'Appointments', path: '/appointments', icon: CalendarDays },
           { label: 'ডাক্তার খুঁজুন', path: '/doctors', icon: Search },
+          { label: 'Blood Bank', path: '/blood', icon: Droplets },
           { label: 'Profile', path: '/profile', icon: UserCircle },
           { label: 'Settings', path: '/settings', icon: Settings },
         ];

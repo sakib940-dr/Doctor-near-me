@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, FileCheck2, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound, UsersRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
+import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, Droplets, FileCheck2, Heart, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound, UsersRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,7 +8,8 @@ import { saveMyCurrentLocation } from '../services/discovery';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getMyAppointments } from '../services/appointments';
 import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
-import type { AppointmentRow, DashboardContext, UserRole } from '../types';
+import { getMyDoctorInteractionSummary } from '../services/engagement';
+import type { AppointmentRow, DashboardContext, InteractionSummary, UserRole } from '../types';
 
 const LOCATION_STORAGE_KEY = 'docbd-current-location';
 const LEGACY_LOCATION_STORAGE_KEY = 'sirajganj-current-location';
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [contextLoading, setContextLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [doctorAnalytics, setDoctorAnalytics] = useState<DoctorAnalytics | null>(null);
+  const [doctorEngagement, setDoctorEngagement] = useState<InteractionSummary | null>(null);
   const [recentAppointments, setRecentAppointments] = useState<AppointmentRow[]>([]);
   const [doctorDashboardLoading, setDoctorDashboardLoading] = useState(false);
   const [doctorDashboardError, setDoctorDashboardError] = useState<string | null>(null);
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!account || account.role !== 'doctor') {
       setDoctorAnalytics(null);
+      setDoctorEngagement(null);
       setRecentAppointments([]);
       setDoctorDashboardLoading(false);
       return;
@@ -67,10 +70,11 @@ export default function DashboardPage() {
     let active = true;
     setDoctorDashboardLoading(true);
     setDoctorDashboardError(null);
-    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null)])
-      .then(([analytics, appointments]) => {
+    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null), getMyDoctorInteractionSummary(30)])
+      .then(([analytics, appointments, engagement]) => {
         if (!active) return;
         setDoctorAnalytics(analytics);
+        setDoctorEngagement(engagement);
         setRecentAppointments([...appointments]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 5));
@@ -184,6 +188,8 @@ export default function DashboardPage() {
         <DashboardStatCard icon={CalendarDays} label="আজকের অ্যাপয়েন্টমেন্ট" value={doctorAnalytics?.todayAppointments ?? 0} detail="আজ নির্ধারিত মোট appointment" />
         <DashboardStatCard icon={UsersRound} label="এই মাসের patient" value={doctorAnalytics?.monthlyUniquePatients ?? 0} detail="ইউনিক patient" />
         <DashboardStatCard icon={CalendarClock} label="Pending" value={doctorAnalytics?.pendingAppointments ?? 0} detail="আপনার action অপেক্ষায়" />
+        <DashboardStatCard icon={Heart} label="মোট অনুসারী" value={doctorEngagement?.followers ?? 0} detail={`গত ৩০ দিনে নতুন ${doctorEngagement?.followers_new ?? 0}`} />
+        <DashboardStatCard icon={UsersRound} label="নতুন অনুসারী" value={doctorEngagement?.followers_new ?? 0} detail={`Loss ${doctorEngagement?.followers_lost ?? 0} • Net ${doctorEngagement?.followers_net ?? 0}`} />
         <DashboardStatCard icon={Activity} label="Weekly trend" value={weeklyTotal} detail={busiestDay?.date ? `সর্বোচ্চ ${new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${busiestDay.date}T12:00:00`))}: ${busiestDay.count}` : 'গত ৭ দিন'} />
       </section>
       <section className="doctor-dashboard-panels">
@@ -205,7 +211,8 @@ export default function DashboardPage() {
         </section>
         <section className="patient-dashboard-panels">
           <article className="dashboard-recent-card patient-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{patientRecentAppointments.length ? patientRecentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/appointments')}><span className="dashboard-recent-date"><b>{new Intl.DateTimeFormat('bn-BD', { day: '2-digit' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</b><small>{new Intl.DateTimeFormat('bn-BD', { month: 'short' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</small></span><span className="dashboard-recent-info"><strong>{appointment.doctor_name || 'ডাক্তার'}</strong><small>{appointment.provider_name || 'প্রতিষ্ঠান নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
-          <article className="patient-find-doctor-card"><span className="patient-find-doctor-icon"><Search /></span><div><small>Need a doctor?</small><h2>ডাক্তার খুঁজুন</h2><p>বিশেষজ্ঞ, এলাকা বা হাসপাতাল অনুযায়ী ডাক্তার খুঁজে সরাসরি appointment নিন।</p><button type="button" onClick={() => navigate('/doctors')}>ডাক্তার খুঁজুন <ChevronRight /></button></div></article>
+          <article className="patient-find-doctor-card"><span className="patient-find-doctor-icon"><Search /></span><div><small>Need a doctor?</small><h2>ডাক্তার খুঁজুন</h2><p>বিশেষজ্ঞ, এলাকা বা হাসপাতাল অনুযায়ী ডাক্তার খুঁজে সরাসরি appointment নিন।</p><button type="button" onClick={() => navigate('/doctors?advanced=1')}>ডাক্তার খুঁজুন <ChevronRight /></button></div></article>
+          <article className="patient-find-doctor-card patient-blood-bank-card"><span className="patient-find-doctor-icon"><Droplets /></span><div><small>Emergency support</small><h2>Blood Bank</h2><p>রক্তদাতা খুঁজুন, জরুরি blood request তৈরি করুন অথবা voluntary donor profile পরিচালনা করুন।</p><button type="button" onClick={() => navigate('/blood')}>Blood Bank খুলুন <ChevronRight /></button></div></article>
         </section>
       </>}
     </>}

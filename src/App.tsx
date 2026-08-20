@@ -10,6 +10,8 @@ import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
 import AmbulanceServicesPage from './pages/AmbulanceServicesPage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import AuthPage from './pages/AuthPage';
+import BloodBankPage from './pages/BloodBankPage';
+import CategoriesPage from './pages/CategoriesPage';
 import BookingPage from './pages/BookingPage';
 import DashboardPage from './pages/DashboardPage';
 import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
@@ -46,6 +48,7 @@ export default function App() {
       <Route path="/doctors" element={<DoctorDirectoryRoute />} />
       <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
       <Route path="/providers" element={<PublicProvidersPage />} />
+      <Route path="/categories" element={<CategoriesPage />} />
       <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
@@ -54,6 +57,7 @@ export default function App() {
       <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/saved" element={<ProtectedRoute><SavedProfilesPage /></ProtectedRoute>} />
+      <Route path="/blood" element={<ProtectedRoute><DashboardShell role="patient"><BloodBankPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
@@ -123,6 +127,8 @@ function useRouteDocumentTitle() {
     else if (path === '/profile') page = 'Profile';
     else if (path === '/appointments') page = 'Appointments';
     else if (path === '/saved') page = 'সংরক্ষিত';
+    else if (path === '/categories') page = 'ক্যাটাগরি';
+    else if (path === '/blood') page = 'Blood Bank';
 
     document.title = makePageTitle(page);
   }, [location.pathname]);

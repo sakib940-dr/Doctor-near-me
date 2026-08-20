@@ -16,13 +16,16 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
+import VisitorBottomNav from '../components/VisitorBottomNav';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { makePageTitle } from '../lib/brand';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDoctorPublicProfile } from '../services/discovery';
-import type { DoctorPublicProfile } from '../types';
+import { getDoctorPublicStats } from '../services/engagement';
+import type { DoctorPublicProfile, PublicProfileStats } from '../types';
 
 const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
 const cleanTime = (time: string) => time.slice(0, 5);
@@ -40,6 +43,7 @@ export default function DoctorProfile() {
   const [error, setError] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [profileStats, setProfileStats] = useState<PublicProfileStats | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -50,6 +54,15 @@ export default function DoctorProfile() {
       })
       .catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'প্রোফাইল লোড করা যায়নি।'))
       .finally(() => setLoading(false));
+  }, [doctorId]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !doctorId) return;
+    let active = true;
+    getDoctorPublicStats(doctorId)
+      .then((stats) => { if (active) setProfileStats(stats); })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, [doctorId]);
 
   const avatar = getImageUrl(profile?.doctor.avatar_url, 'avatars');
@@ -86,7 +99,7 @@ export default function DoctorProfile() {
 
   return (
     <div className="app-shell profile-page visitor-profile-page">
-      <PublicHeader />
+      <PublicHeader mobileBottomNav />
       <main className="profile-main container visitor-profile-main">
         <Link className="back-link visitor-profile-back" to="/doctors"><ArrowLeft /> ডাক্তার তালিকায় ফিরুন</Link>
         {!isSupabaseConfigured && <div className="directory-notice">লাইভ প্রোফাইল দেখতে Supabase environment variables প্রয়োজন।</div>}
@@ -108,6 +121,10 @@ export default function DoctorProfile() {
             <VerifiedBadge className="profile-verified" verified={isVerified} label={isVerified ? "Verified" : "Not verified yet"} />
             <h1>{profile.doctor.name}</h1>
             <p>{primarySpecialty}</p>
+            <div className="public-follow-summary">
+              <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} />
+              <span><b>{(profileStats?.follower_count ?? 0).toLocaleString('bn-BD')}</b> মোট অনুসারী</span>
+            </div>
           </section>
 
           <section className="profile-prescription-card">
@@ -196,6 +213,8 @@ export default function DoctorProfile() {
           </section>
         </>}
       </main>
+
+      <VisitorBottomNav />
 
       {profile && contactOpen && (
         <div className="appointment-sheet-backdrop" role="presentation" onClick={() => setContactOpen(false)}>

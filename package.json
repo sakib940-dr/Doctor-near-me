@@ -18,7 +18,8 @@
     "admin:action-center:validate": "node scripts/validate-admin-action-center-premium.mjs",
     "admin:final:validate": "node scripts/validate-admin-final-polish.mjs",
     "images:global:validate": "node scripts/validate-global-image-upload-policy.mjs && node --experimental-strip-types scripts/test-image-size-gate.mjs",
-    "resources:validate": "node scripts/validate-free-tier-resource-optimization.mjs"
+    "resources:validate": "node scripts/validate-free-tier-resource-optimization.mjs",
+    "location:dhaka:validate": "node scripts/validate-dhaka-location-system.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

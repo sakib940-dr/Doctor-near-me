@@ -180,11 +180,12 @@ export default function VisitorHomePage() {
 
   useEffect(() => {
     let hasSavedLocation = false;
+    let savedV2Resolution: LocationResolution | null = null;
     try {
       const raw = localStorage.getItem(LOCATION_STORAGE_KEY) || localStorage.getItem(LEGACY_LOCATION_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as {
-          latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number;
+          latitude?: number; longitude?: number; accuracy?: number | null; capturedAt?: number; contextVersion?: number;
           detectedDistrictId?: number; detectedDistrictNameBn?: string; detectedDistrictNameEn?: string; detectedDistrictSlug?: string;
           detectedUpazilaId?: number | null; detectedUpazilaNameBn?: string | null; detectedUpazilaNameEn?: string | null; detectedUpazilaSlug?: string | null;
           resolutionSource?: LocationResolution['resolution_source']; resolutionDistanceKm?: number;
@@ -193,8 +194,10 @@ export default function VisitorHomePage() {
           hasSavedLocation = true;
           setCurrentLocation({ latitude: saved.latitude, longitude: saved.longitude, accuracy: saved.accuracy ?? null });
           setLocationState('granted');
-          if (saved.detectedDistrictId && saved.detectedDistrictNameBn && saved.detectedDistrictNameEn && saved.detectedDistrictSlug) {
-            setDetectedLocation({
+          // STEP 60 changes Dhaka GPS semantics. Old cached GPS resolutions are
+          // deliberately re-resolved once instead of trusting stale district-only data.
+          if (saved.contextVersion === 2 && saved.detectedDistrictId && saved.detectedDistrictNameBn && saved.detectedDistrictNameEn && saved.detectedDistrictSlug) {
+            savedV2Resolution = {
               district_id: saved.detectedDistrictId,
               district_name_bn: saved.detectedDistrictNameBn,
               district_name_en: saved.detectedDistrictNameEn,
@@ -205,7 +208,8 @@ export default function VisitorHomePage() {
               upazila_slug: saved.detectedUpazilaSlug ?? null,
               resolution_source: saved.resolutionSource ?? 'district_centroid',
               distance_km: saved.resolutionDistanceKm ?? 0,
-            });
+            };
+            setDetectedLocation(savedV2Resolution);
             setLocationResolutionState('resolved');
           }
         }
@@ -213,9 +217,19 @@ export default function VisitorHomePage() {
       const areaRaw = localStorage.getItem(AREA_STORAGE_KEY);
       if (areaRaw) {
         const area = JSON.parse(areaRaw) as { districtId?: string; upazilaId?: string; source?: AreaSelectionSource };
-        if (area.districtId) setDistrictId(area.districtId);
-        if (area.upazilaId) setUpazilaId(area.upazilaId);
-        if (area.source === 'gps' || area.source === 'manual') setAreaSelectionSource(area.source);
+        if (area.source === 'manual') {
+          if (area.districtId) setDistrictId(area.districtId);
+          if (area.upazilaId) setUpazilaId(area.upazilaId);
+          setAreaSelectionSource('manual');
+        } else if (area.source === 'gps' && savedV2Resolution) {
+          setDistrictId(String(savedV2Resolution.district_id));
+          setUpazilaId(savedV2Resolution.upazila_id ? String(savedV2Resolution.upazila_id) : '');
+          setAreaSelectionSource('gps');
+        }
+      } else if (savedV2Resolution) {
+        setDistrictId(String(savedV2Resolution.district_id));
+        setUpazilaId(savedV2Resolution.upazila_id ? String(savedV2Resolution.upazila_id) : '');
+        setAreaSelectionSource('gps');
       }
     } catch { /* local storage is optional */ }
     finally {
@@ -254,14 +268,11 @@ export default function VisitorHomePage() {
         if (!resolved) { setLocationResolutionState('failed'); setLocationMessage('GPS পাওয়া গেছে, জেলা manually নির্বাচন করুন।'); return; }
         setDetectedLocation(resolved);
         setLocationResolutionState('resolved');
-        setLocationMessage(`${resolved.district_name_bn} জেলা detect হয়েছে`);
-        setDistrictId(String(resolved.district_id));
-        setUpazilaId('');
-        setAreaSelectionSource('gps');
-        persistAreaSelection(String(resolved.district_id), '', 'gps');
+        setLocationMessage(formatResolvedLocationMessage(resolved));
+        applyResolvedLocation(resolved);
         persistGpsLocation(currentLocation, resolved);
       })
-      .catch(() => { if (active) { setLocationResolutionState('failed'); setLocationMessage('জেলা resolve করা যায়নি। manually নির্বাচন করুন।'); } });
+      .catch(() => { if (active) { setLocationResolutionState('failed'); setLocationMessage('লোকেশন resolve করা যায়নি। জেলা manually নির্বাচন করুন।'); } });
     return () => { active = false; };
   }, [locationHydrated, currentLocation, detectedLocation, areaSelectionSource, locationResolutionState]);
 
@@ -406,11 +417,27 @@ export default function VisitorHomePage() {
     persistAreaSelection(districtId, nextUpazilaId, 'manual');
   }
 
+  function applyResolvedLocation(resolved: LocationResolution) {
+    const nextDistrictId = String(resolved.district_id);
+    const nextUpazilaId = resolved.upazila_id ? String(resolved.upazila_id) : '';
+    setDistrictId(nextDistrictId);
+    setUpazilaId(nextUpazilaId);
+    setAreaSelectionSource('gps');
+    persistAreaSelection(nextDistrictId, nextUpazilaId, 'gps');
+  }
+
+  function formatResolvedLocationMessage(resolved: LocationResolution) {
+    if (!resolved.upazila_name_bn) return `${resolved.district_name_bn} জেলা detect হয়েছে • সকল উপজেলা / এলাকা দেখানো হচ্ছে`;
+    const kind = resolved.resolution_source === 'dhaka_city_area_centroid' ? 'এলাকা' : 'উপজেলা';
+    return `${resolved.district_name_bn} জেলা • ${resolved.upazila_name_bn} ${kind} detect হয়েছে`;
+  }
+
   function persistGpsLocation(location: { latitude: number; longitude: number; accuracy: number | null }, resolved: LocationResolution | null) {
     try {
       localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({
         ...location,
         capturedAt: Date.now(),
+        contextVersion: 2,
         detectedDistrictId: resolved?.district_id,
         detectedDistrictNameBn: resolved?.district_name_bn,
         detectedDistrictNameEn: resolved?.district_name_en,
@@ -440,15 +467,15 @@ export default function VisitorHomePage() {
         try { resolved = await resolveLocationContext(location.latitude, location.longitude); } catch { resolved = null; }
       }
       if (resolved) {
-        setDetectedLocation(resolved); setLocationResolutionState('resolved'); setLocationMessage(`${resolved.district_name_bn} জেলা detect হয়েছে`);
-        selectDistrict(String(resolved.district_id), 'gps'); persistGpsLocation(location, resolved);
+        setDetectedLocation(resolved); setLocationResolutionState('resolved'); setLocationMessage(formatResolvedLocationMessage(resolved));
+        applyResolvedLocation(resolved); persistGpsLocation(location, resolved);
       } else {
         setLocationResolutionState('failed'); setLocationMessage('GPS পাওয়া গেছে—জেলা manually নির্বাচন করুন।'); persistGpsLocation(location, null);
       }
       if (user) void saveMyCurrentLocation({ latitude: location.latitude, longitude: location.longitude, accuracyMeters: location.accuracy, districtId: resolved?.district_id ?? (districtId ? Number(districtId) : null), upazilaId: resolved?.upazila_id ?? null }).catch(() => undefined);
     }, () => {
       setCurrentLocation(null); setLocationState('denied'); setLocationResolutionState('failed');
-      setLocationMessage('লোকেশন অনুমতি পাওয়া যায়নি। জেলা/উপজেলা নির্বাচন করুন।'); setLocationPromptVisible(false);
+      setLocationMessage('লোকেশন অনুমতি পাওয়া যায়নি। জেলা ও উপজেলা / এলাকা নির্বাচন করুন।'); setLocationPromptVisible(false);
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   }
 
@@ -456,8 +483,13 @@ export default function VisitorHomePage() {
   if (districtId) viewAllParams.set('district', districtId);
   if (upazilaId) viewAllParams.set('upazila', upazilaId);
   const contextDoctorsHref = `/doctors${viewAllParams.size ? `?${viewAllParams}` : ''}`;
+  const contextCategoriesHref = `/categories${viewAllParams.size ? `?${viewAllParams}` : ''}`;
+  const contextProvidersHref = `/providers${viewAllParams.size ? `?${viewAllParams}` : ''}`;
   const selectedDistrictName = districtId ? (districts.find((district) => String(district.id) === districtId)?.name_bn || detectedLocation?.district_name_bn || 'জেলা') : 'সকল জেলা';
-  const selectedUpazilaName = upazilas.find((upazila) => String(upazila.id) === upazilaId)?.name_bn || 'সকল উপজেলা';
+  const selectedSecondLevel = upazilas.find((upazila) => String(upazila.id) === upazilaId);
+  const selectedUpazilaName = selectedSecondLevel
+    ? `${selectedSecondLevel.name_bn}${selectedSecondLevel.location_type === 'city_area' ? ' (এলাকা)' : ''}`
+    : 'সকল উপজেলা / এলাকা';
   const areaTitle = upazilaId ? selectedUpazilaName : districtId ? selectedDistrictName : 'সারা বাংলাদেশ';
   const dentalTopic = topics.find((topic) => topic.slug === 'dental' || topic.name_en?.toLowerCase().includes('dental') || topic.name_bn.includes('দাঁত'));
   const dentalDoctors = dentalTopic ? specialtyDoctors[dentalTopic.id] ?? [] : [];
@@ -481,7 +513,7 @@ export default function VisitorHomePage() {
             </form>
             <div className="marketplace-location-row marketplace-location-selectors">
               <button className="marketplace-location-select" type="button" onClick={() => setPickerOpen('district')}><MapPin /><span><small>জেলা</small><strong>{selectedDistrictName}</strong></span><ChevronDown /></button>
-              <button className="marketplace-location-select" type="button" onClick={() => districtId && setPickerOpen('upazila')} disabled={!districtId}><MapPin /><span><small>উপজেলা</small><strong>{selectedUpazilaName}</strong></span><ChevronDown /></button>
+              <button className="marketplace-location-select" type="button" onClick={() => districtId && setPickerOpen('upazila')} disabled={!districtId}><MapPin /><span><small>উপজেলা / এলাকা</small><strong>{selectedUpazilaName}</strong></span><ChevronDown /></button>
               <button type="button" className={`near-me-chip marketplace-near-me-button ${locationState === 'granted' ? 'active' : ''}`} onClick={requestLocation}>{locationState === 'asking' ? <LoaderCircle className="spin" /> : <LocateFixed />}<span><small>GPS</small><strong>{locationState === 'granted' ? 'Near Me On' : 'Near Me'}</strong></span></button>
             </div>
             <div className="marketplace-quick-row">
@@ -499,12 +531,15 @@ export default function VisitorHomePage() {
           <div className="visitor-picker-backdrop" role="presentation" onClick={() => setPickerOpen(null)}>
             <section className="visitor-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="visitor-area-picker-title" onClick={(event) => event.stopPropagation()}>
               <div className="visitor-picker-handle" />
-              <div className="visitor-picker-head"><div><span>এলাকা বেছে নিন</span><h2 id="visitor-area-picker-title">{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা নির্বাচন'}</h2></div><button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button></div>
+              <div className="visitor-picker-head"><div><span>এলাকা বেছে নিন</span><h2 id="visitor-area-picker-title">{pickerOpen === 'district' ? 'জেলা নির্বাচন' : 'উপজেলা / এলাকা নির্বাচন'}</h2></div><button type="button" onClick={() => setPickerOpen(null)} aria-label="বন্ধ করুন"><X /></button></div>
               <div className="visitor-picker-list">
-                <button className={((!districtId && pickerOpen === 'district') || (!upazilaId && pickerOpen === 'upazila')) ? 'active visitor-picker-clear' : 'visitor-picker-clear'} type="button" onClick={() => { if (pickerOpen === 'district') selectDistrict(''); else selectUpazila(''); setPickerOpen(null); }}><span>{pickerOpen === 'district' ? 'সারা বাংলাদেশ / সকল জেলা' : 'সকল উপজেলা'}</span>{((pickerOpen === 'district' && !districtId) || (pickerOpen === 'upazila' && !upazilaId)) && <BadgeCheck />}</button>
-                {(pickerOpen === 'district' ? districts : upazilas).map((item) => {
-                  const active = pickerOpen === 'district' ? String(item.id) === districtId : String(item.id) === upazilaId;
-                  return <button className={active ? 'active' : ''} type="button" key={item.id} onClick={() => { if (pickerOpen === 'district') selectDistrict(String(item.id)); else selectUpazila(String(item.id)); setPickerOpen(null); }}><span>{item.name_bn}</span>{active && <BadgeCheck />}</button>;
+                <button className={((!districtId && pickerOpen === 'district') || (!upazilaId && pickerOpen === 'upazila')) ? 'active visitor-picker-clear' : 'visitor-picker-clear'} type="button" onClick={() => { if (pickerOpen === 'district') selectDistrict(''); else selectUpazila(''); setPickerOpen(null); }}><span>{pickerOpen === 'district' ? 'সারা বাংলাদেশ / সকল জেলা' : 'সকল উপজেলা / এলাকা'}</span>{((pickerOpen === 'district' && !districtId) || (pickerOpen === 'upazila' && !upazilaId)) && <BadgeCheck />}</button>
+                {pickerOpen === 'district' ? districts.map((item) => {
+                  const active = String(item.id) === districtId;
+                  return <button className={active ? 'active' : ''} type="button" key={item.id} onClick={() => { selectDistrict(String(item.id)); setPickerOpen(null); }}><span>{item.name_bn}</span>{active && <BadgeCheck />}</button>;
+                }) : upazilas.map((item) => {
+                  const active = String(item.id) === upazilaId;
+                  return <button className={active ? 'active' : ''} type="button" key={item.id} onClick={() => { selectUpazila(String(item.id)); setPickerOpen(null); }}><span>{item.name_bn}{item.location_type === 'city_area' ? ' · এলাকা' : ''}</span>{active && <BadgeCheck />}</button>;
                 })}
               </div>
             </section>
@@ -515,7 +550,7 @@ export default function VisitorHomePage() {
 
         <section className="marketplace-section marketplace-category-section" id="categories">
           <div className="container">
-            <SectionHead eyebrow="ক্যাটাগরি" title="বিশেষজ্ঞতা বেছে নিন" href="/categories" icon={<Stethoscope />} />
+            <SectionHead eyebrow="ক্যাটাগরি" title="বিশেষজ্ঞতা বেছে নিন" href={contextCategoriesHref} icon={<Stethoscope />} />
             <div className="marketplace-category-rail">
               {topics.slice(0, 10).map((topic) => <Link className="marketplace-category-card" to={topicHref(topic)} key={topic.id}><TopicImage path={topicImagePath(topic)} /><strong>{topic.name_bn}</strong></Link>)}
             </div>
@@ -598,7 +633,7 @@ export default function VisitorHomePage() {
 
         <section className="marketplace-section marketplace-hospital-section" id="hospitals">
           <div className="container">
-            <SectionHead eyebrow={areaTitle} title="Hospitals & Chambers" href="/providers" icon={<Building2 />} />
+            <SectionHead eyebrow={areaTitle} title="Hospitals & Chambers" href={contextProvidersHref} icon={<Building2 />} />
             {resultsLoading ? <div className="marketplace-horizontal-rail provider-marketplace-rail"><div className="visitor-doctor-skeleton" /><div className="visitor-doctor-skeleton" /></div> : providers.length ? <div className="marketplace-horizontal-rail provider-marketplace-rail">{providers.map((provider) => <ProviderCard provider={provider} stats={providerStats[provider.id]} onStatsChange={updateProviderStats} viewerLocation={currentLocation} key={provider.id} />)}</div> : <div className="marketplace-empty">এই এলাকায় হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
           </div>
         </section>

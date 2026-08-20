@@ -143,7 +143,7 @@ export default function DoctorChamberDetailsPage() {
     }
     getUpazilas(draft.districtId)
       .then(setUpazilas)
-      .catch(() => setError('উপজেলার তালিকা লোড করা যায়নি।'));
+      .catch(() => setError('উপজেলা / এলাকার তালিকা লোড করা যায়নি।'));
   }, [draft?.districtId]);
 
   const ownedChambers = profile?.chambers.filter((chamber) => chamber.owned_by_doctor) || [];
@@ -192,9 +192,9 @@ export default function DoctorChamberDetailsPage() {
           districtId: resolved.district_id,
           upazilaId: resolved.upazila_id,
         } : current);
-        setNotice(`Current Location নেওয়া হয়েছে${coordinates.accuracy ? ` (প্রায় ${Math.round(coordinates.accuracy)} মিটার accuracy)` : ''}। জেলা/উপজেলা ও coordinate যাচাই করে Save করুন।`);
+        setNotice(`Current Location নেওয়া হয়েছে${coordinates.accuracy ? ` (প্রায় ${Math.round(coordinates.accuracy)} মিটার accuracy)` : ''}। জেলা/উপজেলা/এলাকা ও coordinate যাচাই করে Save করুন।`);
       } catch {
-        setNotice(`GPS coordinate নেওয়া হয়েছে${coordinates.accuracy ? ` (প্রায় ${Math.round(coordinates.accuracy)} মিটার accuracy)` : ''}। জেলা/উপজেলা manually যাচাই করে Save করুন।`);
+        setNotice(`GPS coordinate নেওয়া হয়েছে${coordinates.accuracy ? ` (প্রায় ${Math.round(coordinates.accuracy)} মিটার accuracy)` : ''}। জেলা/উপজেলা/এলাকা manually যাচাই করে Save করুন।`);
       }
     } catch (captureError) {
       setError(messageFrom(captureError));
@@ -329,7 +329,7 @@ export default function DoctorChamberDetailsPage() {
               <li>সম্ভব হলে chamber location-এ physically উপস্থিত থেকে location নিন।</li>
               <li>Device/Browser Location permission enable করুন।</li>
               <li><b>Current Location</b> button চাপুন; Latitude/Longitude automatically populate হবে।</li>
-              <li>Detected জেলা/উপজেলা এবং coordinate যাচাই করুন।</li>
+              <li>Detected জেলা/উপজেলা/এলাকা এবং coordinate যাচাই করুন।</li>
               <li>সব তথ্য ঠিক থাকলে Save করুন।</li>
               <li>ভুল location হলে আবার Current Location নিন অথবা Latitude/Longitude manually update করুন।</li>
             </ol>
@@ -370,7 +370,7 @@ export default function DoctorChamberDetailsPage() {
                 }}><option value="">নির্বাচন করুন</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></div>
               </label>
               <label className="auth-field">
-                <span>Upazila</span>
+                <span>Upazila / Area</span>
                 <div><MapPin /><select disabled={!draft.districtId} value={draft.upazilaId ?? ''} onChange={(event) => setDraftValue('upazilaId', event.target.value ? Number(event.target.value) : null)}><option value="">নির্বাচন করুন</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></div>
               </label>
               <label className="auth-field">

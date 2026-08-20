@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Building2, LoaderCircle, MapPin } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import ProviderCard from '../components/ProviderCard';
 import VisitorBottomNav from '../components/VisitorBottomNav';
@@ -27,12 +28,13 @@ function toStatsMap(items: Awaited<ReturnType<typeof getPublicProfileStatsBatch>
 }
 
 export default function PublicProvidersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState<ProviderDirectoryRow[]>([]);
   const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
-  const [districtId, setDistrictId] = useState('');
-  const [upazilaId, setUpazilaId] = useState('');
+  const [districtId, setDistrictId] = useState(searchParams.get('district') ?? '');
+  const [upazilaId, setUpazilaId] = useState(searchParams.get('upazila') ?? '');
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -43,6 +45,13 @@ export default function PublicProvidersPage() {
     if (!isSupabaseConfigured) return;
     getDistricts().then(setDistricts).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const nextDistrictId = searchParams.get('district') ?? '';
+    const nextUpazilaId = searchParams.get('upazila') ?? '';
+    setDistrictId((current) => current === nextDistrictId ? current : nextDistrictId);
+    setUpazilaId((current) => current === nextUpazilaId ? current : nextUpazilaId);
+  }, [searchParams]);
 
   useEffect(() => {
     try {
@@ -115,8 +124,20 @@ export default function PublicProvidersPage() {
           <h1>হাসপাতাল ও চেম্বার</h1>
           <p>অনুমোদিত হাসপাতাল/চেম্বার বেছে নিয়ে সংশ্লিষ্ট ডাক্তার ও লোকেশন দেখুন।</p>
           <div className="provider-filter-row">
-            <label><MapPin /><select value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}><option value="">সকল জেলা</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></label>
-            <select value={upazilaId} onChange={(event) => setUpazilaId(event.target.value)} disabled={!districtId}><option value="">সকল উপজেলা</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select>
+            <label><MapPin /><select value={districtId} onChange={(event) => {
+              const nextDistrict = event.target.value;
+              setDistrictId(nextDistrict); setUpazilaId('');
+              const next = new URLSearchParams(searchParams);
+              if (nextDistrict) next.set('district', nextDistrict); else next.delete('district');
+              next.delete('upazila'); setSearchParams(next, { replace: true });
+            }}><option value="">সকল জেলা</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></label>
+            <label><span className="sr-only">উপজেলা / এলাকা</span><select aria-label="উপজেলা / এলাকা" value={upazilaId} onChange={(event) => {
+              const nextUpazila = event.target.value;
+              setUpazilaId(nextUpazila);
+              const next = new URLSearchParams(searchParams);
+              if (nextUpazila) next.set('upazila', nextUpazila); else next.delete('upazila');
+              setSearchParams(next, { replace: true });
+            }} disabled={!districtId}><option value="">সকল উপজেলা / এলাকা</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></label>
           </div>
         </section>
         {error && <div className="error-box">{error}</div>}

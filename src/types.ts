@@ -143,6 +143,8 @@ export interface Upazila {
   name_bn: string;
   name_en: string;
   slug: string;
+  location_type: 'upazila' | 'city_area';
+  city_corporation: 'north' | 'south' | null;
 }
 
 export interface LocationResolution {
@@ -154,7 +156,7 @@ export interface LocationResolution {
   upazila_name_bn: string | null;
   upazila_name_en: string | null;
   upazila_slug: string | null;
-  resolution_source: 'upazila_centroid_cluster' | 'district_centroid';
+  resolution_source: 'upazila_centroid_cluster' | 'district_centroid' | 'dhaka_city_area_centroid' | 'dhaka_upazila_centroid' | 'dhaka_district_fallback';
   distance_km: number;
 }
 

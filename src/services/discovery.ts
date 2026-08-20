@@ -45,15 +45,20 @@ export async function getDistricts() {
 }
 
 export async function getUpazilas(districtId: number) {
-  return publicCachedRequest(`public:upazilas:${districtId}`, async () => {
+  return publicCachedRequest(`public:upazilas:v2:${districtId}`, async () => {
     const { data, error } = await requireSupabase()
       .from('upazilas')
-      .select('id,district_id,name_bn,name_en,slug')
+      .select('id,district_id,name_bn,name_en,slug,location_type,city_corporation')
       .eq('is_active', true)
       .eq('district_id', districtId)
       .order('name_bn');
     if (error) throw error;
-    return (data ?? []) as Upazila[];
+    const hiddenLegacyDhakaSlugs = new Set(['dhaka-sadar', 'main-dhaka', 'main-dhaka-city', 'dhaka-city']);
+    const rows = ((data ?? []) as Upazila[]).filter((row) => !hiddenLegacyDhakaSlugs.has(row.slug.toLowerCase()));
+    return [...rows].sort((a, b) => {
+      const typeOrder = (a.location_type === 'upazila' ? 0 : 1) - (b.location_type === 'upazila' ? 0 : 1);
+      return typeOrder || a.name_bn.localeCompare(b.name_bn, 'bn');
+    });
   }, 15 * 60_000);
 }
 

@@ -2,6 +2,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, requireSupabase, supabase } from '../lib/supabase';
 import { getMyAccountContext } from '../services/account';
+import { claimReferralCode } from '../services/premium';
 import type { AccountContext } from '../types';
 
 interface AuthValue {
@@ -68,6 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refreshAccount();
   }, [refreshAccount]);
+
+  useEffect(() => {
+    if (!session?.user || !account) return;
+    const pendingCode = localStorage.getItem('docbd-referral-code');
+    if (!pendingCode) return;
+    localStorage.removeItem('docbd-referral-code');
+    void claimReferralCode(pendingCode).catch(() => undefined);
+  }, [session?.user, account?.user_id]);
 
   const value = useMemo<AuthValue>(() => ({
     session,

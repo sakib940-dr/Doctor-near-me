@@ -28,6 +28,8 @@ import DoctorVerificationPage from './pages/DoctorVerificationPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PatientProfilePage from './pages/PatientProfilePage';
 import ProfileAnalyticsPage from './pages/ProfileAnalyticsPage';
+import PremiumMemberPage from './pages/PremiumMemberPage';
+import PremiumAdminPage from './pages/PremiumAdminPage';
 import ProviderAmbulanceLinksPage from './pages/ProviderAmbulanceLinksPage';
 import ProviderAppointmentsPage from './pages/ProviderAppointmentsPage';
 import ProviderDoctorsPage from './pages/ProviderDoctorsPage';
@@ -67,6 +69,7 @@ export default function App() {
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/public-profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPublicProfileContentPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/analytics" element={<ProtectedRoute><DashboardShell role="doctor"><ProfileAnalyticsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/premium" element={<ProtectedRoute><DashboardShell role="doctor"><PremiumMemberPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/visiting-card" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVisitingCardPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/verification" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorVerificationPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/chambers" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorChamberDetailsPage /></DashboardShell></ProtectedRoute>} />
@@ -78,6 +81,7 @@ export default function App() {
       <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderAppointmentsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/analytics" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProfileAnalyticsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/provider/premium" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><PremiumMemberPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/ambulances" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital']}><ProviderAmbulanceLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/services" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceServicesPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/ambulance/hospitals" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['ambulance']}><AmbulanceHospitalLinksPage /></RoleAwareDashboardShell></ProtectedRoute>} />
@@ -85,6 +89,7 @@ export default function App() {
       <Route path="/verification/reviews" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['verification_officer', 'admin', 'super_admin']}><VerificationOfficerPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDashboardPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/cms" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminCmsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/admin/premium" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><PremiumAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/super-admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['super_admin']}><SuperAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -122,6 +127,8 @@ function useRouteDocumentTitle() {
     else if (path === '/doctor/chambers') page = 'Chamber Details';
     else if (path === '/doctor/verification') page = 'Verification';
     else if (path === '/doctor/prescriptions') page = 'Prescription';
+    else if (path === '/doctor/premium' || path === '/provider/premium') page = 'Premium Membership';
+    else if (path === '/admin/premium') page = 'Premium Admin';
     else if (path === '/doctor/schedules') page = 'Schedule';
     else if (path === '/doctor/appointments') page = 'Appointments';
     else if (path === '/doctor/profile') page = 'Doctor Profile';

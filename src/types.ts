@@ -1019,3 +1019,101 @@ export interface DoctorChamberDistance {
   provider_id: string;
   distance_km: number;
 }
+
+export type PremiumMembershipStatus = 'active' | 'pending' | 'expired' | 'inactive';
+
+export interface PremiumCriterionProgress {
+  key: 'followers' | 'referrals' | 'profile' | 'verification' | 'achievements' | string;
+  label_bn: string;
+  label_en: string;
+  enabled: boolean;
+  current: number;
+  required: number;
+  unit?: string;
+  complete: boolean;
+}
+
+export interface PremiumAchievementSummary {
+  rule_id: number;
+  code: string;
+  title_bn: string;
+  title_en: string | null;
+}
+
+export interface PremiumProgress {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+  policy_enabled: boolean;
+  manual_approval_required: boolean;
+  premium_duration_days: number;
+  followers: number;
+  approved_referrals: number;
+  achievement_count: number;
+  profile_completion_percent: number;
+  verified: boolean;
+  requirements_complete: boolean;
+  is_premium: boolean;
+  membership_status: PremiumMembershipStatus;
+  membership_id: string | null;
+  starts_at: string | null;
+  expires_at: string | null;
+  criteria: PremiumCriterionProgress[];
+  achievements: PremiumAchievementSummary[];
+}
+
+export interface PremiumPolicy {
+  enabled: boolean;
+  min_followers: number;
+  min_approved_referrals: number;
+  require_profile_completion: boolean;
+  min_profile_completion_percent: number;
+  require_verification: boolean;
+  min_achievement_count: number;
+  manual_approval_required: boolean;
+  premium_duration_days: number;
+  referral_claim_window_days: number;
+  referral_requires_admin_approval: boolean;
+}
+
+export interface PremiumAdminTarget {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+  name: string;
+  owner_user_id: string;
+  verification_label: string;
+  follower_count: number;
+  approved_referral_count: number;
+  achievement_count: number;
+  profile_completion_percent: number;
+  requirements_complete: boolean;
+  membership_status: PremiumMembershipStatus;
+  is_premium: boolean;
+  membership_id: string | null;
+  expires_at: string | null;
+}
+
+export interface PremiumAchievementRule {
+  id: number;
+  code: string;
+  title_bn: string;
+  title_en: string | null;
+  description_bn: string | null;
+  counts_toward_premium: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PremiumReferralRow {
+  id: string;
+  referrer_id: string;
+  referrer_name: string;
+  referred_user_id: string | null;
+  referred_name: string | null;
+  referral_code: string;
+  status: 'pending' | 'approved' | 'rejected' | 'invalid';
+  created_at: string;
+  validated_at: string | null;
+}

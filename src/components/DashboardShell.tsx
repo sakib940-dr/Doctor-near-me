@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  Crown,
   Droplets,
   FileCheck2,
   HeartPulse,
@@ -138,6 +139,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
+          { label: 'Premium Member হন', path: '/doctor/premium', icon: Crown },
           { label: 'Appointments', path: '/doctor/appointments', icon: CalendarDays },
           { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
           { label: 'Chamber Details', path: '/doctor/chambers', icon: Building2 },
@@ -164,6 +166,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays, badge: pendingAppointments },
           { label: 'Activity', path: '/admin?tab=activity', icon: Activity },
           { label: 'CMS', path: '/admin/cms', icon: Settings2 },
+          { label: 'Premium', path: '/admin/premium', icon: Crown },
           { label: 'Verification queue', path: '/verification/reviews', icon: ShieldCheck, badge: pendingVerification },
         ];
       case 'super_admin':
@@ -174,6 +177,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Admin operations', path: '/admin', icon: Activity },
           { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays, badge: pendingAppointments },
           { label: 'CMS', path: '/admin/cms', icon: Settings2 },
+          { label: 'Premium', path: '/admin/premium', icon: Crown },
           { label: 'Verification queue', path: '/verification/reviews', icon: ShieldCheck, badge: pendingVerification },
         ];
       case 'verification_officer':
@@ -185,6 +189,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
+          { label: 'Premium Member হন', path: '/provider/premium', icon: Crown },
           { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
           { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
           { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },
@@ -195,6 +200,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         return [
           { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
+          { label: 'Premium Member হন', path: '/provider/premium', icon: Crown },
           { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
           { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
           { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },

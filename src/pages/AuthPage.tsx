@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Building2, HeartPulse, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, Sparkles, Stethoscope, UserRound } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
@@ -41,6 +41,11 @@ export default function AuthPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const selectedRole = useMemo(() => roles.find((item) => item.value === role) || roles[0], [role]);
   const SelectedRoleIcon = selectedRole.icon;
+
+  useEffect(() => {
+    const referral = searchParams.get('ref')?.trim().toUpperCase();
+    if (referral) localStorage.setItem('docbd-referral-code', referral);
+  }, [searchParams]);
 
   if (!sessionLoading && user && !submitting) return <Navigate to="/dashboard" replace />;
 

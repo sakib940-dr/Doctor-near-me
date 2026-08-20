@@ -20,6 +20,12 @@ export default function PwaUpdatePrompt() {
     };
   }, []);
 
+  useEffect(() => {
+    const visible = available && online;
+    document.body.classList.toggle('pwa-update-visible', visible);
+    return () => document.body.classList.remove('pwa-update-visible');
+  }, [available, online]);
+
   if (!online) {
     return (
       <aside className="pwa-offline-notice" role="status" aria-live="polite">

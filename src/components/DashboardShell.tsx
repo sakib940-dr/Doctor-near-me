@@ -30,6 +30,7 @@ import { getMyDoctorProviderInvitations } from '../services/providerDashboard';
 import { getVerificationReviewQueue } from '../services/verification';
 import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
+import NotificationBell from './NotificationBell';
 
 interface DashboardShellProps {
   role: DashboardRole;
@@ -241,6 +242,8 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         </div>
       </Link>
 
+      <div className="dashboard-shell-notification-slot"><NotificationBell placement="sidebar" /></div>
+
       <nav className="dashboard-shell-nav" aria-label={`${role} dashboard navigation`}>
         {menuItems.map(({ label, path, icon: Icon, badge, exact }) => {
           const active = isRouteActive(location.pathname, location.search, path, exact);
@@ -289,6 +292,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           <strong>{SITE_NAME}</strong>
         </Link>
         <span className="dashboard-shell-role-label">{panelName}</span>
+        <NotificationBell placement="mobile" />
       </header>
 
       {drawerOpen && <button type="button" className="dashboard-shell-backdrop" aria-label={`Close ${role} dashboard menu`} onClick={() => setDrawerOpen(false)} />}

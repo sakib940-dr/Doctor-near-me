@@ -4,6 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/brand';
+import NotificationBell from './NotificationBell';
 
 export default function PublicHeader({ mobileBottomNav = false }: { mobileBottomNav?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -46,6 +47,7 @@ export default function PublicHeader({ mobileBottomNav = false }: { mobileBottom
             <span aria-hidden="true">|</span>
             <button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>EN</button>
           </div>
+          {user && <NotificationBell placement="header" />}
           {roleLabel && <span className="public-header-role-label">{roleLabel}</span>}
           <button className="menu-button" type="button" aria-label={open ? labels.menuClose : labels.menuOpen} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
             {open ? <X /> : <Menu />}

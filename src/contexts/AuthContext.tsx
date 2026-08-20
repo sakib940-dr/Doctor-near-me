@@ -3,6 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { isSupabaseConfigured, requireSupabase, supabase } from '../lib/supabase';
 import { getMyAccountContext } from '../services/account';
 import { claimReferralCode } from '../services/premium';
+import { unsubscribeCurrentBrowserPush } from '../services/notifications';
 import type { AccountContext } from '../types';
 
 interface AuthValue {
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accountError,
     refreshAccount,
     signOut: async () => {
+      await unsubscribeCurrentBrowserPush();
       await requireSupabase().auth.signOut();
       setAccount(null);
     },

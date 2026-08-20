@@ -2,6 +2,9 @@ import { useEffect, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
+import PwaInstallPromotion from './components/PwaInstallPromotion';
+import PushPermissionPromotion from './components/PushPermissionPromotion';
+import PushNotificationManager from './components/PushNotificationManager';
 import DashboardShell from './components/DashboardShell';
 import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -44,6 +47,7 @@ import SuperAdminPage from './pages/SuperAdminPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
 import VerificationOfficerPage from './pages/VerificationOfficerPage';
 import VisitorHomePage from './pages/VisitorHomePage';
+import NotificationsPage from './pages/NotificationsPage';
 import { makePageTitle } from './lib/brand';
 
 export default function App() {
@@ -62,6 +66,7 @@ export default function App() {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationCenterRoute /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/saved" element={<ProtectedRoute><SavedProfilesPage /></ProtectedRoute>} />
@@ -95,6 +100,9 @@ export default function App() {
       <Route path="/super-admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['super_admin']}><SuperAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <PushNotificationManager />
+      <PushPermissionPromotion />
+      <PwaInstallPromotion />
       <PwaUpdatePrompt />
     </>
   );
@@ -104,6 +112,14 @@ function DoctorDirectoryRoute() {
   const { account, loading } = useAuth();
   if (!loading && account?.role === 'patient') return <DashboardShell role="patient"><DoctorDirectory embedded /></DashboardShell>;
   return <DoctorDirectory />;
+}
+
+
+function NotificationCenterRoute() {
+  const { account, loading } = useAuth();
+  if (loading) return null;
+  if (!account) return <Navigate to="/auth" replace />;
+  return <DashboardShell role={account.role as DashboardRole}><NotificationsPage /></DashboardShell>;
 }
 
 function RoleAwareDashboardShell({ allowed, children }: { allowed: DashboardRole[]; children: ReactNode }) {
@@ -123,6 +139,7 @@ function useRouteDocumentTitle() {
     if (path === '/auth') page = 'Login & Signup';
     else if (path === '/onboarding') page = 'Onboarding';
     else if (path === '/dashboard') page = 'Dashboard';
+    else if (path === '/notifications') page = 'Notifications';
     else if (path === '/doctors') page = 'ডাক্তার খুঁজুন';
     else if (path.startsWith('/doctors/')) page = 'Doctor Profile';
     else if (path === '/providers') page = 'হাসপাতাল ও চেম্বার';

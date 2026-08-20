@@ -2,7 +2,7 @@
  * Policy: cache only same-origin static resources and the offline fallback.
  * Never cache API/auth/private medical responses.
  */
-const SW_VERSION = '0.24.0-pwa-1';
+const SW_VERSION = '0.26.0-push-1';
 const STATIC_CACHE = `docbd-static-${SW_VERSION}`;
 const SHELL_CACHE = `docbd-shell-${SW_VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -37,6 +37,63 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try {
+      payload = event.data ? event.data.json() : {};
+    } catch {
+      payload = {};
+    }
+
+    const title = typeof payload.title === 'string' ? payload.title : 'docbd.info আপডেট';
+    const body = typeof payload.body === 'string' ? payload.body : 'আপনার অ্যাকাউন্টে একটি গুরুত্বপূর্ণ আপডেট আছে।';
+    const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
+    const safeUrl = typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//') ? data.url : '/dashboard';
+    const notificationId = typeof data.notificationId === 'string' ? data.notificationId : null;
+
+    await self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: typeof payload.tag === 'string' ? payload.tag : (notificationId ? `docbd-${notificationId}` : undefined),
+      renotify: payload.renotify === true,
+      data: { ...data, url: safeUrl, notificationId },
+    });
+
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) {
+      client.postMessage({ type: 'DOCBD_PUSH_RECEIVED', notificationId });
+    }
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const data = event.notification.data || {};
+    const rawUrl = typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//') ? data.url : '/dashboard';
+    const target = new URL(rawUrl, self.location.origin);
+    if (typeof data.notificationId === 'string' && data.notificationId) {
+      target.searchParams.set('docbd_notification', data.notificationId);
+    }
+
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+    if (existing) {
+      existing.postMessage({
+        type: 'DOCBD_PUSH_CLICKED',
+        notificationId: data.notificationId || null,
+        url: `${target.pathname}${target.search}${target.hash}`,
+      });
+      if ('navigate' in existing) await existing.navigate(target.href);
+      await existing.focus();
+      return;
+    }
+    await self.clients.openWindow(target.href);
+  })());
 });
 
 self.addEventListener('fetch', (event) => {

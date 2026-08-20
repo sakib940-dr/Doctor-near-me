@@ -6,6 +6,7 @@ import AccountStateFallback from '../components/AccountStateFallback';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
 import { saveMyCurrentLocation } from '../services/discovery';
+import { formatDateSafe, safeDateTimestamp } from '../lib/dateSafe';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getMyAppointments, getMyPatientDashboardSummary, type PatientDashboardAppointmentSummary } from '../services/appointments';
 import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
@@ -78,7 +79,7 @@ export default function DashboardPage() {
         setDoctorAnalytics(analytics);
         setDoctorEngagement(engagement);
         setRecentAppointments([...appointments]
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .sort((a, b) => safeDateTimestamp(b.created_at) - safeDateTimestamp(a.created_at))
           .slice(0, 5));
       })
       .catch((loadError: unknown) => {
@@ -130,7 +131,7 @@ export default function DashboardPage() {
   const patientMetrics = patientSummary;
 
   const patientRecentAppointments = useMemo(() => [...patientAppointments]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => safeDateTimestamp(b.created_at) - safeDateTimestamp(a.created_at))
     .slice(0, 5), [patientAppointments]);
 
   // Keep all hooks above every redirect/return. Returning before the useMemo above
@@ -163,7 +164,7 @@ export default function DashboardPage() {
   const busiestDay = doctorAnalytics?.last7Days.reduce((best, day) => day.count > best.count ? day : best, doctorAnalytics.last7Days[0] ?? { date: '', count: 0 });
   const chartData = (doctorAnalytics?.last7Days ?? []).map((day) => ({
     ...day,
-    label: new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${day.date}T12:00:00`)),
+    label: formatDateSafe(day.date, 'bn-BD', { weekday: 'short' }, '—', true),
   }));
 
   const doctorDashboardContent = <div className="app-shell doctor-analytics-dashboard"><main className="doctor-analytics-main container">
@@ -181,11 +182,11 @@ export default function DashboardPage() {
         <DashboardStatCard icon={Heart} label="মোট অনুসারী" value={doctorEngagement?.followers ?? 0} detail={`গত ৩০ দিনে নতুন ${doctorEngagement?.followers_new ?? 0}`} />
         <DashboardStatCard icon={Star} label="মোট রিভিউ" value={doctorEngagement?.reviews ?? 0} detail={doctorEngagement?.average_rating == null ? 'এখনো rating নেই' : `গড় ${doctorEngagement.average_rating.toFixed(1)} / 5`} />
         <DashboardStatCard icon={UsersRound} label="নতুন অনুসারী" value={doctorEngagement?.followers_new ?? 0} detail={`Loss ${doctorEngagement?.followers_lost ?? 0} • Net ${doctorEngagement?.followers_net ?? 0}`} />
-        <DashboardStatCard icon={Activity} label="Weekly trend" value={weeklyTotal} detail={busiestDay?.date ? `সর্বোচ্চ ${new Intl.DateTimeFormat('bn-BD', { weekday: 'short' }).format(new Date(`${busiestDay.date}T12:00:00`))}: ${busiestDay.count}` : 'গত ৭ দিন'} />
+        <DashboardStatCard icon={Activity} label="Weekly trend" value={weeklyTotal} detail={busiestDay?.date ? `সর্বোচ্চ ${formatDateSafe(busiestDay.date, 'bn-BD', { weekday: 'short' }, '—', true)}: ${busiestDay.count}` : 'গত ৭ দিন'} />
       </section>
       <section className="doctor-dashboard-panels">
         <article className="doctor-chart-card"><header><div><small>গত ৭ দিন</small><h2>Appointment trend</h2></div><span>{weeklyTotal} total</span></header><div className="doctor-chart-wrap">{chartData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ top: 10, right: 6, left: -22, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip cursor={{ fill: 'rgba(15, 118, 110, 0.06)' }} formatter={(value) => [`${value}`, 'Appointments']} /><Bar dataKey="count" fill="#0f766e" radius={[7, 7, 0, 0]} /></BarChart></ResponsiveContainer> : <div className="doctor-chart-empty">গত ৭ দিনে appointment নেই।</div>}</div></article>
-        <article className="dashboard-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক ৫টি অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/doctor/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{recentAppointments.length ? recentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/doctor/appointments')}><span className="dashboard-recent-date"><b>{new Intl.DateTimeFormat('bn-BD', { day: '2-digit' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</b><small>{new Intl.DateTimeFormat('bn-BD', { month: 'short' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</small></span><span className="dashboard-recent-info"><strong>{appointment.patient_name || 'রোগী'}</strong><small>{appointment.provider_name || 'চেম্বার নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
+        <article className="dashboard-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক ৫টি অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/doctor/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{recentAppointments.length ? recentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/doctor/appointments')}><span className="dashboard-recent-date"><b>{formatDateSafe(appointment.appointment_date, 'bn-BD', { day: '2-digit' }, '—', true)}</b><small>{formatDateSafe(appointment.appointment_date, 'bn-BD', { month: 'short' }, '', true)}</small></span><span className="dashboard-recent-info"><strong>{appointment.patient_name || 'রোগী'}</strong><small>{appointment.provider_name || 'চেম্বার নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
       </section>
     </>}
   </main></div>;
@@ -201,7 +202,7 @@ export default function DashboardPage() {
           <DashboardStatCard icon={CalendarClock} label="Pending" value={patientMetrics.pending} detail="Confirmation অপেক্ষায়" />
         </section>
         <section className="patient-dashboard-panels">
-          <article className="dashboard-recent-card patient-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{patientRecentAppointments.length ? patientRecentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/appointments')}><span className="dashboard-recent-date"><b>{new Intl.DateTimeFormat('bn-BD', { day: '2-digit' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</b><small>{new Intl.DateTimeFormat('bn-BD', { month: 'short' }).format(new Date(`${appointment.appointment_date}T12:00:00`))}</small></span><span className="dashboard-recent-info"><strong>{appointment.doctor_name || 'ডাক্তার'}</strong><small>{appointment.provider_name || 'প্রতিষ্ঠান নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
+          <article className="dashboard-recent-card patient-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{patientRecentAppointments.length ? patientRecentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/appointments')}><span className="dashboard-recent-date"><b>{formatDateSafe(appointment.appointment_date, 'bn-BD', { day: '2-digit' }, '—', true)}</b><small>{formatDateSafe(appointment.appointment_date, 'bn-BD', { month: 'short' }, '', true)}</small></span><span className="dashboard-recent-info"><strong>{appointment.doctor_name || 'ডাক্তার'}</strong><small>{appointment.provider_name || 'প্রতিষ্ঠান নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
           <article className="patient-find-doctor-card"><span className="patient-find-doctor-icon"><Search /></span><div><small>Need a doctor?</small><h2>ডাক্তার খুঁজুন</h2><p>বিশেষজ্ঞ, এলাকা বা হাসপাতাল অনুযায়ী ডাক্তার খুঁজে সরাসরি appointment নিন।</p><button type="button" onClick={() => navigate('/doctors?advanced=1')}>ডাক্তার খুঁজুন <ChevronRight /></button></div></article>
           <article className="patient-find-doctor-card patient-blood-bank-card"><span className="patient-find-doctor-icon"><Droplets /></span><div><small>Emergency support</small><h2>Blood Bank</h2><p>রক্তদাতা খুঁজুন, জরুরি blood request তৈরি করুন অথবা voluntary donor profile পরিচালনা করুন।</p><button type="button" onClick={() => navigate('/blood')}>Blood Bank খুলুন <ChevronRight /></button></div></article>
         </section>

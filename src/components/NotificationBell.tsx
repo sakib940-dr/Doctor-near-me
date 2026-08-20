@@ -11,6 +11,7 @@ import {
   notificationDeepLink,
   subscribeToNotificationRefresh,
 } from '../services/notifications';
+import { formatDateSafe } from '../lib/dateSafe';
 
 export default function NotificationBell({ placement = 'header' }: { placement?: 'header' | 'sidebar' | 'mobile' }) {
   const { user, account } = useAuth();
@@ -107,7 +108,7 @@ export default function NotificationBell({ placement = 'header' }: { placement?:
             {items.length ? items.map((item) => (
               <button type="button" key={item.notification_id} className={item.is_read ? 'read' : 'unread'} onClick={() => void openNotification(item)}>
                 <span className="notification-unread-dot" aria-hidden="true" />
-                <span><strong>{item.title_bn}</strong>{item.body_bn && <small>{item.body_bn}</small>}<time>{new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.created_at))}</time></span>
+                <span><strong>{item.title_bn}</strong>{item.body_bn && <small>{item.body_bn}</small>}<time>{formatDateSafe(item.created_at, language === 'bn' ? 'bn-BD' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }, language === 'bn' ? 'তারিখ নেই' : 'Date unavailable')}</time></span>
               </button>
             )) : <p className="notification-empty">{labels.empty}</p>}
           </div>

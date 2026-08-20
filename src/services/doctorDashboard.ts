@@ -2,6 +2,7 @@ import { requireSupabase } from '../lib/supabase';
 import { uploadOptimizedImage } from './imageUpload';
 import type { MyDoctorProfile } from '../types';
 import { resolvePublicDoctorRoute } from './discovery';
+import { safeDateOnly } from '../lib/dateSafe';
 
 export interface DoctorProfileUpdate {
   fullName: string;
@@ -68,7 +69,12 @@ export async function getDoctorAnalytics(_doctorId: string): Promise<DoctorAnaly
     todayAppointments: Number(raw.todayAppointments ?? 0),
     monthlyUniquePatients: Number(raw.monthlyUniquePatients ?? 0),
     pendingAppointments: Number(raw.pendingAppointments ?? 0),
-    last7Days: Array.isArray(raw.last7Days) ? raw.last7Days.map((item) => ({ date: String(item.date), count: Number(item.count ?? 0) })) : [],
+    last7Days: Array.isArray(raw.last7Days)
+      ? raw.last7Days.flatMap((item) => {
+          const date = safeDateOnly(item?.date);
+          return date ? [{ date, count: Number(item?.count ?? 0) }] : [];
+        })
+      : [],
   };
 }
 

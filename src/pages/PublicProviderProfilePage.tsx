@@ -6,12 +6,14 @@ import PublicHeader from '../components/PublicHeader';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDoctorsForProvider, getPublicProvider } from '../services/discovery';
-import type { DoctorSearchRow, ProviderDirectoryRow } from '../types';
+import { getPublicProfileStatsBatch } from '../services/engagement';
+import type { DoctorSearchRow, ProviderDirectoryRow, PublicProfileStats } from '../types';
 
 export default function PublicProviderProfilePage() {
   const { providerId = '' } = useParams();
   const [provider, setProvider] = useState<ProviderDirectoryRow | null>(null);
   const [doctors, setDoctors] = useState<DoctorSearchRow[]>([]);
+  const [doctorStats, setDoctorStats] = useState<Record<string, PublicProfileStats>>({});
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +25,21 @@ export default function PublicProviderProfilePage() {
       .finally(() => setLoading(false));
   }, [providerId]);
 
+  useEffect(() => {
+    if (!doctors.length || !isSupabaseConfigured) { setDoctorStats({}); return; }
+    let active = true;
+    getPublicProfileStatsBatch({ doctorIds: doctors.map((doctor) => doctor.doctor_id) }).then((items) => {
+      if (!active) return;
+      const next: Record<string, PublicProfileStats> = {};
+      items.forEach((item) => {
+        if (item.target_type !== 'doctor') return;
+        next[item.target_id] = { follower_count: Number(item.follower_count ?? 0), review_count: Number(item.review_count ?? 0), average_rating: item.average_rating == null ? null : Number(item.average_rating), is_following: Boolean(item.is_following), ranking_tier: item.ranking_tier, is_premium: Boolean(item.is_premium) };
+      });
+      setDoctorStats(next);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [doctors]);
+
   const directionUrl = useMemo(() => {
     if (!provider) return '';
     if (provider.map_url) return provider.map_url;
@@ -33,7 +50,7 @@ export default function PublicProviderProfilePage() {
 
   return (
     <div className="app-shell public-provider-page">
-      <PublicHeader />
+      <PublicHeader mobileBottomNav />
       <main className="container public-provider-main">
         <Link className="back-link" to="/providers"><ArrowLeft /> হাসপাতাল/চেম্বার তালিকা</Link>
         {loading && <div className="loading-box"><LoaderCircle className="spin" /> তথ্য লোড হচ্ছে…</div>}
@@ -48,7 +65,7 @@ export default function PublicProviderProfilePage() {
 
           <section className="visitor-section provider-doctors-section">
             <div className="visitor-section-head"><div><span>এই প্রতিষ্ঠানে</span><h2>ডাক্তার তালিকা</h2></div><strong>{doctors.length} জন</strong></div>
-            {doctors.length ? <div className="provider-doctor-vertical">{doctors.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : <div className="visitor-empty">এই প্রতিষ্ঠানের public doctor link এখনো পাওয়া যায়নি।</div>}
+            {doctors.length ? <div className="provider-doctor-vertical">{doctors.map((doctor) => <DoctorResultCard doctor={doctor} stats={doctorStats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setDoctorStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : <div className="visitor-empty">এই প্রতিষ্ঠানের public doctor link এখনো পাওয়া যায়নি।</div>}
           </section>
 
           <section className="provider-location-box">

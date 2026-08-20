@@ -1,15 +1,16 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
-import { FileText, ImagePlus, Layers3, LoaderCircle, Plus, RefreshCw, Save, Search, Settings2, Tags, Trash2 } from 'lucide-react';
+import { FileText, GraduationCap, ImagePlus, Layers3, LoaderCircle, Plus, RefreshCw, Save, Search, Settings2, Tags, Trash2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getImageUrl } from '../lib/storage';
 import { getDistricts } from '../services/discovery';
-import { deleteAdminSpecialtyImage, getAdminCmsSnapshot, getAdminPrescriptionFooter, saveAdminBanner, saveAdminContentPage, saveAdminPrescriptionFooter, saveAdminPublicSetting, saveAdminSection, saveAdminSpecialty, saveAdminTopic, uploadAdminBanner, uploadAdminSpecialtyImage } from '../services/adminCms';
-import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSetting, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic, District } from '../types';
+import { deleteAdminSpecialtyImage, getAdminCmsSnapshot, getAdminDegreeMaster, getAdminDirectoryRankingPolicy, getAdminPrescriptionFooter, saveAdminBanner, saveAdminContentPage, saveAdminDegreeMaster, saveAdminDirectoryRankingPolicy, saveAdminPrescriptionFooter, saveAdminPublicSetting, saveAdminSection, saveAdminSpecialty, saveAdminTopic, uploadAdminBanner, uploadAdminSpecialtyImage } from '../services/adminCms';
+import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSetting, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic, DegreeMasterItem, District } from '../types';
 
-type Tab = 'specialties' | 'topics' | 'sections' | 'banners' | 'content' | 'prescription';
+type Tab = 'specialties' | 'degrees' | 'topics' | 'sections' | 'banners' | 'content' | 'prescription';
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'CMS কাজটি সম্পন্ন করা যায়নি।';
 const blankSpecialty = (): AdminCmsSpecialty => ({ id: 0, name_bn: '', name_en: '', slug: '', icon_url: null, is_active: true, sort_order: 0 });
+const blankDegree = (): DegreeMasterItem => ({ id: 0, name: '', short_code: '', qualification_level: 'basic', classification: 'general', discipline: 'medical', aliases: [], is_active: true, sort_order: 0 });
 const blankTopic = (): AdminCmsTopic => ({ id: 0, name_bn: '', name_en: null, slug: '', icon: null, description_bn: null, search_keywords: [], specialty_ids: [], is_active: true, sort_order: 0 });
 const blankSection = (): AdminCmsSection => ({ id: '', section_key: '', title_bn: '', title_en: null, description_bn: null, data_source: 'doctor', filter_config: {}, view_all_path: '/doctors', card_limit: 10, is_active: true, sort_order: 0 });
 const blankBanner = (): AdminCmsBanner => ({ id: '', title_bn: '', title_en: null, subtitle_bn: null, subtitle_en: null, image_path: '', image_alt_bn: null, target_url: null, district_id: null, starts_at: null, ends_at: null, is_active: true, sort_order: 0 });
@@ -21,6 +22,11 @@ export default function AdminCmsPage() {
   const [tab, setTab] = useState<Tab>('specialties');
   const [data, setData] = useState<AdminCmsSnapshot | null>(null);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [degrees, setDegrees] = useState<DegreeMasterItem[]>([]);
+  const [degree, setDegree] = useState(blankDegree());
+  const [degreeAliases, setDegreeAliases] = useState('');
+  const [newEntityDays, setNewEntityDays] = useState(30);
+  const [nearMeDistanceBandKm, setNearMeDistanceBandKm] = useState(5);
   const [specialty, setSpecialty] = useState(blankSpecialty());
   const [topic, setTopic] = useState(blankTopic());
   const [section, setSection] = useState(blankSection());
@@ -44,8 +50,8 @@ export default function AdminCmsPage() {
   async function load() {
     setLoading(true); setError(null);
     try {
-      const [snapshot, districtRows, footerText] = await Promise.all([getAdminCmsSnapshot(), getDistricts(), getAdminPrescriptionFooter().catch(() => '')]);
-      setData(snapshot); setDistricts(districtRows); setPrescriptionFooter(footerText);
+      const [snapshot, districtRows, footerText, degreeRows, rankingPolicy] = await Promise.all([getAdminCmsSnapshot(), getDistricts(), getAdminPrescriptionFooter().catch(() => ''), getAdminDegreeMaster(), getAdminDirectoryRankingPolicy()]);
+      setData(snapshot); setDistricts(districtRows); setPrescriptionFooter(footerText); setDegrees(degreeRows); setNewEntityDays(rankingPolicy.new_entity_days); setNearMeDistanceBandKm(rankingPolicy.near_me_distance_band_km);
       setPage((current) => current ? snapshot.pages.find((item) => item.slug === current.slug) || snapshot.pages[0] || null : snapshot.pages[0] || null);
       setSetting((current) => current ? snapshot.settings.find((item) => item.setting_key === current.setting_key) || snapshot.settings[0] || null : snapshot.settings[0] || null);
     } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
@@ -81,6 +87,7 @@ export default function AdminCmsPage() {
     setSpecialtyPreview(null);
     setRemoveSpecialtyImage(true);
   }
+  function editDegree(item: DegreeMasterItem) { setDegree({ ...item }); setDegreeAliases(item.aliases.join(', ')); }
   function editTopic(item: AdminCmsTopic) { setTopic({ ...item, icon: null }); setKeywords(item.search_keywords.join(', ')); }
   function editSection(item: AdminCmsSection) { setSection({ ...item }); setFilterJson(JSON.stringify(item.filter_config, null, 2)); }
   function selectPage(item: AdminCmsContentPage) { setPage({ ...item }); }
@@ -110,6 +117,8 @@ export default function AdminCmsPage() {
       setError(messageFrom(saveError));
     } finally { setSaving(false); }
   }
+  async function submitDegree(event: FormEvent) { event.preventDefault(); await runSave(async () => { const savedId = await saveAdminDegreeMaster({ ...degree, aliases: degreeAliases.split(',').map((item) => item.trim()).filter(Boolean) }); setDegree((current) => ({ ...current, id: savedId })); }, 'Degree classification সংরক্ষণ হয়েছে।'); }
+  async function submitRankingPolicy() { await runSave(() => saveAdminDirectoryRankingPolicy({ newEntityDays, nearMeDistanceBandKm }), 'Global ranking policy সংরক্ষণ হয়েছে।'); }
   async function submitTopic(event: FormEvent) { event.preventDefault(); await runSave(() => saveAdminTopic({ ...topic, id: topic.id || null, search_keywords: keywords.split(',').map((item) => item.trim()).filter(Boolean) }), 'Discovery topic সংরক্ষণ হয়েছে।'); }
   async function submitSection(event: FormEvent) { event.preventDefault(); let parsed: Record<string, unknown>; try { parsed = JSON.parse(filterJson) as Record<string, unknown>; } catch { setError('Filter config valid JSON হতে হবে।'); return; } await runSave(() => saveAdminSection({ ...section, id: section.id || null, filter_config: parsed }), 'Homepage section সংরক্ষণ হয়েছে।'); }
   async function submitBanner(event: FormEvent) { event.preventDefault(); await runSave(async () => { const imagePath = bannerFile ? await uploadAdminBanner(bannerFile) : banner.image_path; if (!imagePath) throw new Error('Banner image নির্বাচন করুন।'); await saveAdminBanner({ ...banner, id: banner.id || null, image_path: imagePath }); setBannerFile(null); }, 'Banner সংরক্ষণ হয়েছে।'); }
@@ -117,9 +126,48 @@ export default function AdminCmsPage() {
   async function submitSetting(event: FormEvent) { event.preventDefault(); if (!setting) return; let parsed: Record<string, unknown>; try { parsed = JSON.parse(settingJson) as Record<string, unknown>; } catch { setError('Setting value valid JSON হতে হবে।'); return; } await runSave(() => saveAdminPublicSetting(setting.setting_key, parsed, setting.is_public), 'Site setting সংরক্ষণ হয়েছে।'); }
   async function submitPrescriptionFooter(event: FormEvent) { event.preventDefault(); await runSave(() => saveAdminPrescriptionFooter(prescriptionFooter), 'Prescription Footer সংরক্ষণ হয়েছে। নতুন PDF-এ এই footer ব্যবহার হবে।'); }
 
-  return <div className="app-shell cms-page"><main className="cms-main container"><header className="cms-heading"><span><Layers3 /></span><div><small>Audited content operations</small><h1>Reference ও Homepage CMS</h1><p>Public discovery content, ordering, visibility ও bilingual pages পরিচালনা করুন।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="cms-tabs">{([['specialties', Tags, 'Specialty'], ['topics', Search, 'Discovery topics'], ['sections', Layers3, 'Sections'], ['banners', ImagePlus, 'Banners'], ['content', FileText, 'Content & settings'], ['prescription', FileText, 'Prescription Footer']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> CMS data লোড হচ্ছে…</div> : data && <>
+  return <div className="app-shell cms-page"><main className="cms-main container"><header className="cms-heading"><span><Layers3 /></span><div><small>Audited content operations</small><h1>Reference ও Homepage CMS</h1><p>Public discovery content, ordering, visibility ও bilingual pages পরিচালনা করুন।</p></div><button onClick={() => void load()}><RefreshCw /> Refresh</button></header><nav className="cms-tabs">{([['specialties', Tags, 'Specialty'], ['degrees', GraduationCap, 'Degrees'], ['topics', Search, 'Discovery topics'], ['sections', Layers3, 'Sections'], ['banners', ImagePlus, 'Banners'], ['content', FileText, 'Content & settings'], ['prescription', FileText, 'Prescription Footer']] as const).map(([value, Icon, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><Icon /> {label}</button>)}</nav>{error && <div className="error-box">{error}</div>}{notice && <div className="auth-message success">{notice}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> CMS data লোড হচ্ছে…</div> : data && <>
 
   {tab === 'specialties' && <div className="cms-workspace"><section className="cms-list"><header><div><h2>Specialties</h2><small>{data.specialties.length} records</small></div><button onClick={() => selectSpecialty(blankSpecialty())}><Plus /> নতুন</button></header><label className="cms-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Specialty খুঁজুন" /></label><div>{shownSpecialties.map((item) => <button key={item.id} className={specialty.id === item.id ? 'selected' : ''} onClick={() => selectSpecialty(item)}><span className="cms-specialty-list-copy">{item.icon_url ? <img src={getImageUrl(item.icon_url) || ''} alt="" /> : <span className="cms-specialty-fallback"><Tags /></span>}<span><strong>{item.name_bn}</strong><small>{item.name_en} • {item.slug}</small></span></span><b className={item.is_active ? 'on' : 'off'}>{item.is_active ? 'Active' : 'Hidden'}</b></button>)}</div></section><form className="cms-editor" onSubmit={submitSpecialty}><EditorTitle icon={<Tags />} title={specialty.id ? 'Specialty edit' : 'নতুন Specialty'} /><section className="cms-specialty-media-editor"><div className="cms-specialty-preview">{!removeSpecialtyImage && (specialtyPreview || specialty.icon_url) ? <img src={specialtyPreview || getImageUrl(specialty.icon_url) || ''} alt={`${specialty.name_bn || 'Specialty'} preview`} /> : <Tags />}</div><div className="cms-specialty-media-actions"><label className="cms-file"><ImagePlus /> {specialtyFile?.name || (specialty.icon_url && !removeSpecialtyImage ? 'Image replace করুন' : 'Image upload করুন')}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(e: ChangeEvent<HTMLInputElement>) => chooseSpecialtyImage(e.target.files?.[0] || null)} /></label>{(specialty.icon_url || specialtyFile) && !removeSpecialtyImage && <button className="cms-media-remove" type="button" onClick={markSpecialtyImageForRemoval}><Trash2 /> Image remove</button>}<small>JPG, PNG, WebP বা AVIF • সর্বোচ্চ ৫ MB। Image না থাকলে public page neutral medical fallback দেখাবে।</small></div></section><Field label="বাংলা নাম"><input required minLength={2} value={specialty.name_bn} onChange={(e) => setSpecialty({ ...specialty, name_bn: e.target.value })} /></Field><Field label="English name"><input required minLength={2} value={specialty.name_en} onChange={(e) => setSpecialty({ ...specialty, name_en: e.target.value })} /></Field><div className="cms-grid"><Field label="Slug"><input required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={specialty.slug} onChange={(e) => setSpecialty({ ...specialty, slug: e.target.value.toLowerCase() })} /></Field><Field label="Sort order"><input type="number" min={0} value={specialty.sort_order} onChange={(e) => setSpecialty({ ...specialty, sort_order: Number(e.target.value) })} /></Field></div><Toggle checked={specialty.is_active} onChange={(value) => setSpecialty({ ...specialty, is_active: value })} label="Public search-এ active" /><SaveButton saving={saving} /></form></div>}
+
+
+  {tab === 'degrees' && <div className="cms-workspace">
+    <section className="cms-list">
+      <header><div><h2>Degree Master</h2><small>{degrees.length} records</small></div><button type="button" onClick={() => { setDegree(blankDegree()); setDegreeAliases(''); }}><Plus /> নতুন</button></header>
+      <div>{degrees.map((item) => <button type="button" key={item.id} className={degree.id === item.id ? 'selected' : ''} onClick={() => editDegree(item)}>
+        <span><strong>{item.short_code}</strong><small>{item.name} • {item.qualification_level} • {item.classification}</small></span>
+        <b className={item.is_active === false ? 'off' : 'on'}>{item.is_active === false ? 'Hidden' : 'Active'}</b>
+      </button>)}</div>
+    </section>
+    <form className="cms-editor" onSubmit={submitDegree}>
+      <EditorTitle icon={<GraduationCap />} title={degree.id ? 'Degree classification edit' : 'নতুন Degree'} />
+      <p className="cms-help">Doctor-এর existing degree text এই master + aliases দিয়ে parse হবে। Specialist/General classification designation-এর উপর নির্ভর করবে না।</p>
+      <div className="cms-grid">
+        <Field label="Short code"><input required value={degree.short_code} onChange={(e) => setDegree({ ...degree, short_code: e.target.value })} placeholder="FCPS" /></Field>
+        <Field label="Degree name"><input required value={degree.name} onChange={(e) => setDegree({ ...degree, name: e.target.value })} /></Field>
+      </div>
+      <div className="cms-grid">
+        <Field label="Level"><select value={degree.qualification_level} onChange={(e) => setDegree({ ...degree, qualification_level: e.target.value as DegreeMasterItem['qualification_level'] })}><option value="basic">Basic</option><option value="postgraduate">Postgraduate</option></select></Field>
+        <Field label="Classification"><select value={degree.classification} onChange={(e) => setDegree({ ...degree, classification: e.target.value as DegreeMasterItem['classification'] })}><option value="general">General</option><option value="specialist">Specialist</option></select></Field>
+      </div>
+      <div className="cms-grid">
+        <Field label="Discipline"><select value={degree.discipline} onChange={(e) => setDegree({ ...degree, discipline: e.target.value as DegreeMasterItem['discipline'] })}><option value="medical">Medical</option><option value="dental">Dental</option><option value="public_health">Public Health</option><option value="other">Other</option></select></Field>
+        <Field label="Sort order"><input type="number" min={0} value={degree.sort_order} onChange={(e) => setDegree({ ...degree, sort_order: Number(e.target.value) })} /></Field>
+      </div>
+      <Field label="Aliases (কমা দিয়ে)"><textarea rows={3} value={degreeAliases} onChange={(e) => setDegreeAliases(e.target.value)} placeholder="F.C.P.S., Fellowship..." /></Field>
+      <Toggle checked={degree.is_active !== false} onChange={(value) => setDegree({ ...degree, is_active: value })} label="Search/classification-এ active" />
+      <SaveButton saving={saving} />
+      <section className="cms-ranking-policy">
+        <h3>Global ranking policy</h3>
+        <p className="cms-help">Premium → Verified → New Join → Unverified সব discovery surface-এ centralভাবে apply হবে। Near Me-তে distance band relevance preserve করে।</p>
+        <div className="cms-grid">
+          <Field label="New Join duration (days)"><input type="number" min={1} max={365} value={newEntityDays} onChange={(e) => setNewEntityDays(Number(e.target.value))} /></Field>
+          <Field label="Near Me distance band (km)"><input type="number" min={1} max={50} step={1} value={nearMeDistanceBandKm} onChange={(e) => setNearMeDistanceBandKm(Number(e.target.value))} /></Field>
+        </div>
+        <button className="cms-save secondary" type="button" disabled={saving} onClick={() => void submitRankingPolicy()}><Save /> Ranking policy save</button>
+      </section>
+    </form>
+  </div>}
 
   {tab === 'topics' && <div className="cms-workspace"><section className="cms-list"><header><div><h2>Discovery topics</h2><small>{data.topics.length} records</small></div><button onClick={() => { setTopic(blankTopic()); setKeywords(''); }}><Plus /> নতুন</button></header><label className="cms-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Topic খুঁজুন" /></label><div>{shownTopics.map((item) => <button key={item.id} className={topic.id === item.id ? 'selected' : ''} onClick={() => editTopic(item)}><span><strong>{item.name_bn}</strong><small>{item.slug} • {item.specialty_ids.length} specialties</small></span><b className={item.is_active ? 'on' : 'off'}>{item.is_active ? 'Active' : 'Hidden'}</b></button>)}</div></section><form className="cms-editor" onSubmit={submitTopic}><EditorTitle icon={<Search />} title={topic.id ? 'Discovery topic edit' : 'নতুন Discovery topic'} /><div className="cms-topic-image-note"><Tags /><span><strong>Category image mapped Specialty থেকে আসে</strong><small>নিচের Mapped specialties থেকে প্রথম available specialty image public landing page-এ ব্যবহৃত হবে।</small></span></div><div className="cms-grid"><Field label="বাংলা নাম"><input required value={topic.name_bn} onChange={(e) => setTopic({ ...topic, name_bn: e.target.value })} /></Field><Field label="English name"><input value={topic.name_en || ''} onChange={(e) => setTopic({ ...topic, name_en: e.target.value || null })} /></Field></div><Field label="Slug"><input required value={topic.slug} onChange={(e) => setTopic({ ...topic, slug: e.target.value.toLowerCase() })} /></Field><Field label="বাংলা বিবরণ"><textarea rows={3} value={topic.description_bn || ''} onChange={(e) => setTopic({ ...topic, description_bn: e.target.value || null })} /></Field><Field label="Search keywords (কমা দিয়ে)"><textarea rows={2} value={keywords} onChange={(e) => setKeywords(e.target.value)} /></Field><Field label="Mapped specialties"><select multiple className="cms-multi" value={topic.specialty_ids.map(String)} onChange={(e: ChangeEvent<HTMLSelectElement>) => setTopic({ ...topic, specialty_ids: Array.from(e.target.selectedOptions).map((option) => Number(option.value)) })}>{data.specialties.map((item) => <option key={item.id} value={item.id}>{item.name_bn} — {item.name_en}</option>)}</select></Field><div className="cms-grid"><Field label="Sort order"><input type="number" min={0} value={topic.sort_order} onChange={(e) => setTopic({ ...topic, sort_order: Number(e.target.value) })} /></Field><Toggle checked={topic.is_active} onChange={(value) => setTopic({ ...topic, is_active: value })} label="Homepage-এ active" /></div><SaveButton saving={saving} /></form></div>}
 

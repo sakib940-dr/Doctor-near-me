@@ -5,10 +5,12 @@ import ProviderCard from '../components/ProviderCard';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { getDistricts, getPublicProviders, getUpazilas } from '../services/discovery';
-import type { District, ProviderDirectoryRow, Upazila } from '../types';
+import { getPublicProfileStatsBatch } from '../services/engagement';
+import type { District, ProviderDirectoryRow, PublicProfileStats, Upazila } from '../types';
 
 export default function PublicProvidersPage() {
   const [rows, setRows] = useState<ProviderDirectoryRow[]>([]);
+  const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
   const [districtId, setDistrictId] = useState('');
@@ -36,9 +38,24 @@ export default function PublicProvidersPage() {
     }).then(setRows).catch((loadError: unknown) => setError(loadError instanceof Error ? loadError.message : 'তথ্য লোড করা যায়নি।')).finally(() => setLoading(false));
   }, [districtId, upazilaId]);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !rows.length) { setStats({}); return; }
+    let active = true;
+    getPublicProfileStatsBatch({ providerIds: rows.map((provider) => provider.id) }).then((items) => {
+      if (!active) return;
+      const next: Record<string, PublicProfileStats> = {};
+      items.forEach((item) => {
+        if (item.target_type !== 'provider') return;
+        next[item.target_id] = { follower_count: Number(item.follower_count ?? 0), review_count: Number(item.review_count ?? 0), average_rating: item.average_rating == null ? null : Number(item.average_rating), is_following: Boolean(item.is_following), ranking_tier: item.ranking_tier, is_premium: Boolean(item.is_premium) };
+      });
+      setStats(next);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [rows]);
+
   return (
     <div className="app-shell public-provider-page">
-      <PublicHeader />
+      <PublicHeader mobileBottomNav />
       <main className="container public-provider-main">
         <section className="provider-list-hero">
           <span><Building2 /> চিকিৎসা প্রতিষ্ঠান</span>
@@ -50,7 +67,7 @@ export default function PublicProvidersPage() {
           </div>
         </section>
         {error && <div className="error-box">{error}</div>}
-        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রতিষ্ঠান লোড হচ্ছে…</div> : rows.length ? <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} key={provider.id} />)}</div> : <div className="visitor-empty">কোনো অনুমোদিত হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
+        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রতিষ্ঠান লোড হচ্ছে…</div> : rows.length ? <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} stats={stats[provider.id]} onStatsChange={(providerId, next) => setStats((current) => ({ ...current, [providerId]: next }))} key={provider.id} />)}</div> : <div className="visitor-empty">কোনো অনুমোদিত হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
       </main>
       <VisitorBottomNav />
     </div>

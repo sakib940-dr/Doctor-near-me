@@ -4,7 +4,7 @@ export type LocalizedText = { bn?: string; en?: string };
 export type ProviderService = { id:number; provider_id:string; name:LocalizedText; description:LocalizedText|null; icon:string|null; image:string|null; is_active:boolean; sort_order:number; created_at:string; updated_at:string };
 export type ProviderGalleryImage = { id:number; provider_id:string; category_id:string|null; image:string|null; caption:LocalizedText; is_active:boolean; sort_order:number; created_at:string };
 export type ProviderSliderImage = { id:number; provider_id:string; image:string|null; icon:string|null; caption:LocalizedText; is_active:boolean; sort_order:number; created_at:string };
-export type ProviderReview = { id:string; provider_id:string; name:string; rating:number; text:LocalizedText|null; comment:string|null; reply:LocalizedText|null; replied_at:string|null; is_published:boolean; sort_order:number; created_at:string };
+export type ProviderReview = { id:string; provider_id:string; name:string; rating:number; text:LocalizedText|null; comment:string|null; reply:LocalizedText|null; replied_at:string|null; is_published:boolean; sort_order:number; created_at:string; review_source?:'provider'|'patient'; q1_score?:number|null; q2_score?:number|null; q3_score?:number|null; q4_score?:number|null; q5_score?:number|null; structured_rating?:number|null; edited_at?:string|null };
 export type ProviderCost = { id:number; provider_id:string; name:LocalizedText; cost:LocalizedText; sort_order:number; created_at:string; updated_at:string };
 
 type Table = 'provider_services'|'provider_gallery_images'|'provider_slider_images'|'provider_reviews'|'provider_treatment_costs'|'provider_investigation_costs';

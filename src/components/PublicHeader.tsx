@@ -4,7 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/brand';
 
-export default function PublicHeader() {
+export default function PublicHeader({ mobileBottomNav = false }: { mobileBottomNav?: boolean }) {
   const [open, setOpen] = useState(false);
   const { user, account } = useAuth();
   const navClass = ({ isActive }: { isActive: boolean }) => isActive ? 'is-active' : undefined;
@@ -20,7 +20,7 @@ export default function PublicHeader() {
   } as const)[account.role] : null;
 
   return (
-    <header className="site-header visitor-public-header">
+    <header className={`site-header visitor-public-header ${mobileBottomNav ? 'with-bottom-nav' : ''}`}>
       <div className="container header-inner">
         <Link className="brand" to="/" aria-label={`${SITE_NAME} হোম`}>
           <span className="brand-mark"><HeartPulse size={24} /></span>

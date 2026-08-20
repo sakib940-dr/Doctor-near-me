@@ -1,6 +1,7 @@
 import { requireSupabase } from '../lib/supabase';
 import type {
   AmbulanceSearchRow,
+  DegreeMasterItem,
   District,
   DoctorSearchRow,
   DoctorPublicProfile,
@@ -69,6 +70,13 @@ export async function getSpecialties() {
 }
 
 
+export async function getDegreeMaster() {
+  const { data, error } = await requireSupabase().rpc('get_active_degree_master');
+  if (error) throw error;
+  return (data ?? []) as DegreeMasterItem[];
+}
+
+
 interface PublicDoctorVisitingCardRow {
   doctor_id: string;
   doctor_name: string;
@@ -118,7 +126,6 @@ export async function searchDoctors(input: {
   upazilaId?: number | null;
   specialtyIds?: number[];
   degrees?: string[];
-  designations?: string[];
   minFee?: number | null;
   maxFee?: number | null;
   availableToday?: boolean;
@@ -136,9 +143,7 @@ export async function searchDoctors(input: {
         ? input.specialtyIds
         : null,
       p_degrees: input.degrees?.length ? input.degrees : null,
-      p_designations: input.designations?.length
-        ? input.designations
-        : null,
+      p_designations: null,
       p_min_fee: input.minFee ?? null,
       p_max_fee: input.maxFee ?? null,
       p_available_today: input.availableToday ?? false,
@@ -153,21 +158,70 @@ export async function searchDoctors(input: {
 
 }
 
+
+export async function getMarketplaceDoctors(input: {
+  districtId?: number | null;
+  upazilaId?: number | null;
+  mode?: 'ranked' | 'premium' | 'new' | 'general' | 'general_dental' | 'specialist';
+  limit?: number;
+}) {
+  const { data, error } = await requireSupabase().rpc('get_public_marketplace_doctors', {
+    p_district_id: input.districtId ?? null,
+    p_upazila_id: input.upazilaId ?? null,
+    p_mode: input.mode ?? 'ranked',
+    p_limit: input.limit ?? 10,
+  });
+  if (error) throw error;
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    doctor_id: String(row.doctor_id),
+    doctor_name: String(row.doctor_name ?? ''),
+    avatar_url: (row.avatar_url as string | null) ?? null,
+    degree: (row.degree as string | null) ?? null,
+    designation: (row.designation as string | null) ?? null,
+    professional_title: (row.professional_title as string | null) ?? null,
+    bmdc_registration_no: (row.bmdc_registration_no as string | null) ?? null,
+    medical_college: (row.medical_college as string | null) ?? null,
+    present_job: (row.present_job as string | null) ?? null,
+    consultation_fee: row.consultation_fee == null ? null : Number(row.consultation_fee),
+    experience_years: row.experience_years == null ? null : Number(row.experience_years),
+    district_id: row.district_id == null ? null : Number(row.district_id),
+    district_name_bn: (row.district_name_bn as string | null) ?? null,
+    upazila_id: row.upazila_id == null ? null : Number(row.upazila_id),
+    upazila_name_bn: (row.upazila_name_bn as string | null) ?? null,
+    specialties: Array.isArray(row.specialties) ? row.specialties as DoctorSearchRow['specialties'] : [],
+    available_today: false,
+    total_count: Number(row.total_count ?? 0),
+    distance_km: null,
+    nearest_provider_id: (row.nearest_provider_id as string | null) ?? null,
+    nearest_provider_name: (row.nearest_provider_name as string | null) ?? null,
+    nearest_provider_type: null,
+    nearest_provider_address: (row.nearest_provider_address as string | null) ?? null,
+    nearest_provider_latitude: null,
+    nearest_provider_longitude: null,
+    verification_status: (row.verification_status as DoctorSearchRow['verification_status']) ?? 'pending',
+  })) satisfies DoctorSearchRow[];
+}
+
 export async function getPublicProviders(input: {
   districtId?: number | null;
   upazilaId?: number | null;
   limit?: number;
+  offset?: number;
 } = {}) {
-  let query = requireSupabase()
-    .from('public_provider_directory')
-    .select('id,provider_type,name_bn,name_en,slug,logo_url,banner_url,phone,address,district_id,upazila_id,latitude,longitude,map_url,verified')
-    .order('name_bn')
-    .limit(input.limit ?? 20);
-  if (input.districtId) query = query.eq('district_id', input.districtId);
-  if (input.upazilaId) query = query.eq('upazila_id', input.upazilaId);
-  const { data, error } = await query;
+  const { data, error } = await requireSupabase().rpc('get_public_ranked_providers', {
+    p_district_id: input.districtId ?? null,
+    p_upazila_id: input.upazilaId ?? null,
+    p_limit: input.limit ?? 20,
+    p_offset: input.offset ?? 0,
+  });
   if (error) throw error;
-  return (data ?? []) as ProviderDirectoryRow[];
+  return ((data ?? []) as ProviderDirectoryRow[]).map((row) => ({
+    ...row,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+    district_id: row.district_id == null ? null : Number(row.district_id),
+    upazila_id: row.upazila_id == null ? null : Number(row.upazila_id),
+  }));
 }
 
 export async function getPublicProviderBySlug(slug: string) {

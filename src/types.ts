@@ -215,6 +215,9 @@ export interface ProviderDirectoryRow {
   opening_note?: string | null;
   emergency_available?: boolean;
   verified: boolean;
+  ranking_tier?: PublicRankingTier;
+  is_premium?: boolean;
+  total_count?: number;
 }
 
 export interface AmbulanceSearchRow {
@@ -667,7 +670,7 @@ export interface AdminCmsContentPage {
 }
 
 export interface AdminCmsSetting {
-  setting_key: 'public_brand' | 'social_links' | 'default_location';
+  setting_key: 'public_brand' | 'social_links' | 'default_location' | 'directory_ranking_policy';
   setting_value: Record<string, unknown>;
   is_public: boolean;
   description: string | null;
@@ -742,4 +745,92 @@ export interface PrivilegedAccountInvite {
   claimed_at: string | null;
   cancelled_at: string | null;
   created_at: string;
+}
+
+// STEP 39 — public engagement / structured review foundation
+export type PublicRankingTier = 'premium' | 'verified' | 'new' | 'unverified';
+
+export interface PublicProfileStats {
+  follower_count: number;
+  review_count: number;
+  average_rating: number | null;
+  is_following: boolean;
+  ranking_tier: PublicRankingTier;
+  is_premium: boolean;
+}
+
+export interface PublicProfileStatsRow extends PublicProfileStats {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+}
+
+export interface SavedProfileCard {
+  target_type: 'doctor' | 'provider';
+  target_id: string;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  verification_status: string | null;
+  provider_type: 'hospital' | 'chamber' | null;
+  saved_at: string;
+}
+
+export interface StructuredReview {
+  review_id: string;
+  target_type?: 'doctor' | 'provider';
+  reviewer_name?: string;
+  q1_score: number;
+  q2_score: number;
+  q3_score: number;
+  q4_score: number;
+  q5_score: number;
+  rating: number;
+  comment: string | null;
+  reply?: { bn?: string | null; en?: string | null } | null;
+  replied_at?: string | null;
+  is_published?: boolean;
+  created_at: string;
+  edited_at: string | null;
+  total_count?: number;
+}
+
+export interface InteractionSummary {
+  profile_views: number;
+  call_clicks: number;
+  whatsapp_clicks: number;
+  appointment_clicks: number;
+  map_clicks: number;
+  followers: number;
+  reviews: number;
+  average_rating: number | null;
+  days: number;
+}
+
+export interface DoctorSliderImage {
+  id: number;
+  doctor_id: string;
+  image: string;
+  caption: { bn?: string; en?: string };
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+
+// STEP 41 — Admin-managed degree classification
+export type DegreeQualificationLevel = 'basic' | 'postgraduate';
+export type DegreeClassification = 'general' | 'specialist';
+export type DegreeDiscipline = 'medical' | 'dental' | 'public_health' | 'other';
+
+export interface DegreeMasterItem {
+  id: number;
+  name: string;
+  short_code: string;
+  qualification_level: DegreeQualificationLevel;
+  classification: DegreeClassification;
+  discipline: DegreeDiscipline;
+  aliases: string[];
+  sort_order: number;
+  is_active?: boolean;
 }

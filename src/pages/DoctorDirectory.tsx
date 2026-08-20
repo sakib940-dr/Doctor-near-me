@@ -4,13 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 import DoctorResultCard from '../components/DoctorResultCard';
 import PublicHeader from '../components/PublicHeader';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
-import type { District, DoctorSearchRow, Specialty, Upazila } from '../types';
+import { getDegreeMaster, getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
+import { getPublicProfileStatsBatch } from '../services/engagement';
+import type { DegreeMasterItem, District, DoctorSearchRow, PublicProfileStats, Specialty, Upazila } from '../types';
 import { makePageTitle } from '../lib/brand';
 
 const PAGE_SIZE = 20;
-const degreeOptions = ['MBBS', 'BDS', 'FCPS', 'MD', 'MS'];
-const designationOptions = ['Consultant', 'Junior Consultant', 'Assistant Professor', 'Associate Professor', 'Professor'];
 
 const numberParam = (value: string | null) => value && Number.isFinite(Number(value)) ? Number(value) : null;
 const listParam = (value: string | null) => value ? value.split(',').filter(Boolean) : [];
@@ -23,7 +22,6 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [upazilaId, setUpazilaId] = useState(params.get('upazila') ?? '');
   const [specialtyIds, setSpecialtyIds] = useState<string[]>(listParam(params.get('specialties')));
   const [degrees, setDegrees] = useState<string[]>(listParam(params.get('degrees')));
-  const [designations, setDesignations] = useState<string[]>(listParam(params.get('designations')));
   const [minFee, setMinFee] = useState(params.get('minFee') ?? '');
   const [maxFee, setMaxFee] = useState(params.get('maxFee') ?? '');
   const [today, setToday] = useState(params.get('today') === '1');
@@ -31,7 +29,9 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [districts, setDistricts] = useState<District[]>([]);
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [degreeOptions, setDegreeOptions] = useState<DegreeMasterItem[]>([]);
   const [rows, setRows] = useState<DoctorSearchRow[]>([]);
+  const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -46,10 +46,11 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       setLoading(false);
       return;
     }
-    Promise.all([getDistricts(), getSpecialties()])
-      .then(([districtRows, specialtyRows]) => {
+    Promise.all([getDistricts(), getSpecialties(), getDegreeMaster()])
+      .then(([districtRows, specialtyRows, degreeRows]) => {
         setDistricts(districtRows);
         setSpecialties(specialtyRows);
+        setDegreeOptions(degreeRows);
       })
       .catch((loadError: unknown) => setError(messageFrom(loadError)));
   }, []);
@@ -59,13 +60,22 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     setDistrictId(params.get('district') ?? '');
     setUpazilaId(params.get('upazila') ?? '');
     setSpecialtyIds(listParam(params.get('specialties')));
-    setDegrees(listParam(params.get('degrees')));
-    setDesignations(listParam(params.get('designations')));
+    const explicitDegrees = listParam(params.get('degrees'));
+    const classification = params.get('classification');
+    if (explicitDegrees.length) setDegrees(explicitDegrees);
+    else if (classification && degreeOptions.length) {
+      setDegrees(degreeOptions.filter((item) => {
+        if (classification === 'general') return item.classification === 'general' && item.discipline !== 'dental';
+        if (classification === 'general_dental') return item.classification === 'general' && item.discipline === 'dental';
+        if (classification === 'specialist') return item.classification === 'specialist';
+        return false;
+      }).map((item) => item.short_code));
+    } else setDegrees([]);
     setMinFee(params.get('minFee') ?? '');
     setMaxFee(params.get('maxFee') ?? '');
     setToday(params.get('today') === '1');
     setSort(params.get('sort') ?? 'name');
-  }, [params]);
+  }, [params, degreeOptions]);
 
   useEffect(() => {
     if (!districtId || !isSupabaseConfigured) {
@@ -77,6 +87,15 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    const classification = params.get('classification');
+    if (classification && !degreeOptions.length) return;
+    const explicitDegrees = listParam(params.get('degrees'));
+    const effectiveDegrees = explicitDegrees.length ? explicitDegrees : degreeOptions.filter((item) => {
+      if (classification === 'general') return item.classification === 'general' && item.discipline !== 'dental';
+      if (classification === 'general_dental') return item.classification === 'general' && item.discipline === 'dental';
+      if (classification === 'specialist') return item.classification === 'specialist';
+      return false;
+    }).map((item) => item.short_code);
     let active = true;
     setLoading(true);
     setError(null);
@@ -85,8 +104,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       districtId: numberParam(params.get('district')),
       upazilaId: numberParam(params.get('upazila')),
       specialtyIds: listParam(params.get('specialties')).map(Number).filter(Number.isFinite),
-      degrees: listParam(params.get('degrees')),
-      designations: listParam(params.get('designations')),
+      degrees: effectiveDegrees,
       minFee: numberParam(params.get('minFee')),
       maxFee: numberParam(params.get('maxFee')),
       availableToday: params.get('today') === '1',
@@ -97,9 +115,26 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       .catch((searchError: unknown) => { if (active) setError(messageFrom(searchError)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [params, page]);
+  }, [params, page, degreeOptions]);
 
-  const activeFilterCount = useMemo(() => [districtId, upazilaId, minFee, maxFee, today ? '1' : '', ...specialtyIds, ...degrees, ...designations].filter(Boolean).length, [districtId, upazilaId, minFee, maxFee, today, specialtyIds, degrees, designations]);
+  useEffect(() => {
+    if (!isSupabaseConfigured || !rows.length) { setStats({}); return; }
+    let active = true;
+    getPublicProfileStatsBatch({ doctorIds: rows.map((doctor) => doctor.doctor_id) })
+      .then((items) => {
+        if (!active) return;
+        const next: Record<string, PublicProfileStats> = {};
+        items.forEach((item) => {
+          if (item.target_type !== 'doctor') return;
+          next[item.target_id] = { follower_count: Number(item.follower_count ?? 0), review_count: Number(item.review_count ?? 0), average_rating: item.average_rating == null ? null : Number(item.average_rating), is_following: Boolean(item.is_following), ranking_tier: item.ranking_tier, is_premium: Boolean(item.is_premium) };
+        });
+        setStats(next);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [rows]);
+
+  const activeFilterCount = useMemo(() => [districtId, upazilaId, minFee, maxFee, today ? '1' : '', ...specialtyIds, ...degrees].filter(Boolean).length, [districtId, upazilaId, minFee, maxFee, today, specialtyIds, degrees]);
 
   function toggle(list: string[], value: string, setter: (value: string[]) => void) {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -113,7 +148,6 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     if (upazilaId) next.set('upazila', upazilaId);
     if (specialtyIds.length) next.set('specialties', specialtyIds.join(','));
     if (degrees.length) next.set('degrees', degrees.join(','));
-    if (designations.length) next.set('designations', designations.join(','));
     if (minFee) next.set('minFee', minFee);
     if (maxFee) next.set('maxFee', maxFee);
     if (today) next.set('today', '1');
@@ -123,7 +157,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   }
 
   function clearFilters() {
-    setQuery(''); setDistrictId(''); setUpazilaId(''); setSpecialtyIds([]); setDegrees([]); setDesignations([]); setMinFee(''); setMaxFee(''); setToday(false); setSort('name'); setParams({});
+    setQuery(''); setDistrictId(''); setUpazilaId(''); setSpecialtyIds([]); setDegrees([]); setMinFee(''); setMaxFee(''); setToday(false); setSort('name'); setParams({});
   }
 
   function setPage(nextPage: number) {
@@ -157,18 +191,17 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
             <label className="filter-group"><strong>জেলা</strong><select value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}><option value="">সকল জেলা</option>{districts.map((district) => <option value={district.id} key={district.id}>{district.name_bn}</option>)}</select></label>
             <label className="filter-group"><strong>উপজেলা</strong><select value={upazilaId} disabled={!districtId} onChange={(event) => setUpazilaId(event.target.value)}><option value="">সকল উপজেলা</option>{upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{upazila.name_bn}</option>)}</select></label>
             <fieldset className="filter-group"><legend>স্পেশালিটি</legend><div className="filter-checks scrollable">{specialties.map((specialty) => <label key={specialty.id}><input type="checkbox" checked={specialtyIds.includes(String(specialty.id))} onChange={() => toggle(specialtyIds, String(specialty.id), setSpecialtyIds)} /><span>{specialty.name_bn}</span></label>)}</div></fieldset>
-            <fieldset className="filter-group"><legend>ডিগ্রি</legend><div className="filter-checks">{degreeOptions.map((degree) => <label key={degree}><input type="checkbox" checked={degrees.includes(degree)} onChange={() => toggle(degrees, degree, setDegrees)} /><span>{degree}</span></label>)}</div></fieldset>
-            <fieldset className="filter-group"><legend>পদবি</legend><div className="filter-checks">{designationOptions.map((designation) => <label key={designation}><input type="checkbox" checked={designations.includes(designation)} onChange={() => toggle(designations, designation, setDesignations)} /><span>{designation}</span></label>)}</div></fieldset>
+            <fieldset className="filter-group"><legend>ডিগ্রি</legend><div className="filter-checks scrollable">{degreeOptions.map((degree) => <label key={degree.id}><input type="checkbox" checked={degrees.includes(degree.short_code)} onChange={() => toggle(degrees, degree.short_code, setDegrees)} /><span>{degree.short_code}</span></label>)}</div></fieldset>
             <div className="filter-group"><strong>ভিজিট ফি</strong><div className="fee-fields"><input aria-label="সর্বনিম্ন ফি" type="number" min="0" value={minFee} onChange={(event) => setMinFee(event.target.value)} placeholder="সর্বনিম্ন" /><input aria-label="সর্বোচ্চ ফি" type="number" min="0" value={maxFee} onChange={(event) => setMaxFee(event.target.value)} placeholder="সর্বোচ্চ" /></div></div>
             <label className="today-filter"><input type="checkbox" checked={today} onChange={(event) => setToday(event.target.checked)} /><span>আজ চেম্বার আছে</span></label>
             <button className="apply-filter" type="button" onClick={() => apply()}>ফিল্টার প্রয়োগ করুন</button>
           </aside>
 
           <div className="directory-results">
-            <div className="directory-toolbar"><div><strong>{loading ? 'ডাক্তার খোঁজা হচ্ছে…' : `${total} জন ডাক্তার পাওয়া গেছে`}</strong><small>শুধু অনুমোদিত ও সক্রিয় প্রোফাইল</small></div><select aria-label="ফলাফল সাজান" value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">নাম অনুযায়ী</option><option value="newest">নতুন আগে</option><option value="fee_low">কম ফি আগে</option><option value="fee_high">বেশি ফি আগে</option></select></div>
+            <div className="directory-toolbar"><div><strong>{loading ? 'ডাক্তার খোঁজা হচ্ছে…' : `${total} জন ডাক্তার পাওয়া গেছে`}</strong><small>সক্রিয় ও প্রকাশযোগ্য প্রোফাইল</small></div><select aria-label="ফলাফল সাজান" value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">নাম অনুযায়ী</option><option value="newest">নতুন আগে</option><option value="fee_low">কম ফি আগে</option><option value="fee_high">বেশি ফি আগে</option></select></div>
             {!isSupabaseConfigured && <div className="directory-notice">লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার UI preview করা যাচ্ছে।</div>}
             {error && <div className="error-box" role="alert">{error}</div>}
-            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
+            {loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
             {!loading && totalPages > 1 && <nav className="pagination" aria-label="ফলাফলের পৃষ্ঠা"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>পৃষ্ঠা {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
           </div>
         </section>

@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic } from '../types';
+import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic, DegreeMasterItem } from '../types';
 
 export async function getAdminCmsSnapshot() {
   const { data, error } = await requireSupabase().rpc('get_admin_cms_snapshot');
@@ -118,6 +118,48 @@ export async function saveAdminPrescriptionFooter(text: string) {
   if (text.length > 500) throw new Error('Prescription footer সর্বোচ্চ 500 characters হতে পারবে।');
   const { data, error } = await requireSupabase().rpc('save_admin_prescription_footer', {
     p_text: text,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+
+export async function getAdminDegreeMaster() {
+  const { data, error } = await requireSupabase().rpc('get_admin_degree_master');
+  if (error) throw error;
+  return (data ?? []) as DegreeMasterItem[];
+}
+
+export async function saveAdminDegreeMaster(item: DegreeMasterItem) {
+  const { data, error } = await requireSupabase().rpc('save_admin_degree_master', {
+    p_id: item.id || null,
+    p_name: item.name,
+    p_short_code: item.short_code,
+    p_qualification_level: item.qualification_level,
+    p_classification: item.classification,
+    p_discipline: item.discipline,
+    p_aliases: item.aliases,
+    p_is_active: item.is_active ?? true,
+    p_sort_order: item.sort_order,
+  });
+  if (error) throw error;
+  return Number(data);
+}
+
+export async function getAdminDirectoryRankingPolicy() {
+  const { data, error } = await requireSupabase().rpc('get_admin_directory_ranking_policy');
+  if (error) throw error;
+  const value = (data ?? {}) as Record<string, unknown>;
+  return {
+    new_entity_days: Number(value.new_entity_days ?? 30),
+    near_me_distance_band_km: Number(value.near_me_distance_band_km ?? 5),
+  };
+}
+
+export async function saveAdminDirectoryRankingPolicy(input: { newEntityDays: number; nearMeDistanceBandKm: number }) {
+  const { data, error } = await requireSupabase().rpc('save_admin_directory_ranking_policy', {
+    p_new_entity_days: input.newEntityDays,
+    p_near_me_distance_band_km: input.nearMeDistanceBandKm,
   });
   if (error) throw error;
   return Boolean(data);

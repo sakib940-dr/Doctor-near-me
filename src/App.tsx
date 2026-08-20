@@ -31,6 +31,7 @@ import ProviderProfilePage from './pages/ProviderProfilePage';
 import PublicProviderProfilePage from './pages/PublicProviderProfilePage';
 import ProviderWebsitePage from './pages/ProviderWebsitePage';
 import PublicProvidersPage from './pages/PublicProvidersPage';
+import SavedProfilesPage from './pages/SavedProfilesPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
 import VerificationOfficerPage from './pages/VerificationOfficerPage';
@@ -52,6 +53,7 @@ export default function App() {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/saved" element={<ProtectedRoute><SavedProfilesPage /></ProtectedRoute>} />
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
@@ -120,6 +122,7 @@ function useRouteDocumentTitle() {
     else if (path.startsWith('/verification/')) page = 'Verification';
     else if (path === '/profile') page = 'Profile';
     else if (path === '/appointments') page = 'Appointments';
+    else if (path === '/saved') page = 'সংরক্ষিত';
 
     document.title = makePageTitle(page);
   }, [location.pathname]);

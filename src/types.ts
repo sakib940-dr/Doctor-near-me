@@ -1224,3 +1224,37 @@ export interface PremiumReferralRow {
   created_at: string;
   validated_at: string | null;
 }
+
+export type AdminStorageWarningLevel = 'unknown' | 'normal' | 'notice' | 'warning' | 'critical';
+
+export interface AdminStorageCleanupSummary {
+  total_files: number;
+  referenced_files: number;
+  orphan_files: number;
+  recent_unreferenced_files: number;
+  total_bytes: number;
+  orphan_bytes: number;
+  grace_hours: number;
+  quota_bytes: number | null;
+  usage_percent: number | null;
+  warning_level: AdminStorageWarningLevel;
+  notice_percent: number;
+  warning_percent: number;
+  critical_percent: number;
+  expired_push_subscriptions: number;
+}
+
+export interface AdminStorageCleanupObject {
+  bucket_id: 'avatars' | 'public-images' | 'verification-documents';
+  name: string;
+  size_bytes: number;
+  created_at: string;
+  age_hours: number;
+}
+
+export interface AdminStorageCleanupResult {
+  deleted_objects: number;
+  deleted_bytes: number;
+  failed_objects: number;
+  expired_push_subscriptions_deleted: number;
+}

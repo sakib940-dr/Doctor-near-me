@@ -11,6 +11,7 @@ import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminStorageCleanupPage from './pages/AdminStorageCleanupPage';
 import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
 import AmbulanceServicesPage from './pages/AmbulanceServicesPage';
 import AppointmentsPage from './pages/AppointmentsPage';
@@ -100,6 +101,7 @@ export default function App() {
       <Route path="/verification/reviews" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['verification_officer', 'admin', 'super_admin']}><VerificationOfficerPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDashboardPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/cms" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminCmsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/admin/storage-cleanup" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminStorageCleanupPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/premium" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><PremiumAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/super-admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['super_admin']}><SuperAdminPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

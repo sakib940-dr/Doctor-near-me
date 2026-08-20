@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import { uploadOptimizedImage } from './imageUpload';
+import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
 import type { MyDoctorProfile } from '../types';
 import { resolvePublicDoctorRoute } from './discovery';
 import { safeDateOnly } from '../lib/dateSafe';
@@ -143,6 +143,11 @@ export async function uploadDoctorPhoto(file: File, userId: string) {
 }
 
 
+
+
+export async function cleanupDoctorPhoto(path: string | null | undefined) {
+  return removeOptimizedImageVariants('avatars', path);
+}
 
 export interface DoctorChamberInput {
   providerId: string | null;

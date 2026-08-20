@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doctorPublicPath } from '../lib/publicRoutes';
 import { getImageUrl } from '../lib/storage';
 import {
+  cleanupDoctorPhoto,
   getMyDoctorProfile,
   updateMyDoctorVisitingCard,
   uploadDoctorPhoto,
@@ -102,9 +103,11 @@ export default function DoctorVisitingCardPage() {
     setSaving(true);
     setError(null);
     setNotice(null);
+    const previousPhotoPath = profile.doctor.profile_photo_url;
+    let uploadedPhotoPath: string | null = null;
     try {
-      let photoPath = profile.doctor.profile_photo_url;
-      if (photo) photoPath = await uploadDoctorPhoto(photo, user.id);
+      let photoPath = previousPhotoPath;
+      if (photo) { uploadedPhotoPath = await uploadDoctorPhoto(photo, user.id); photoPath = uploadedPhotoPath; }
 
       const previousStatus = profile.doctor.verification_status;
       const result = await updateMyDoctorVisitingCard({
@@ -123,6 +126,9 @@ export default function DoctorVisitingCardPage() {
       // the canonical profile so a DB-triggered reset is reflected immediately.
       const refreshedProfile = await getMyDoctorProfile();
       if (refreshedProfile) setProfile(refreshedProfile);
+      if (uploadedPhotoPath && previousPhotoPath && previousPhotoPath !== uploadedPhotoPath) {
+        await cleanupDoctorPhoto(previousPhotoPath).catch(() => undefined);
+      }
       setPhoto(null);
       setPreview(null);
       await refreshAccount();
@@ -132,6 +138,7 @@ export default function DoctorVisitingCardPage() {
         ? 'Visiting Card সংরক্ষিত হয়েছে। Verification identity পরিবর্তনের কারণে পুনরায় verification প্রয়োজন।'
         : 'Visiting Card সফলভাবে সংরক্ষণ হয়েছে।');
     } catch (saveError) {
+      if (uploadedPhotoPath) await cleanupDoctorPhoto(uploadedPhotoPath).catch(() => undefined);
       setError(messageFrom(saveError));
     } finally {
       setSaving(false);

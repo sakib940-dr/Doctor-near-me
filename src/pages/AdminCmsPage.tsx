@@ -4,7 +4,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getImageUrl } from '../lib/storage';
 import { getDistricts } from '../services/discovery';
-import { deleteAdminSpecialtyImage, getAdminCmsSnapshot, getAdminDegreeMaster, getAdminDirectoryRankingPolicy, getAdminPrescriptionFooter, saveAdminBanner, saveAdminContentPage, saveAdminDegreeMaster, saveAdminDirectoryRankingPolicy, saveAdminPrescriptionFooter, saveAdminPublicSetting, saveAdminSection, saveAdminSpecialty, saveAdminTopic, uploadAdminBanner, uploadAdminSpecialtyImage } from '../services/adminCms';
+import { deleteAdminBannerImage, deleteAdminSpecialtyImage, getAdminCmsSnapshot, getAdminDegreeMaster, getAdminDirectoryRankingPolicy, getAdminPrescriptionFooter, saveAdminBanner, saveAdminContentPage, saveAdminDegreeMaster, saveAdminDirectoryRankingPolicy, saveAdminPrescriptionFooter, saveAdminPublicSetting, saveAdminSection, saveAdminSpecialty, saveAdminTopic, uploadAdminBanner, uploadAdminSpecialtyImage } from '../services/adminCms';
 import type { AdminCmsBanner, AdminCmsContentPage, AdminCmsSection, AdminCmsSetting, AdminCmsSnapshot, AdminCmsSpecialty, AdminCmsTopic, DegreeMasterItem, District } from '../types';
 
 type Tab = 'specialties' | 'degrees' | 'topics' | 'sections' | 'banners' | 'content' | 'prescription';
@@ -127,7 +127,21 @@ export default function AdminCmsPage() {
   async function submitRankingPolicy() { await runSave(() => saveAdminDirectoryRankingPolicy({ newEntityDays, nearMeDistanceBandKm }), 'Global ranking policy সংরক্ষণ হয়েছে।'); }
   async function submitTopic(event: FormEvent) { event.preventDefault(); await runSave(() => saveAdminTopic({ ...topic, id: topic.id || null, search_keywords: keywords.split(',').map((item) => item.trim()).filter(Boolean) }), 'Discovery topic সংরক্ষণ হয়েছে।'); }
   async function submitSection(event: FormEvent) { event.preventDefault(); let parsed: Record<string, unknown>; try { parsed = JSON.parse(filterJson) as Record<string, unknown>; } catch { setError('Filter config valid JSON হতে হবে।'); return; } await runSave(() => saveAdminSection({ ...section, id: section.id || null, filter_config: parsed }), 'Homepage section সংরক্ষণ হয়েছে।'); }
-  async function submitBanner(event: FormEvent) { event.preventDefault(); await runSave(async () => { const imagePath = bannerFile ? await uploadAdminBanner(bannerFile) : banner.image_path; if (!imagePath) throw new Error('Banner image নির্বাচন করুন।'); await saveAdminBanner({ ...banner, id: banner.id || null, image_path: imagePath }); setBannerFile(null); }, 'Banner সংরক্ষণ হয়েছে।'); }
+  async function submitBanner(event: FormEvent) {
+    event.preventDefault(); setSaving(true); setError(null); setNotice(null);
+    const previousPath=banner.image_path; let uploadedPath:string|null=null;
+    try {
+      if(bannerFile) uploadedPath=await uploadAdminBanner(bannerFile);
+      const imagePath=uploadedPath??previousPath;
+      if(!imagePath) throw new Error('Banner image নির্বাচন করুন।');
+      const savedId=await saveAdminBanner({ ...banner, id: banner.id || null, image_path:imagePath });
+      if(uploadedPath&&previousPath&&previousPath!==uploadedPath) await deleteAdminBannerImage(previousPath).catch(()=>undefined);
+      setBanner((current)=>({...current,id:savedId,image_path:imagePath})); setBannerFile(null); setNotice('Banner সংরক্ষণ হয়েছে।'); await load();
+    } catch(saveError) {
+      if(uploadedPath) await deleteAdminBannerImage(uploadedPath).catch(()=>undefined);
+      setError(messageFrom(saveError));
+    } finally { setSaving(false); }
+  }
   async function submitPage(event: FormEvent) { event.preventDefault(); if (!page) return; await runSave(() => saveAdminContentPage(page), 'Content page সংরক্ষণ হয়েছে।'); }
   async function submitSetting(event: FormEvent) { event.preventDefault(); if (!setting) return; let parsed: Record<string, unknown>; try { parsed = JSON.parse(settingJson) as Record<string, unknown>; } catch { setError('Setting value valid JSON হতে হবে।'); return; } await runSave(() => saveAdminPublicSetting(setting.setting_key, parsed, setting.is_public), 'Site setting সংরক্ষণ হয়েছে।'); }
   async function submitPrescriptionFooter(event: FormEvent) { event.preventDefault(); await runSave(() => saveAdminPrescriptionFooter(prescriptionFooter), 'Prescription Footer সংরক্ষণ হয়েছে। নতুন PDF-এ এই footer ব্যবহার হবে।'); }

@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import { uploadOptimizedImage } from './imageUpload';
+import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
 import type { DoctorProviderInvitation, ProviderDashboardItem, ProviderDoctorSearchRow } from '../types';
 
 export interface ProviderProfileInput {
@@ -83,6 +83,11 @@ export async function uploadProviderMedia(file: File, userId: string, kind: 'log
   return result.path;
 }
 
+
+
+export async function cleanupProviderMedia(path: string | null | undefined) {
+  return removeOptimizedImageVariants('public-images', path);
+}
 
 export async function searchApprovedDoctorsForProvider(query: string) {
   const { data, error } = await requireSupabase().rpc('search_approved_doctors_for_provider', { p_query: query.trim() || null, p_limit: 20 });

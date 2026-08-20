@@ -69,6 +69,15 @@ export async function uploadAdminBanner(file: File) {
 }
 
 
+
+const bannerImagePathPattern = /^[0-9a-f-]+\/cms\/banners\//i;
+
+export async function deleteAdminBannerImage(path: string | null | undefined) {
+  if (!path || /^https?:\/\//i.test(path) || !bannerImagePathPattern.test(path)) return false;
+  await removeOptimizedImageVariants('public-images', path);
+  return true;
+}
+
 export async function saveAdminContentPage(item: AdminCmsContentPage) {
   const { data, error } = await requireSupabase().rpc('save_admin_content_page', {
     p_slug: item.slug, p_title_bn: item.title_bn, p_title_en: item.title_en || null,

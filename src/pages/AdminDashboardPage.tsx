@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Activity, AlertTriangle, Ambulance, ArrowRight, BadgeCheck, Bell, Building2, CalendarDays, CheckCircle2, Clock3, Crown, Eye, FileText, Flag, Heart, LoaderCircle, MessageCircle, MessageSquareText, MapPin, PhoneCall, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRound, Users, X } from 'lucide-react';
+import { Activity, AlertTriangle, Ambulance, ArrowRight, BadgeCheck, Bell, Building2, CalendarDays, CheckCircle2, Clock3, Crown, Eye, FileText, Flag, HardDrive, Heart, LoaderCircle, MessageCircle, MessageSquareText, MapPin, PhoneCall, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Star, Stethoscope, TrendingUp, UserCog, UserRound, Users, X } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
@@ -387,6 +387,7 @@ export default function AdminDashboardPage() {
     { label: 'Users', path: '/admin?tab=users', icon: Users },
     { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays },
     { label: 'Activity Log', path: '/admin?tab=activity', icon: Activity },
+    { label: 'Storage Cleanup', path: '/admin/storage-cleanup', icon: HardDrive },
     ...(account?.role === 'super_admin' ? [{ label: 'Super Admin', path: '/super-admin', icon: UserCog }] : []),
   ];
   return <div className="app-shell admin-page"><main className="admin-main container">

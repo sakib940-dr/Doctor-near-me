@@ -51,13 +51,27 @@ export async function optimizeVerificationImageIfNeeded(file: File) {
   return optimized.master.file;
 }
 
+function optimizedVariantPaths(path: string) {
+  if (/-opt-thumb\.webp$/i.test(path)) {
+    const master = path.replace(/-opt-thumb\.webp$/i, '-opt.webp');
+    return [master, path];
+  }
+  if (/-opt\.webp$/i.test(path)) return [path, path.replace(/-opt\.webp$/i, '-opt-thumb.webp')];
+  return [path];
+}
+
 export async function removeOptimizedImageVariants(bucket: string, path: string | null | undefined) {
-  if (!path || /^https?:\/\//i.test(path)) return;
-  // Optimized objects are content-addressed by fingerprint and may be shared when
-  // the same image is reused. Do not delete a shared object from a single-record
-  // delete/replace path; that could break another card/slider that references it.
-  // Legacy non-content-addressed objects remain safe to remove as before.
-  if (/-opt\.webp$/i.test(path)) return;
-  const { error } = await requireSupabase().storage.from(bucket).remove([path]);
+  if (!path || /^https?:\/\//i.test(path)) return false;
+  const client = requireSupabase();
+  const { data: referenced, error: referenceError } = await client.rpc('storage_object_is_referenced', {
+    p_bucket: bucket,
+    p_name: path,
+  });
+  if (referenceError) throw referenceError;
+  if (referenced === true) return false;
+
+  const paths = optimizedVariantPaths(path);
+  const { error } = await client.storage.from(bucket).remove(paths);
   if (error) throw error;
+  return true;
 }

@@ -36,7 +36,7 @@ async function getAll<T>(table:Table, providerId:string, publicOnly?:{active?:bo
 function invalidatePublicProviderContent(providerId:string){clearPublicRequestCache(`public:provider-content:${providerId}:`);clearPublicRequestCache(`public:provider-page-base:`);}
 async function create<T>(table:Table, providerId:string, input:Record<string,unknown>){ const {data,error}=await requireSupabase().from(table).insert({...input,provider_id:providerId}).select(TABLE_COLUMNS[table]).single(); if(error) throw error; invalidatePublicProviderContent(providerId); return data as unknown as T; }
 async function update<T>(table:Table, providerId:string, id:string|number, input:Record<string,unknown>){ const {data,error}=await requireSupabase().from(table).update(input).eq('provider_id',providerId).eq('id',id).select(TABLE_COLUMNS[table]).single(); if(error) throw error; invalidatePublicProviderContent(providerId); return data as unknown as T; }
-async function remove(table:Table, providerId:string, id:string|number){ const {error}=await requireSupabase().from(table).delete().eq('provider_id',providerId).eq('id',id); if(error) throw error; invalidatePublicProviderContent(providerId); }
+async function remove(table:Table, providerId:string, id:string|number){ const {data,error}=await requireSupabase().from(table).delete().eq('provider_id',providerId).eq('id',id).select(TABLE_COLUMNS[table]).single(); if(error) throw error; invalidatePublicProviderContent(providerId); const image=(data as {image?:string|null}|null)?.image; if(image) await removeOwnedProviderWebsiteImage(image).catch(()=>undefined); return data; }
 async function reorder(table:Table, providerId:string, ids:Array<string|number>){ const {error}=await requireSupabase().rpc('reorder_my_provider_content',{p_table:table,p_provider_id:providerId,p_ids:ids.map(String)}); if(error) throw error; invalidatePublicProviderContent(providerId); }
 
 export const providerServices={ getAll:(p:string,publicOnly=false)=>getAll<ProviderService>('provider_services',p,publicOnly?{active:true}:undefined), create:(p:string,i:Omit<Partial<ProviderService>,'id'|'provider_id'>)=>create<ProviderService>('provider_services',p,i), update:(p:string,id:number,i:Partial<ProviderService>)=>update<ProviderService>('provider_services',p,id,i), remove:(p:string,id:number)=>remove('provider_services',p,id), reorder:(p:string,ids:number[])=>reorder('provider_services',p,ids)};
@@ -74,8 +74,9 @@ export async function replaceProviderSliderImage(providerId:string,row:ProviderS
 }
 
 export async function deleteProviderSliderImage(providerId:string,row:ProviderSliderImage){
-  await providerSlider.remove(providerId,row.id); await removeOwnedProviderWebsiteImage(row.image);
+  await providerSlider.remove(providerId,row.id);
 }
+
 
 export async function getProviderOpeningHours(providerId:string){
   const {data,error}=await requireSupabase().from('provider_opening_hours').select('id,provider_id,day_of_week,open_time,close_time,is_closed,is_24_hours,note,created_at,updated_at').eq('provider_id',providerId).order('day_of_week');

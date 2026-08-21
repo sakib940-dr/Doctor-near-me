@@ -47,7 +47,7 @@ export default function AuthPage() {
     if (referral) localStorage.setItem('docbd-referral-code', referral);
   }, [searchParams]);
 
-  if (!sessionLoading && user && !submitting) return <Navigate to="/dashboard" replace />;
+  if (!sessionLoading && user && !submitting) return <Navigate to={account?.role === 'patient' ? '/' : '/dashboard'} replace />;
 
   function switchMode(next: 'login' | 'register') {
     setSearchParams(next === 'register' ? { mode: 'register' } : {});

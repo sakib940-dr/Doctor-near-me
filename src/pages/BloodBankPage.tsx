@@ -9,9 +9,11 @@ import {
   getMyBloodRequests,
   saveMyBloodDonorProfile,
   searchBloodDonors,
+  getRecentBloodRequests,
+  sendBloodRequestToDonor,
 } from '../services/bloodBank';
 import { getDistricts, getUpazilas } from '../services/discovery';
-import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, District, PatientProfile, Upazila } from '../types';
+import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, District, PatientProfile, Upazila, PublicBloodRequestRow } from '../types';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
@@ -26,6 +28,7 @@ export default function BloodBankPage() {
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [donorProfile, setDonorProfile] = useState<BloodDonorProfile | null>(null);
   const [requests, setRequests] = useState<BloodRequestRow[]>([]);
+  const [recentRequests, setRecentRequests] = useState<PublicBloodRequestRow[]>([]);
   const [responses, setResponses] = useState<Record<string, BloodRequestResponseRow[]>>({});
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -60,13 +63,14 @@ export default function BloodBankPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getDistricts(), getMyPatientProfile(), getMyBloodDonorProfile(), getMyBloodRequests()])
-      .then(([districtRows, patient, donor, requestRows]) => {
+    Promise.all([getDistricts(), getMyPatientProfile(), getMyBloodDonorProfile(), getMyBloodRequests(), getRecentBloodRequests()])
+      .then(([districtRows, patient, donor, requestRows, recentRows]) => {
         if (!active) return;
         setDistricts(districtRows);
         setProfile(patient);
         setDonorProfile(donor);
         setRequests(requestRows);
+        setRecentRequests(recentRows);
         const defaultDistrict = patient?.district_id ? String(patient.district_id) : '';
         const defaultUpazila = patient?.upazila_id ? String(patient.upazila_id) : '';
         setSearchDistrict(defaultDistrict);
@@ -123,6 +127,25 @@ export default function BloodBankPage() {
     finally { if (reset) setWorking(false); else setDonorsLoadingMore(false); }
   }
 
+  async function requestDonor(donor: BloodDonorSearchRow) {
+    const message = window.prompt('রোগীর নাম / প্রয়োজনের তথ্য লিখুন');
+    if (!message) return;
+    setWorking(true);
+    try {
+      await sendBloodRequestToDonor({
+        donorId: donor.donor_id,
+        patientName: message,
+        contactPhone,
+        message,
+      });
+      setNotice('Donor-এর কাছে blood request পাঠানো হয়েছে।');
+    } catch (requestError) {
+      setError(messageFrom(requestError));
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function findDonors(event: FormEvent) { event.preventDefault(); await loadDonors(true); }
 
   async function submitBloodRequest(event: FormEvent) {
@@ -176,6 +199,14 @@ export default function BloodBankPage() {
     <div className="blood-bank-page">
       <header className="blood-bank-heading"><span><Droplets /> Patient Blood Bank</span><h1>রক্ত খুঁজুন ও জরুরি অনুরোধ পরিচালনা করুন</h1><p>docbd.info-এর existing voluntary donor ও blood-request system ব্যবহার করে।</p></header>
 
+      <section className="blood-bank-panel">
+        <header><h2>Recent Blood Requests</h2></header>
+        {recentRequests.length ? recentRequests.map((item) => <article key={item.request_id} className="blood-request-main">
+          <span className="blood-group-chip">{item.blood_group}</span>
+          <div><strong>{item.patient_name}</strong><small>{item.contact_phone || ''} · {item.needed_at ? new Date(item.needed_at).toLocaleDateString() : 'Date not set'}</small></div>
+        </article>) : <p className="empty-inline">কোনো active request নেই।</p>}
+      </section>
+
       <nav className="blood-bank-tabs" aria-label="Blood Bank sections">
         <button type="button" className={tab === 'search' ? 'active' : ''} onClick={() => setTab('search')}><Search /> রক্তদাতা খুঁজুন</button>
         <button type="button" className={tab === 'request' ? 'active' : ''} onClick={() => setTab('request')}><Droplets /> রক্তের অনুরোধ</button>
@@ -197,6 +228,7 @@ export default function BloodBankPage() {
             <span className="blood-group-chip">{donor.blood_group}</span>
             <div><strong>{donor.donor_name}</strong><small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}{donor.last_donation_date ? ` · শেষ দান ${donor.last_donation_date}` : ''}</small></div>
             {donor.phone ? <a href={`tel:${donor.phone}`}><Phone /> কল করুন</a> : <span className="blood-private-phone"><ShieldCheck /> Phone private</span>}
+            <button type="button" onClick={() => void requestDonor(donor)}>Send Blood Request</button>
           </article>)}
           {donorsHasMore && <div className="public-load-more-wrap"><button type="button" className="public-load-more-button" disabled={donorsLoadingMore} onClick={() => void loadDonors(false)}>{donorsLoadingMore ? <LoaderCircle className="spin" /> : null}{donorsLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও donor দেখুন'}</button></div>}
         </div>

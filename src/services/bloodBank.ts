@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow } from '../types';
+import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, PublicBloodRequestRow } from '../types';
 
 export async function getMyBloodDonorProfile() {
   const { data, error } = await requireSupabase().rpc('get_my_blood_donor_profile');
@@ -96,4 +96,33 @@ export async function cancelMyBloodRequest(requestId: string) {
   const { data, error } = await requireSupabase().rpc('cancel_my_blood_request', { p_request_id: requestId });
   if (error) throw error;
   return Boolean(data);
+}
+
+
+export async function getRecentBloodRequests(limit = 10) {
+  const { data, error } = await requireSupabase().rpc('get_recent_active_blood_requests', {
+    p_limit: Math.min(Math.max(limit, 1), 10),
+  });
+  if (error) throw error;
+  return (data ?? []) as PublicBloodRequestRow[];
+}
+
+export async function sendBloodRequestToDonor(input: {
+  donorId: string;
+  patientName: string;
+  hospitalAddress?: string | null;
+  neededAt?: string | null;
+  contactPhone?: string | null;
+  message?: string | null;
+}) {
+  const { data, error } = await requireSupabase().rpc('send_blood_request_to_donor', {
+    p_donor_id: input.donorId,
+    p_patient_name: input.patientName,
+    p_hospital_address: input.hospitalAddress || null,
+    p_needed_at: input.neededAt || null,
+    p_contact_phone: input.contactPhone || null,
+    p_message: input.message || null,
+  });
+  if (error) throw error;
+  return String(data);
 }

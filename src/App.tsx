@@ -82,7 +82,7 @@ export default function App() {
       <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/saved" element={<ProtectedRoute><SavedProfilesPage /></ProtectedRoute>} />
-      <Route path="/blood" element={<ProtectedRoute><DashboardShell role="patient"><BloodBankPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/blood" element={<ProtectedRoute><BloodBankPage /></ProtectedRoute>} />
       <Route path="/doctors/:doctorId/book" element={<ProtectedRoute><DashboardShell role="patient"><BookingPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/settings" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSettingsPage /></DashboardShell></ProtectedRoute>} />

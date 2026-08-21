@@ -81,6 +81,18 @@ export interface BloodDonorSearchRow {
   last_donation_date: string | null;
 }
 
+export interface PublicBloodRequestRow {
+  request_id: string;
+  patient_name: string;
+  blood_group: string;
+  district_id: number | null;
+  upazila_id: number | null;
+  contact_phone: string | null;
+  needed_at: string | null;
+  status: string;
+  created_at: string;
+}
+
 export interface BloodRequestRow {
   request_id: string;
   patient_name: string;

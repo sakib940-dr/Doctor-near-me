@@ -278,7 +278,7 @@ function InvestigationCostManager({ rows, reload, onSaved, setError, setNotice }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget); const amount = Number(form.get('amount'));
     if (!Number.isFinite(amount) || amount < 0) { setError('Investigation cost সঠিকভাবে দিন।'); return; }
-    const input = { name: { bn: String(form.get('bn') || '').trim(), en: String(form.get('en') || '').trim() }, cost: { amount, note_bn: String(form.get('noteBn') || '').trim(), note_en: String(form.get('noteEn') || '').trim() }, sort_order: edit?.sort_order ?? rows.length };
+    const bn = String(form.get('bn') || '').trim(); const en = String(form.get('en') || '').trim(); if (!bn && !en) { setError('Investigation name দিন।'); return; } const input = { name: { bn, en }, cost: { amount: Number(amount), note_bn: String(form.get('noteBn') || '').trim(), note_en: String(form.get('noteEn') || '').trim() }, sort_order: edit?.sort_order ?? rows.length };
     setBusy(true); setError(null); try { if (edit) await doctorInvestigationCosts.update(edit.id, input); else await doctorInvestigationCosts.create(input); setEdit(null); event.currentTarget.reset(); setNotice('Investigation cost সংরক্ষণ হয়েছে।'); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } finally { setBusy(false); }
   }
   async function move(index: number, direction: number) { const next = [...rows]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; try { await doctorInvestigationCosts.reorder(next); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }

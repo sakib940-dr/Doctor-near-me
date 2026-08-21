@@ -54,7 +54,7 @@ const numberText = (value: number, language: VisitorLanguage, digits = 0) => val
 const copy = {
   bn: {
     back: 'ডাক্তার তালিকায় ফিরুন',
-    degree: 'ডিগ্রি', medicalType: 'মেডিকেল টাইপ', specialty: 'বিশেষত্ব', designation: 'পদবি', medicalCollege: 'মেডিকেল কলেজ', presentJob: 'বর্তমান কর্মস্থল', bmdc: 'বিএমডিসি',
+    degree: 'ডিগ্রি', specialty: 'বিশেষত্ব', designation: 'পদবি', medicalCollege: 'মেডিকেল কলেজ', presentJob: 'বর্তমান কর্মস্থল', bmdc: 'বিএমডিসি',
     call: 'কল করুন', whatsapp: 'WhatsApp', appointment: 'অ্যাপয়েন্টমেন্ট', save: 'সংরক্ষণ',
     followers: 'মোট অনুসারী', reviews: 'রিভিউ', rating: 'গড় রেটিং', fee: 'ভিজিট ফি',
     about: 'ডাক্তার সম্পর্কে', schedule: 'চেম্বারের সময়সূচি', services: 'সেবাসমূহ', treatment: 'চিকিৎসার খরচ', investigation: 'পরীক্ষা / ইনভেস্টিগেশন খরচ',
@@ -68,7 +68,7 @@ const copy = {
   },
   en: {
     back: 'Back to doctors',
-    degree: 'Degrees', medicalType: 'Medical Type', specialty: 'Specialty', designation: 'Designation', medicalCollege: 'Medical College', presentJob: 'Present Job', bmdc: 'BMDC',
+    degree: 'Degrees', specialty: 'Specialty', designation: 'Designation', medicalCollege: 'Medical College', presentJob: 'Present Job', bmdc: 'BMDC',
     call: 'Call Now', whatsapp: 'WhatsApp', appointment: 'Appointment', save: 'Save',
     followers: 'Followers', reviews: 'Reviews', rating: 'Average rating', fee: 'Visit fee',
     about: 'About Doctor', schedule: 'Chamber Schedule', services: 'Services', treatment: 'Treatment Costs', investigation: 'Investigation Costs',
@@ -208,7 +208,6 @@ export default function DoctorProfile() {
     const specialtyValue = Array.from(new Set([profile.doctor.specialty_text?.trim(), specialtyNames].filter((value): value is string => Boolean(value)))).join(' · ') || primarySpecialty;
     return [
       { label: t.degree, value: profile.doctor.degree, icon: GraduationCap },
-      { label: t.medicalType, value: profile.doctor.medical_type, icon: Stethoscope },
       { label: t.specialty, value: specialtyValue, icon: Stethoscope },
       { label: t.designation, value: profile.doctor.designation || profile.doctor.professional_title, icon: BadgeCheck },
       { label: t.bmdc, value: profile.doctor.bmdc_registration_no, icon: ShieldCheck },

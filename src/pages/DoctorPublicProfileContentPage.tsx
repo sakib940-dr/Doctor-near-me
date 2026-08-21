@@ -258,18 +258,6 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
 function ServiceManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorServiceItem[] }) {
   const [edit, setEdit] = useState<DoctorServiceItem | null>(null);
   const [busy, setBusy] = useState(false);
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0] || null;
-    if (!selected) return;
-    if (!selected.type.startsWith('image/')) {
-      setError('শুধু image file upload করা যাবে।');
-      return;
-    }
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(selected);
-    setPreview(URL.createObjectURL(selected));
-    setError(null);
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -290,18 +278,6 @@ function ServiceManager({ rows, reload, onSaved, setError, setNotice }: EditorCo
 function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorTreatmentCostItem[] }) {
   const [edit, setEdit] = useState<DoctorTreatmentCostItem | null>(null);
   const [busy, setBusy] = useState(false);
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0] || null;
-    if (!selected) return;
-    if (!selected.type.startsWith('image/')) {
-      setError('শুধু image file upload করা যাবে।');
-      return;
-    }
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(selected);
-    setPreview(URL.createObjectURL(selected));
-    setError(null);
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
@@ -317,18 +293,6 @@ function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: Ed
 function InvestigationCostManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorInvestigationCostItem[] }) {
   const [edit, setEdit] = useState<DoctorInvestigationCostItem | null>(null);
   const [busy, setBusy] = useState(false);
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0] || null;
-    if (!selected) return;
-    if (!selected.type.startsWith('image/')) {
-      setError('শুধু image file upload করা যাবে।');
-      return;
-    }
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(selected);
-    setPreview(URL.createObjectURL(selected));
-    setError(null);
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget); const amount = Number(form.get('amount'));

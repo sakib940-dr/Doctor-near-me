@@ -146,7 +146,6 @@ export default function DashboardPage() {
   // Account context is the canonical role source. A secondary dashboard RPC may
   // fail or be stale, but that must never switch the shell role or create a loop.
   const role = account?.role ?? 'patient';
-  if (role === 'doctor') return <Navigate to="/doctor/appointments" replace />;
   const cards = role === 'patient'
     ? [{ icon: CalendarDays, title: 'আমার অ্যাপয়েন্টমেন্ট', detail: 'আসন্ন ও আগের appointment দেখুন', path: '/appointments' }, { icon: UserRound, title: 'আমার প্রোফাইল', detail: 'ব্যক্তিগত ও জরুরি যোগাযোগের তথ্য', path: '/profile' }]
     : role === 'doctor'
@@ -213,7 +212,7 @@ export default function DashboardPage() {
 
   const dashboardContent = <div className="app-shell dashboard-page"><main className="dashboard-main container">{(loading || contextLoading) && <div className="loading-box"><LoaderCircle className="spin" /> Dashboard লোড হচ্ছে…</div>}{(error || accountError) && <div className="error-box" role="alert">{error || accountError}</div>}{!loading && !contextLoading && account && <><section className="dashboard-welcome"><div><span>{roleLabels[role]} Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ব্যবহারকারী'}</h1><p>আপনার স্বাস্থ্যসেবা কার্যক্রম এক জায়গা থেকে পরিচালনা করুন।</p></div><div className="dashboard-profile-icon"><UserRound /></div></section><section className="dashboard-grid">{cards.map(({ icon: Icon, title, detail, path }) => <button type="button" key={title} onClick={() => path !== '#' && navigate(path)}><span><Icon /></span><div><strong>{title}</strong><small>{detail}</small></div><ChevronRight /></button>)}<button type="button"><span><Bell /></span><div><strong>নোটিফিকেশন</strong><small>আপনার সর্বশেষ update</small></div><ChevronRight /></button><button type="button" onClick={() => role === 'doctor' ? navigate('/doctor/profile') : ['hospital', 'chamber'].includes(role) ? navigate('/provider/profile') : role === 'ambulance' && navigate('/ambulance/services')}><span><Settings /></span><div><strong>অ্যাকাউন্ট সেটিংস</strong><small>ব্যক্তিগত তথ্য ও নিরাপত্তা</small></div><ChevronRight /></button></section><button className="logout-button" type="button" onClick={() => void logout()}><LogOut size={18} /> লগআউট</button></>}</main></div>;
 
-  return role === 'doctor' ? <DashboardShell role="doctor">{doctorDashboardContent}</DashboardShell>
+  return role === 'doctor' ? <Navigate to="/doctor/appointments" replace />
     : role === 'patient' ? <DashboardShell role="patient">{patientDashboardContent}</DashboardShell>
       : <DashboardShell role={role}>{dashboardContent}</DashboardShell>;
 }

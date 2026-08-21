@@ -192,12 +192,18 @@ export default function DoctorProfile() {
 
   const categorySpecialty = profile ? (language === 'bn' ? profile.specialties[0]?.name_bn : profile.specialties[0]?.name_en || profile.specialties[0]?.name_bn) || '' : '';
   const primarySpecialty = profile ? profile.doctor.specialty_text?.trim() || categorySpecialty || (language === 'bn' ? 'চিকিৎসক' : 'Doctor') : '';
-  const primaryChamber = profile?.chambers[0] ?? null;
+  const primaryChamber = profile?.chambers?.[0] ?? null;
 
-  // Prefer doctor visiting-card public contact fields. Older records may not
-  // have these fields, so keep chamber/provider contact as fallback.
-  const primaryPhone = primaryChamber?.phone || null;
-  const primaryWhatsapp = primaryChamber?.whatsapp || null;
+  // Visitor contact must always come from chamber/provider data.
+  // Do not use auth/login/personal phone numbers.
+  // Some doctors have multiple chambers or no primary ordering, so resolve
+  // the first available approved chamber contact.
+  const contactChamber = profile?.chambers?.find(
+    (chamber) => Boolean(chamber.phone || chamber.whatsapp)
+  ) ?? primaryChamber;
+
+  const primaryPhone = contactChamber?.phone || null;
+  const primaryWhatsapp = contactChamber?.whatsapp || null;
 
   const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
   const whatsappUrl = primaryWhatsapp ? buildWhatsAppAppointmentUrl(primaryWhatsapp, profile?.doctor.name) : null;

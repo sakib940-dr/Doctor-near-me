@@ -1,7 +1,14 @@
 export function normalizeWhatsAppNumber(value: string) {
   let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('880')) return digits;
   if (digits.startsWith('0')) digits = `88${digits}`;
+  if (digits.startsWith('88')) return digits;
   return digits;
+}
+
+export function formatWhatsAppDisplay(value: string) {
+  const digits = normalizeWhatsAppNumber(value);
+  return digits.startsWith('880') ? `+${digits}` : value;
 }
 
 export function buildWhatsAppAppointmentUrl(value: string, entityName?: string | null) {

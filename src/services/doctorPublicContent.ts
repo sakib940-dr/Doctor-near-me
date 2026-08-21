@@ -43,6 +43,8 @@ export async function saveMyDoctorAbout(bioBn: string, bioEn: string) {
 }
 
 export async function uploadDoctorSliderImage(file: File) {
+  if (!file.type.startsWith('image/')) throw new Error('শুধু image file upload করা যাবে।');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Image size সর্বোচ্চ 5 MB হতে হবে।');
   const client = requireSupabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) throw new Error('Authentication required');

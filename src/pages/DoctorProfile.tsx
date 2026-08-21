@@ -196,8 +196,8 @@ export default function DoctorProfile() {
 
   // Prefer doctor visiting-card public contact fields. Older records may not
   // have these fields, so keep chamber/provider contact as fallback.
-  const primaryPhone = profile?.doctor.phone || primaryChamber?.phone || null;
-  const primaryWhatsapp = profile?.doctor.whatsapp || primaryChamber?.whatsapp || null;
+  const primaryPhone = primaryChamber?.phone || null;
+  const primaryWhatsapp = primaryChamber?.whatsapp || null;
 
   const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
   const whatsappUrl = primaryWhatsapp ? buildWhatsAppAppointmentUrl(primaryWhatsapp, profile?.doctor.name) : null;

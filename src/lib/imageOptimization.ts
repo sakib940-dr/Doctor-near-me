@@ -111,11 +111,19 @@ export function guardImageFileInput(input: HTMLInputElement) {
     validateSelectedImages(imageFiles);
     return true;
   } catch (error) {
-    input.value = '';
     const message = error instanceof Error ? error.message : IMAGE_MAX_SIZE_ERROR;
-    input.setCustomValidity(message);
-    input.reportValidity();
-    input.setCustomValidity('');
+    input.value = '';
+    // Native reportValidity() silently does nothing on hidden inputs (display:none,
+    // commonly wrapped in a styled <label>), so it must not be the only feedback path.
+    // Broadcast a DOM event too, so any listening component can surface a real error
+    // message instead of the selection just "disappearing" with no explanation.
+    input.dispatchEvent(new CustomEvent('docbd:image-guard-rejected', { bubbles: true, detail: { message } }));
+    if (input.offsetParent !== null) {
+      // Only rely on native validity bubble when the input is actually visible.
+      input.setCustomValidity(message);
+      input.reportValidity();
+      input.setCustomValidity('');
+    }
     return false;
   }
 }
@@ -123,6 +131,14 @@ export function guardImageFileInput(input: HTMLInputElement) {
 export function imageUploadHint(recommended: string) {
   return `প্রস্তাবিত সাইজ: ${recommended} px • ${IMAGE_UPLOAD_LIMIT_HINT}`;
 }
+
+// Inputs that already run their own size/type validation and show errors via the
+// app's own `onError` UI (e.g. verification document upload, doctor visiting-card
+// photo) should opt out of this global guard. Otherwise this capture-phase listener
+// runs BEFORE the input's own React onChange handler, silently clears the file
+// (input.value = '') on anything over MAX_SOURCE_IMAGE_BYTES, and the component's
+// onChange then sees an empty FileList — no preview, no upload, no visible error.
+export const SKIP_GLOBAL_IMAGE_GUARD_ATTR = 'data-skip-global-guard';
 
 let globalImageGuardInstalled = false;
 
@@ -132,9 +148,7 @@ export function installGlobalImageUploadGuard() {
   document.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.type !== 'file' || !target.files?.length) return;
-    // Verification documents have their own 10MB intake + compression pipeline.
-    // Do not reject phone camera originals before React receives the file.
-    if (target.dataset.skipGlobalGuard === 'true') return;
+    if (target.hasAttribute(SKIP_GLOBAL_IMAGE_GUARD_ATTR)) return;
     const hasImage = Array.from(target.files).some((file) => file.type.startsWith('image/'));
     if (hasImage) guardImageFileInput(target);
   }, true);

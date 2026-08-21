@@ -84,6 +84,7 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerL
         <div className="visitor-doctor-copy">
           <h2>{doctor.doctor_name}</h2>
           {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
+          {doctor.medical_type && <p className="visitor-doctor-medical-type">{doctor.medical_type}</p>}
           <strong>{specialtyLabel}</strong>
           {doctor.bmdc_registration_no && <p className="visitor-doctor-bmdc"><BadgeCheck /><span>বিএমডিসি: {doctor.bmdc_registration_no}</span></p>}
           {institutionLabel && <p className="visitor-doctor-work"><Building2 /><span>{institutionLabel}</span></p>}

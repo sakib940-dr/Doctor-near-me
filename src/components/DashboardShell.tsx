@@ -224,6 +224,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
     { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
     { label: 'My Profile', path: '/doctor/profile', icon: UserCircle },
+     { label: 'Personal Information', path: '/doctor/personal-information', icon: UserCircle },
     { label: 'Public Profile View', path: '/doctor/public-view', icon: Eye },
   ] : [];
 

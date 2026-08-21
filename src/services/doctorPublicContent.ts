@@ -157,7 +157,11 @@ export const doctorTreatmentCosts = {
 };
 
 export const doctorInvestigationCosts = {
-  create: (input: { name: LocalizedProfileText; cost: DoctorInvestigationCostItem['cost']; sort_order: number }) => createContentRow<DoctorInvestigationCostItem>('doctor_investigation_costs', input),
+  create: (input: { name: LocalizedProfileText; cost: DoctorInvestigationCostItem['cost']; sort_order: number }) => createContentRow<DoctorInvestigationCostItem>('doctor_investigation_costs', {
+    ...input,
+    name: { bn: input.name.bn || input.name.en || '', en: input.name.en || input.name.bn || '' },
+    cost: { amount: Number(input.cost.amount) || 0, note_bn: input.cost.note_bn || '', note_en: input.cost.note_en || '' },
+  }),
   update: (id: number, input: Partial<DoctorInvestigationCostItem>) => updateContentRow<DoctorInvestigationCostItem>('doctor_investigation_costs', id, input),
   remove: (id: number) => deleteContentRow('doctor_investigation_costs', id),
   reorder: (rows: DoctorInvestigationCostItem[]) => reorderContentRows('doctor_investigation_costs', rows),

@@ -28,6 +28,7 @@ import DoctorChamberDetailsPage from './pages/DoctorChamberDetailsPage';
 import DoctorDirectory from './pages/DoctorDirectory';
 import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
+import DoctorPersonalInformationPage from './pages/DoctorPersonalInformationPage';
 import DoctorPublicProfileContentPage from './pages/DoctorPublicProfileContentPage';
 import DoctorPublicContentManagementPage from './pages/DoctorPublicContentManagementPage';
 import DoctorPublicProfileViewPage from './pages/DoctorPublicProfileViewPage';
@@ -91,7 +92,8 @@ export default function App() {
       <Route path="/doctor/feedback" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorFeedbackPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/help" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorHelpPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/public-view" element={<ProtectedRoute><DoctorPublicProfileViewPage /></ProtectedRoute>} />
-      <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorProfessionalProfilePage /></DashboardShell></ProtectedRoute>}/>
+       <Route path="/doctor/personal-information" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPersonalInformationPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/public-profile" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPublicProfileContentPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/analytics" element={<ProtectedRoute><DashboardShell role="doctor"><ProfileAnalyticsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/premium" element={<ProtectedRoute><DashboardShell role="doctor"><PremiumMemberPage /></DashboardShell></ProtectedRoute>} />

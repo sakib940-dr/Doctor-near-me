@@ -132,6 +132,9 @@ export function installGlobalImageUploadGuard() {
   document.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.type !== 'file' || !target.files?.length) return;
+    // Verification documents have their own 10MB intake + compression pipeline.
+    // Do not reject phone camera originals before React receives the file.
+    if (target.dataset.skipGlobalGuard === 'true') return;
     const hasImage = Array.from(target.files).some((file) => file.type.startsWith('image/'));
     if (hasImage) guardImageFileInput(target);
   }, true);

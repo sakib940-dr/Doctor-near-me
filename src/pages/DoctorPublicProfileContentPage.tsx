@@ -151,6 +151,7 @@ interface EditorCommon {
 function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorSliderImage[] }) {
   const [edit, setEdit] = useState<DoctorSliderImage | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [captionBn, setCaptionBn] = useState('');
   const [captionEn, setCaptionEn] = useState('');
   const [active, setActive] = useState(true);
@@ -159,6 +160,7 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
   function startEdit(row: DoctorSliderImage) {
     setEdit(row);
     setFile(null);
+    setPreview(null);
     setCaptionBn(row.caption?.bn || '');
     setCaptionEn(row.caption?.en || '');
     setActive(row.is_active);
@@ -170,6 +172,19 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
     setCaptionBn('');
     setCaptionEn('');
     setActive(true);
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] || null;
+    if (!selected) return;
+    if (!selected.type.startsWith('image/')) {
+      setError('শুধু image file upload করা যাবে।');
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setError(null);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -218,9 +233,10 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
   return (
     <section className="doctor-content-editor-card">
       <header><div><small>{rows.length}/4 images</small><h2>Profile Image Slider</h2></div><ImagePlus /></header>
-      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 3 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
+      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
       <form className="doctor-content-compact-form" onSubmit={submit}>
-        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => setFile(event.target.files?.[0] || null)} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-skip-global-guard="true" onChange={handleFileChange} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        {preview && <div className="doctor-slider-preview"><img src={preview} alt="Selected slider preview" width="320" /></div>}
         <input value={captionBn} onChange={(event) => setCaptionBn(event.target.value)} placeholder="বাংলা caption (optional)" />
         <input value={captionEn} onChange={(event) => setCaptionEn(event.target.value)} placeholder="English caption (optional)" />
         <label className="doctor-content-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Public-এ দেখান</label>
@@ -242,6 +258,19 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
 function ServiceManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorServiceItem[] }) {
   const [edit, setEdit] = useState<DoctorServiceItem | null>(null);
   const [busy, setBusy] = useState(false);
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] || null;
+    if (!selected) return;
+    if (!selected.type.startsWith('image/')) {
+      setError('শুধু image file upload করা যাবে।');
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setError(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -261,6 +290,19 @@ function ServiceManager({ rows, reload, onSaved, setError, setNotice }: EditorCo
 function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorTreatmentCostItem[] }) {
   const [edit, setEdit] = useState<DoctorTreatmentCostItem | null>(null);
   const [busy, setBusy] = useState(false);
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] || null;
+    if (!selected) return;
+    if (!selected.type.startsWith('image/')) {
+      setError('শুধু image file upload করা যাবে।');
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setError(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     const min = Number(form.get('min')); const maxRaw = String(form.get('max') || '').trim(); const max = maxRaw ? Number(maxRaw) : null;
@@ -275,6 +317,19 @@ function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: Ed
 function InvestigationCostManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorInvestigationCostItem[] }) {
   const [edit, setEdit] = useState<DoctorInvestigationCostItem | null>(null);
   const [busy, setBusy] = useState(false);
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] || null;
+    if (!selected) return;
+    if (!selected.type.startsWith('image/')) {
+      setError('শুধু image file upload করা যাবে।');
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+    setError(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget); const amount = Number(form.get('amount'));
     if (!Number.isFinite(amount) || amount < 0) { setError('Investigation cost সঠিকভাবে দিন।'); return; }

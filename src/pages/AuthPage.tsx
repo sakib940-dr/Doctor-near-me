@@ -24,7 +24,7 @@ const roleHighlights: Record<PublicRegistrationRole, { title: string; text: stri
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
 
 export default function AuthPage() {
-  const { user, loading: sessionLoading } = useAuth();
+  const { user, account, loading: sessionLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode') === 'register' ? 'register' : 'login';
   const navigate = useNavigate();

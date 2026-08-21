@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, Droplets, Eye, FileCheck2, Heart, Link2, LoaderCircle, LogOut, MessageCircle, PhoneCall, Settings, ShieldCheck, Star, Stethoscope, UserRound, UsersRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
+import { Ambulance, Bell, Building2, CalendarDays, ChevronRight, Clock3, Crown, Droplets, FileCheck2, Link2, LoaderCircle, LogOut, Settings, ShieldCheck, Stethoscope, UserRound, Activity, CalendarClock, Search, CheckCircle2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import DashboardShell from '../components/DashboardShell';
 import AccountStateFallback from '../components/AccountStateFallback';
@@ -7,11 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getRoleDashboardContext } from '../services/account';
 import { saveMyCurrentLocation } from '../services/discovery';
 import { formatDateSafe, safeDateTimestamp } from '../lib/dateSafe';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { getMyAppointments, getMyPatientDashboardSummary, type PatientDashboardAppointmentSummary } from '../services/appointments';
-import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
-import { getMyDoctorInteractionSummary } from '../services/engagement';
-import type { AppointmentRow, DashboardContext, InteractionSummary, UserRole } from '../types';
+import { getMyPatientDashboardSummary, type PatientDashboardAppointmentSummary } from '../services/appointments';
+import type { AppointmentRow, DashboardContext, UserRole } from '../types';
 
 const LOCATION_STORAGE_KEY = 'docbd-current-location';
 const LEGACY_LOCATION_STORAGE_KEY = 'sirajganj-current-location';
@@ -23,11 +20,6 @@ export default function DashboardPage() {
   const [context, setContext] = useState<DashboardContext | null>(null);
   const [contextLoading, setContextLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [doctorAnalytics, setDoctorAnalytics] = useState<DoctorAnalytics | null>(null);
-  const [doctorEngagement, setDoctorEngagement] = useState<InteractionSummary | null>(null);
-  const [recentAppointments, setRecentAppointments] = useState<AppointmentRow[]>([]);
-  const [doctorDashboardLoading, setDoctorDashboardLoading] = useState(false);
-  const [doctorDashboardError, setDoctorDashboardError] = useState<string | null>(null);
   const [patientAppointments, setPatientAppointments] = useState<AppointmentRow[]>([]);
   const [patientSummary, setPatientSummary] = useState<PatientDashboardAppointmentSummary>({ upcoming: 0, completed: 0, pending: 0, last30Days: 0 });
   const [patientAppointmentsLoading, setPatientAppointmentsLoading] = useState(false);
@@ -57,36 +49,6 @@ export default function DashboardPage() {
         setPatientAppointmentsError(loadError instanceof Error ? loadError.message : 'Appointment summary লোড করা যায়নি।');
       })
       .finally(() => { if (active) setPatientAppointmentsLoading(false); });
-
-    return () => { active = false; };
-  }, [account]);
-
-  useEffect(() => {
-    if (!account || account.role !== 'doctor') {
-      setDoctorAnalytics(null);
-      setDoctorEngagement(null);
-      setRecentAppointments([]);
-      setDoctorDashboardLoading(false);
-      return;
-    }
-
-    let active = true;
-    setDoctorDashboardLoading(true);
-    setDoctorDashboardError(null);
-    Promise.all([getDoctorAnalytics(account.user_id), getMyAppointments(null, 5), getMyDoctorInteractionSummary(30)])
-      .then(([analytics, appointments, engagement]) => {
-        if (!active) return;
-        setDoctorAnalytics(analytics);
-        setDoctorEngagement(engagement);
-        setRecentAppointments([...appointments]
-          .sort((a, b) => safeDateTimestamp(b.created_at) - safeDateTimestamp(a.created_at))
-          .slice(0, 5));
-      })
-      .catch((loadError: unknown) => {
-        if (!active) return;
-        setDoctorDashboardError(loadError instanceof Error ? loadError.message : 'ডাক্তার dashboard data লোড করা যায়নি।');
-      })
-      .finally(() => { if (active) setDoctorDashboardLoading(false); });
 
     return () => { active = false; };
   }, [account]);
@@ -160,37 +122,6 @@ export default function DashboardPage() {
               ? [{ icon: Settings, title: 'Admin operations', detail: 'Users, appointments ও activity oversight', path: '/admin' }, { icon: ShieldCheck, title: 'Verification queue', detail: 'Pending application review', path: '/verification/reviews' }]
               : [{ icon: Crown, title: 'Super Admin control', detail: 'Users, roles, privileged invites ও sensitive controls', path: '/super-admin' }, { icon: Settings, title: 'Admin operations', detail: 'Operational dashboard ও full audit', path: '/admin' }, { icon: ShieldCheck, title: 'Verification queue', detail: 'সব verification oversight', path: '/verification/reviews' }];
 
-  const weeklyTotal = doctorAnalytics?.last7Days.reduce((sum, day) => sum + day.count, 0) ?? 0;
-  const busiestDay = doctorAnalytics?.last7Days.reduce((best, day) => day.count > best.count ? day : best, doctorAnalytics.last7Days[0] ?? { date: '', count: 0 });
-  const chartData = (doctorAnalytics?.last7Days ?? []).map((day) => ({
-    ...day,
-    label: formatDateSafe(day.date, 'bn-BD', { weekday: 'short' }, '—', true),
-  }));
-
-  const doctorDashboardContent = <div className="app-shell doctor-analytics-dashboard"><main className="doctor-analytics-main container">
-    {(doctorDashboardError || error || accountError) && <div className="error-box" role="alert">{doctorDashboardError || error || accountError}</div>}
-    {(loading || contextLoading || doctorDashboardLoading) ? <DoctorDashboardSkeleton /> : account && <>{/* heading */}
-      <section className="doctor-analytics-heading"><div><span>Doctor Dashboard</span><h1>স্বাগতম, {context?.full_name || account.full_name || 'ডাক্তার'}</h1><p>Appointment এবং public profile engagement এক নজরে দেখুন।</p></div><div className="doctor-dashboard-heading-actions"><button type="button" onClick={() => navigate('/doctor/analytics')}><Activity /> Analytics</button><button type="button" onClick={() => navigate('/doctor/appointments')}><CalendarDays /> সব অ্যাপয়েন্টমেন্ট</button></div></section>
-      <section className="dashboard-stat-grid">
-        <DashboardStatCard icon={CalendarDays} label="আজকের অ্যাপয়েন্টমেন্ট" value={doctorAnalytics?.todayAppointments ?? 0} detail="আজ নির্ধারিত মোট appointment" />
-        <DashboardStatCard icon={UsersRound} label="এই মাসের patient" value={doctorAnalytics?.monthlyUniquePatients ?? 0} detail="ইউনিক patient" />
-        <DashboardStatCard icon={CalendarClock} label="Pending" value={doctorAnalytics?.pendingAppointments ?? 0} detail="আপনার action অপেক্ষায়" />
-        <DashboardStatCard icon={Eye} label="Profile Views" value={doctorEngagement?.profile_views ?? 0} detail="গত ৩০ দিনের public profile views" />
-        <DashboardStatCard icon={PhoneCall} label="Call Clicks" value={doctorEngagement?.call_clicks ?? 0} detail="গত ৩০ দিনের call action" />
-        <DashboardStatCard icon={MessageCircle} label="WhatsApp Clicks" value={doctorEngagement?.whatsapp_clicks ?? 0} detail="গত ৩০ দিনের WhatsApp action" />
-        <DashboardStatCard icon={CalendarDays} label="Appointment Requests" value={doctorEngagement?.appointment_requests ?? 0} detail="গত ৩০ দিনে submit হওয়া request" />
-        <DashboardStatCard icon={Heart} label="মোট অনুসারী" value={doctorEngagement?.followers ?? 0} detail={`গত ৩০ দিনে নতুন ${doctorEngagement?.followers_new ?? 0}`} />
-        <DashboardStatCard icon={Star} label="মোট রিভিউ" value={doctorEngagement?.reviews ?? 0} detail={doctorEngagement?.average_rating == null ? 'এখনো rating নেই' : `গড় ${doctorEngagement.average_rating.toFixed(1)} / 5`} />
-        <DashboardStatCard icon={UsersRound} label="নতুন অনুসারী" value={doctorEngagement?.followers_new ?? 0} detail={`Loss ${doctorEngagement?.followers_lost ?? 0} • Net ${doctorEngagement?.followers_net ?? 0}`} />
-        <DashboardStatCard icon={Activity} label="Weekly trend" value={weeklyTotal} detail={busiestDay?.date ? `সর্বোচ্চ ${formatDateSafe(busiestDay.date, 'bn-BD', { weekday: 'short' }, '—', true)}: ${busiestDay.count}` : 'গত ৭ দিন'} />
-      </section>
-      <section className="doctor-dashboard-panels">
-        <article className="doctor-chart-card"><header><div><small>গত ৭ দিন</small><h2>Appointment trend</h2></div><span>{weeklyTotal} total</span></header><div className="doctor-chart-wrap">{chartData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ top: 10, right: 6, left: -22, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip cursor={{ fill: 'rgba(15, 118, 110, 0.06)' }} formatter={(value) => [`${value}`, 'Appointments']} /><Bar dataKey="count" fill="#0f766e" radius={[7, 7, 0, 0]} /></BarChart></ResponsiveContainer> : <div className="doctor-chart-empty">গত ৭ দিনে appointment নেই।</div>}</div></article>
-        <article className="dashboard-recent-card"><header><div><small>Latest activity</small><h2>সাম্প্রতিক ৫টি অ্যাপয়েন্টমেন্ট</h2></div><button type="button" onClick={() => navigate('/doctor/appointments')}>সব দেখুন <ChevronRight /></button></header><div className="dashboard-recent-list">{recentAppointments.length ? recentAppointments.map((appointment) => <button type="button" key={appointment.appointment_id} onClick={() => navigate('/doctor/appointments')}><span className="dashboard-recent-date"><b>{formatDateSafe(appointment.appointment_date, 'bn-BD', { day: '2-digit' }, '—', true)}</b><small>{formatDateSafe(appointment.appointment_date, 'bn-BD', { month: 'short' }, '', true)}</small></span><span className="dashboard-recent-info"><strong>{appointment.patient_name || 'রোগী'}</strong><small>{appointment.provider_name || 'চেম্বার নির্ধারিত নয়'}{appointment.start_time ? ` • ${appointment.start_time.slice(0, 5)}` : ''}</small></span><span className={`dashboard-recent-status ${appointment.status}`}>{appointment.status}</span></button>) : <p className="empty-inline">সাম্প্রতিক appointment নেই।</p>}</div></article>
-      </section>
-    </>}
-  </main></div>;
-
   const patientDashboardContent = <div className="app-shell doctor-analytics-dashboard patient-dashboard-redesign"><main className="doctor-analytics-main container">
     {(loading || contextLoading || patientAppointmentsLoading) ? <PatientDashboardSkeleton /> : <>
       {(error || accountError || patientAppointmentsError) && <div className="error-box" role="alert">{error || accountError || patientAppointmentsError}</div>}
@@ -223,8 +154,4 @@ function DashboardStatCard({ icon: Icon, label, value, detail }: { icon: typeof 
 
 function PatientDashboardSkeleton() {
   return <div className="dashboard-skeleton" aria-label="Dashboard loading"><div className="skeleton-line wide" /><div className="skeleton-line medium" /><section className="dashboard-stat-grid patient-dashboard-stat-grid">{Array.from({ length: 3 }, (_, index) => <article className="dashboard-stat-card skeleton-card" key={index}><span className="skeleton-circle" /><div><i /><i /><i /></div></article>)}</section><section className="patient-dashboard-panels"><article className="dashboard-recent-card skeleton-panel"><i /><i /><i /><i /><i /></article><article className="patient-find-doctor-card skeleton-panel"><i /><i /><i /></article></section></div>;
-}
-
-function DoctorDashboardSkeleton() {
-  return <div className="dashboard-skeleton" aria-label="Dashboard loading"><div className="skeleton-line wide" /><div className="skeleton-line medium" /><section className="dashboard-stat-grid">{Array.from({ length: 4 }, (_, index) => <article className="dashboard-stat-card skeleton-card" key={index}><span className="skeleton-circle" /><div><i /><i /><i /></div></article>)}</section><section className="doctor-dashboard-panels"><article className="doctor-chart-card skeleton-panel"><i /><i /></article><article className="dashboard-recent-card skeleton-panel"><i /><i /><i /><i /><i /></article></section></div>;
 }

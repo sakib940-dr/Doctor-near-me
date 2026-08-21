@@ -9,7 +9,6 @@ import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { captureCurrentCoordinates, validateCoordinates } from '../lib/geolocation';
 import { formatDateSafe } from '../lib/dateSafe';
-import { formatWhatsAppDisplay } from '../lib/whatsapp';
 import { completeAccountOnboarding, finishMyRoleOnboarding, saveMyDoctorBasicOnboarding, setMyOnboardingStep } from '../services/account';
 import {
   cleanupDoctorPhoto, getMyDoctorProfile, saveMyChamberSchedule, saveMyDoctorChamber,

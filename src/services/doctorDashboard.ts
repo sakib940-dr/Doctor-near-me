@@ -84,20 +84,22 @@ export interface DoctorPrivateProfile {
   gender: 'male' | 'female' | 'other' | null;
   blood_group: string | null;
   address_line: string | null;
+  permanent_address: string | null;
 }
 
 export async function getMyDoctorPrivateProfile() {
   const { data, error } = await requireSupabase().rpc('get_my_doctor_private_profile');
   if (error) throw error;
-  return (data ?? { date_of_birth: null, gender: null, blood_group: null, address_line: null }) as DoctorPrivateProfile;
+  return (data ?? { date_of_birth: null, gender: null, blood_group: null, address_line: null, permanent_address: null }) as DoctorPrivateProfile;
 }
 
 export async function updateMyDoctorPrivateProfile(input: DoctorPrivateProfile) {
-  const { error } = await requireSupabase().rpc('update_my_doctor_private_profile', {
+  const { error } = await requireSupabase().rpc('update_my_doctor_private_profile_v2', {
     p_date_of_birth: input.date_of_birth || null,
     p_gender: input.gender || null,
     p_blood_group: input.blood_group || null,
     p_address_line: input.address_line?.trim() || null,
+    p_permanent_address: input.permanent_address?.trim() || null,
   });
   if (error) throw error;
 }
@@ -137,6 +139,37 @@ export interface DoctorVisitingCardUpdate {
   medicalCollege: string | null;
   presentJob: string | null;
   specialtyIds: number[];
+}
+
+
+export interface DoctorVisitingCardUpdateV2 {
+  fullName: string;
+  profilePhotoUrl: string | null;
+  professionalTitle: string | null;
+  degree: string | null;
+  designation: string | null;
+  medicalCollege: string | null;
+  presentJob: string | null;
+  specialtyText: string | null;
+  publicAddress: string | null;
+  specialtyIds: number[];
+}
+
+export async function updateMyDoctorVisitingCardV2(input: DoctorVisitingCardUpdateV2) {
+  const { data, error } = await requireSupabase().rpc('update_my_doctor_visiting_card_v2', {
+    p_full_name: input.fullName,
+    p_profile_photo_url: input.profilePhotoUrl,
+    p_professional_title: input.professionalTitle,
+    p_degree: input.degree,
+    p_designation: input.designation,
+    p_medical_college: input.medicalCollege,
+    p_present_job: input.presentJob,
+    p_specialty_text: input.specialtyText,
+    p_public_address: input.publicAddress,
+    p_specialty_ids: input.specialtyIds,
+  });
+  if (error) throw error;
+  return data as DoctorProfileUpdateResult;
 }
 
 export async function updateMyDoctorVisitingCard(input: DoctorVisitingCardUpdate) {
@@ -180,18 +213,20 @@ export interface DoctorChamberInput {
   districtId: number | null;
   upazilaId: number | null;
   phone: string | null;
+  whatsapp?: string | null;
   latitude: number | null;
   longitude: number | null;
 }
 
 export async function saveMyDoctorChamber(input: DoctorChamberInput) {
-  const { data, error } = await requireSupabase().rpc('save_my_doctor_chamber', {
+  const { data, error } = await requireSupabase().rpc('save_my_doctor_chamber_v2', {
     p_provider_id: input.providerId,
     p_name_bn: input.nameBn,
     p_address: input.address,
     p_district_id: input.districtId,
     p_upazila_id: input.upazilaId,
     p_phone: input.phone,
+    p_whatsapp: input.whatsapp?.trim() || null,
     p_latitude: input.latitude,
     p_longitude: input.longitude,
   });

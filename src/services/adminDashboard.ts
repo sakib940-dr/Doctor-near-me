@@ -61,17 +61,37 @@ export async function getAdminUserDirectory(filters: {
   role?: UserRole | null;
   status?: string | null;
   search?: string | null;
+  medicalType?: 'MBBS' | 'BDS' | null;
+  districtId?: number | null;
+  upazilaId?: number | null;
+  specialtyId?: number | null;
   limit?: number;
   offset?: number;
 } = {}) {
-  const { data, error } = await requireSupabase().rpc('get_admin_user_directory', {
+  const { data, error } = await requireSupabase().rpc('get_admin_user_directory_v2', {
     p_role: filters.role || null,
     p_status: filters.status || null,
+    p_medical_type: filters.medicalType || null,
+    p_district_id: filters.districtId ?? null,
+    p_upazila_id: filters.upazilaId ?? null,
+    p_specialty_id: filters.specialtyId ?? null,
     p_search: filters.search?.trim() || null,
     p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
     p_offset: Math.max(filters.offset ?? 0, 0),
   });
-  if (error) throw error;
+  if (error) {
+    const usesNewFilters = Boolean(filters.medicalType || filters.districtId || filters.upazilaId || filters.specialtyId);
+    if (usesNewFilters) throw error;
+    const legacy = await requireSupabase().rpc('get_admin_user_directory', {
+      p_role: filters.role || null,
+      p_status: filters.status || null,
+      p_search: filters.search?.trim() || null,
+      p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
+      p_offset: Math.max(filters.offset ?? 0, 0),
+    });
+    if (legacy.error) throw error;
+    return (legacy.data ?? []) as AdminUserRow[];
+  }
   return (data ?? []) as AdminUserRow[];
 }
 

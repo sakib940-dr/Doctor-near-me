@@ -23,6 +23,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [upazilaId, setUpazilaId] = useState(params.get('upazila') ?? '');
   const [specialtyIds, setSpecialtyIds] = useState<string[]>(listParam(params.get('specialties')));
   const [degrees, setDegrees] = useState<string[]>(listParam(params.get('degrees')));
+  const [medicalTypes, setMedicalTypes] = useState<string[]>(listParam(params.get('medicalTypes')));
   const [minFee, setMinFee] = useState(params.get('minFee') ?? '');
   const [maxFee, setMaxFee] = useState(params.get('maxFee') ?? '');
   const [today, setToday] = useState(params.get('today') === '1');
@@ -46,6 +47,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       || params.get('upazila')
       || params.get('specialties')
       || params.get('degrees')
+      || params.get('medicalTypes')
       || params.get('classification')
       || params.get('minFee')
       || params.get('maxFee')
@@ -83,6 +85,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
         return false;
       }).map((item) => item.short_code));
     } else setDegrees([]);
+    setMedicalTypes(listParam(params.get('medicalTypes')));
     setMinFee(params.get('minFee') ?? '');
     setMaxFee(params.get('maxFee') ?? '');
     setToday(params.get('today') === '1');
@@ -125,6 +128,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       upazilaId: numberParam(params.get('upazila')),
       specialtyIds: listParam(params.get('specialties')).map(Number).filter(Number.isFinite),
       degrees: effectiveDegrees,
+      medicalTypes: listParam(params.get('medicalTypes')).filter((value): value is 'MBBS' | 'BDS' => value === 'MBBS' || value === 'BDS'),
       minFee: numberParam(params.get('minFee')),
       maxFee: numberParam(params.get('maxFee')),
       availableToday: params.get('today') === '1',
@@ -154,7 +158,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     return () => { active = false; };
   }, [rows]);
 
-  const activeFilterCount = useMemo(() => [districtId, upazilaId, minFee, maxFee, today ? '1' : '', ...specialtyIds, ...degrees].filter(Boolean).length, [districtId, upazilaId, minFee, maxFee, today, specialtyIds, degrees]);
+  const activeFilterCount = useMemo(() => [districtId, upazilaId, minFee, maxFee, today ? '1' : '', ...specialtyIds, ...degrees, ...medicalTypes].filter(Boolean).length, [districtId, upazilaId, minFee, maxFee, today, specialtyIds, degrees, medicalTypes]);
 
   function toggle(list: string[], value: string, setter: (value: string[]) => void) {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -168,6 +172,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     if (upazilaId) next.set('upazila', upazilaId);
     if (specialtyIds.length) next.set('specialties', specialtyIds.join(','));
     if (degrees.length) next.set('degrees', degrees.join(','));
+    if (medicalTypes.length) next.set('medicalTypes', medicalTypes.join(','));
     if (minFee) next.set('minFee', minFee);
     if (maxFee) next.set('maxFee', maxFee);
     if (today) next.set('today', '1');
@@ -177,7 +182,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   }
 
   function clearFilters() {
-    setQuery(''); setDistrictId(''); setUpazilaId(''); setSpecialtyIds([]); setDegrees([]); setMinFee(''); setMaxFee(''); setToday(false); setSort('name'); setParams({});
+    setQuery(''); setDistrictId(''); setUpazilaId(''); setSpecialtyIds([]); setDegrees([]); setMedicalTypes([]); setMinFee(''); setMaxFee(''); setToday(false); setSort('name'); setParams({});
   }
 
   function setPage(nextPage: number) {
@@ -210,6 +215,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
             <div className="filter-title"><span><SlidersHorizontal size={19} /> ফিল্টার</span><div><button type="button" onClick={clearFilters}><RotateCcw size={15} /> রিসেট</button><button className="filter-close" type="button" aria-label="ফিল্টার বন্ধ করুন" onClick={() => setFiltersOpen(false)}><X size={17} /></button></div></div>
             <label className="filter-group"><strong>জেলা</strong><select value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}><option value="">সকল জেলা</option>{districts.map((district) => <option value={district.id} key={district.id}>{district.name_bn}</option>)}</select></label>
             <label className="filter-group"><strong>উপজেলা / এলাকা</strong><select value={upazilaId} disabled={!districtId} onChange={(event) => setUpazilaId(event.target.value)}><option value="">সকল উপজেলা / এলাকা</option>{upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{upazila.name_bn}</option>)}</select></label>
+            <fieldset className="filter-group"><legend>মেডিকেল টাইপ</legend><div className="filter-checks"><label><input type="checkbox" checked={medicalTypes.includes('MBBS')} onChange={() => toggle(medicalTypes, 'MBBS', setMedicalTypes)} /><span>MBBS</span></label><label><input type="checkbox" checked={medicalTypes.includes('BDS')} onChange={() => toggle(medicalTypes, 'BDS', setMedicalTypes)} /><span>BDS</span></label></div></fieldset>
             <fieldset className="filter-group"><legend>স্পেশালিটি</legend><div className="filter-checks scrollable">{specialties.map((specialty) => <label key={specialty.id}><input type="checkbox" checked={specialtyIds.includes(String(specialty.id))} onChange={() => toggle(specialtyIds, String(specialty.id), setSpecialtyIds)} /><span>{specialty.name_bn}</span></label>)}</div></fieldset>
             <fieldset className="filter-group"><legend>ডিগ্রি</legend><div className="filter-checks scrollable">{degreeOptions.map((degree) => <label key={degree.id}><input type="checkbox" checked={degrees.includes(degree.short_code)} onChange={() => toggle(degrees, degree.short_code, setDegrees)} /><span>{degree.short_code}</span></label>)}</div></fieldset>
             <div className="filter-group"><strong>ভিজিট ফি</strong><div className="fee-fields"><input aria-label="সর্বনিম্ন ফি" type="number" min="0" value={minFee} onChange={(event) => setMinFee(event.target.value)} placeholder="সর্বনিম্ন" /><input aria-label="সর্বোচ্চ ফি" type="number" min="0" value={maxFee} onChange={(event) => setMaxFee(event.target.value)} placeholder="সর্বোচ্চ" /></div></div>

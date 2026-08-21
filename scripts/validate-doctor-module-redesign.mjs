@@ -22,6 +22,12 @@ const myProfile = read('src/pages/DoctorProfessionalProfilePage.tsx');
 const onboarding = read('src/pages/OnboardingPage.tsx');
 const doctorDashboardService = read('src/services/doctorDashboard.ts');
 const migration = read('supabase/62_doctor_module_menu_ui_redesign.sql');
+const migration63 = read('supabase/63_doctor_full_onboarding_profile_integration.sql');
+const discovery = read('src/services/discovery.ts');
+const doctorCard = read('src/components/DoctorResultCard.tsx');
+const doctorProfile = read('src/pages/DoctorProfile.tsx');
+const adminDashboard = read('src/pages/AdminDashboardPage.tsx');
+const superAdmin = read('src/pages/SuperAdminPage.tsx');
 const styles = read('src/styles.css');
 
 mustInclude(shell, [
@@ -81,10 +87,15 @@ mustInclude(doctorDashboardService, ['getMyDoctorPrivateProfile', 'updateMyDocto
 
 
 mustInclude(onboarding, [
-  'submitMyDoctorVerificationApplication', 'Save Draft & Continue', 'Apply & Continue',
+  "const doctorSteps = ['Basic Information', 'Verification', 'Visiting Card', 'Chamber Details', 'About Doctor', 'Services', 'Treatment Cost']",
+  'Medical Type *', 'Select MBBS / BDS', 'Save & Next',
+  'submitMyDoctorVerificationApplication',
   "verificationStatus==='approved'||(verificationStatus==='pending'&&Boolean(submittedAt))",
   'disabled={locked}', 'disabled={disabled||!file}',
-], 'Doctor onboarding verification compatibility');
+  'Visiting Card Details', 'Public Visiting-card Address *', 'Use My Current Location',
+  '<h2>About Doctor</h2>', '<h2>Service List</h2>', '<h2>Treatment Cost</h2>',
+  'Skip & Complete', 'Complete Onboarding', 'useUnsavedWarning',
+], 'Seven-step Doctor onboarding compatibility');
 
 mustInclude(migration, [
   'add column if not exists verification_submitted_at timestamptz',
@@ -97,6 +108,23 @@ mustInclude(migration, [
   'admin_get_doctor_support_threads', 'admin_get_doctor_feedback',
   "d.verification_status='pending' and d.verification_submitted_at is not null",
 ], 'Additive migration 62');
+
+
+mustInclude(migration63, [
+  'add column if not exists medical_type text', 'add column if not exists specialty_text text',
+  'add column if not exists public_address text', 'add column if not exists permanent_address text',
+  'save_my_doctor_basic_onboarding', 'update_my_doctor_verification_info_v2',
+  'update_my_doctor_visiting_card_v2', 'save_my_doctor_chamber_v2',
+  'get_public_doctor_search_cards_v2', 'p_medical_types text[]',
+  'get_admin_user_directory_v2', 'super_admin_user_directory_v3', 'p_specialty_id bigint',
+  'onboarding_step=7', 'onboarding_completed_at=coalesce(onboarding_completed_at,now())',
+], 'Additive migration 63');
+
+mustInclude(discovery, ['medicalTypes', 'get_public_doctor_search_cards_v2', 'hydrateDoctorCardsV2', 'get_public_doctor_card_bundle_v2'], 'Public Doctor data integration');
+mustInclude(doctorCard, ['doctor.specialty_text', 'doctor.public_address', 'computedDistance', 'nearest_provider_latitude'], 'Visitor Doctor card integration');
+mustInclude(doctorProfile, ['profile.doctor.specialty_text', 'profile.doctor.public_address', 'chamber.whatsapp', 'buildWhatsAppAppointmentUrl'], 'Doctor details public integration');
+mustInclude(adminDashboard, ['All Medical Type', 'userDistrictId', 'userUpazilaId', 'userSpecialtyId'], 'Admin Doctor filters');
+mustInclude(superAdmin, ['All Medical Type', 'specialtyId', 'সব জেলা', 'সব উপজেলা', 'সব স্পেশালিটি'], 'Super Admin Doctor filters');
 
 mustInclude(appointments, [
   'Today + Upcoming • Latest 5', 'slice(0, 5)', 'doctor-appointment-summary-grid',
@@ -120,4 +148,4 @@ console.log('Hamburger: 7 consolidated items');
 console.log('Bottom navigation: 5 primary items');
 console.log('Public content: 6 independently saved canonical-data steps');
 console.log('Legacy Doctor routes: retained for deep-link compatibility');
-console.log('Database: migration 62 only; earlier migrations untouched');
+console.log('Database: migrations 62 + additive 63; migrations 01–62 remain untouched by STEP63');

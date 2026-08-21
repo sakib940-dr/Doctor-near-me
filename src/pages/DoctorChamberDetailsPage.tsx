@@ -54,6 +54,7 @@ interface ChamberDraft {
   districtId: number | null;
   upazilaId: number | null;
   phone: string;
+  whatsapp: string;
   latitude: number | null;
   longitude: number | null;
 }
@@ -75,6 +76,7 @@ const emptyChamber: ChamberDraft = {
   districtId: null,
   upazilaId: null,
   phone: '',
+  whatsapp: '',
   latitude: null,
   longitude: null,
 };
@@ -97,6 +99,7 @@ function toDraft(chamber: DoctorDashboardChamber): ChamberDraft {
     districtId: chamber.district_id ?? null,
     upazilaId: chamber.upazila_id ?? null,
     phone: chamber.phone || '',
+    whatsapp: chamber.whatsapp || '',
     latitude: chamber.latitude ?? null,
     longitude: chamber.longitude ?? null,
   };
@@ -227,6 +230,7 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
         districtId: draft.districtId,
         upazilaId: draft.upazilaId,
         phone: draft.phone.trim() || null,
+        whatsapp: draft.whatsapp.trim() || null,
         latitude: draft.latitude,
         longitude: draft.longitude,
       });
@@ -359,6 +363,10 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
                 <span>Contact Number</span>
                 <div><input inputMode="tel" value={draft.phone} onChange={(event) => setDraftValue('phone', event.target.value)} placeholder="01XXXXXXXXX" /></div>
               </label>
+              <label className="auth-field">
+                <span>WhatsApp Number</span>
+                <div><input inputMode="tel" value={draft.whatsapp} onChange={(event) => setDraftValue('whatsapp', event.target.value)} placeholder="01XXXXXXXXX" /></div>
+              </label>
               <label className="auth-field chamber-field-wide">
                 <span>Address</span>
                 <div><MapPin /><input required minLength={3} value={draft.address} onChange={(event) => setDraftValue('address', event.target.value)} placeholder="Road, area, building/floor" /></div>
@@ -472,6 +480,7 @@ function ChamberCard({
       <div className="doctor-chamber-meta">
         {chamber.address && <p><MapPin /> <span>{chamber.address}</span></p>}
         {chamber.phone && <p><span className="meta-label">Phone</span><span>{chamber.phone}</span></p>}
+        {chamber.whatsapp && <p><span className="meta-label">WhatsApp</span><span>{chamber.whatsapp}</span></p>}
         {chamber.latitude != null && chamber.longitude != null && <p><Crosshair /><span>{chamber.latitude.toFixed(6)}, {chamber.longitude.toFixed(6)}</span></p>}
         <p><span className="meta-label">Link</span><span>{linkStatus[chamber.link_status] || chamber.link_status}</span></p>
       </div>

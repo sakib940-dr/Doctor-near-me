@@ -190,10 +190,11 @@ export default function DoctorProfile() {
 
   useEffect(() => { setActiveSlide(0); }, [sliderImages.length]);
 
-  const primarySpecialty = profile ? (language === 'bn' ? profile.specialties[0]?.name_bn : profile.specialties[0]?.name_en || profile.specialties[0]?.name_bn) || (language === 'bn' ? 'চিকিৎসক' : 'Doctor') : '';
+  const categorySpecialty = profile ? (language === 'bn' ? profile.specialties[0]?.name_bn : profile.specialties[0]?.name_en || profile.specialties[0]?.name_bn) || '' : '';
+  const primarySpecialty = profile ? profile.doctor.specialty_text?.trim() || categorySpecialty || (language === 'bn' ? 'চিকিৎসক' : 'Doctor') : '';
   const primaryChamber = profile?.chambers[0] ?? null;
   const primaryPhone = primaryChamber?.phone || null;
-  const primaryWhatsapp = primaryChamber?.whatsapp || primaryPhone;
+  const primaryWhatsapp = primaryChamber?.whatsapp || null;
   const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
   const whatsappUrl = primaryWhatsapp ? buildWhatsAppAppointmentUrl(primaryWhatsapp, profile?.doctor.name) : null;
   const isVerified = profile?.doctor.verification_status === 'approved';
@@ -204,13 +205,15 @@ export default function DoctorProfile() {
   const visitingDetails = useMemo(() => {
     if (!profile) return [];
     const specialtyNames = profile.specialties.map((item) => language === 'bn' ? item.name_bn : item.name_en || item.name_bn).filter(Boolean).join(', ');
+    const specialtyValue = Array.from(new Set([profile.doctor.specialty_text?.trim(), specialtyNames].filter((value): value is string => Boolean(value)))).join(' · ') || primarySpecialty;
     return [
       { label: t.degree, value: profile.doctor.degree, icon: GraduationCap },
-      { label: t.specialty, value: specialtyNames || primarySpecialty, icon: Stethoscope },
+      { label: t.specialty, value: specialtyValue, icon: Stethoscope },
       { label: t.designation, value: profile.doctor.designation || profile.doctor.professional_title, icon: BadgeCheck },
       { label: t.bmdc, value: profile.doctor.bmdc_registration_no, icon: ShieldCheck },
       { label: t.medicalCollege, value: profile.doctor.medical_college, icon: GraduationCap },
       { label: t.presentJob, value: profile.doctor.present_job, icon: Stethoscope },
+      { label: language === 'bn' ? 'পাবলিক ঠিকানা' : 'Public Address', value: profile.doctor.public_address, icon: MapPin },
     ].filter((item) => Boolean(item.value));
   }, [language, primarySpecialty, profile, t.bmdc, t.degree, t.designation, t.medicalCollege, t.presentJob, t.specialty]);
 
@@ -344,7 +347,7 @@ export default function DoctorProfile() {
               const mapHref = chamber.map_url || (chamber.latitude != null && chamber.longitude != null
                 ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${chamber.latitude},${chamber.longitude}`)}`
                 : null);
-              return <article key={chamber.id}><div><h3>{language === 'bn' ? chamber.name_bn : chamber.name_en || chamber.name_bn}</h3><p><MapPin /> {chamber.address || t.unavailable}</p><span className={status.open ? 'open' : 'closed'}>{status.text}</span>{distance != null && <strong><Navigation /> {t.distance} {numberText(distance, language, 1)} {language === 'bn' ? 'কিমি' : 'km'}</strong>}</div><div>{chamber.phone && <a href={`tel:${cleanPhone(chamber.phone)}`} onClick={() => track('call_click')}><Phone /> {t.call}</a>}{mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={() => track('map_click')}><ExternalLink /> {t.map}</a>}</div></article>;
+              return <article key={chamber.id}><div><h3>{language === 'bn' ? chamber.name_bn : chamber.name_en || chamber.name_bn}</h3><p><MapPin /> {chamber.address || t.unavailable}</p><span className={status.open ? 'open' : 'closed'}>{status.text}</span>{distance != null && <strong><Navigation /> {t.distance} {numberText(distance, language, 1)} {language === 'bn' ? 'কিমি' : 'km'}</strong>}</div><div>{chamber.phone && <a href={`tel:${cleanPhone(chamber.phone)}`} onClick={() => track('call_click')}><Phone /> {t.call}</a>}{chamber.whatsapp && buildWhatsAppAppointmentUrl(chamber.whatsapp, profile.doctor.name) && <a href={buildWhatsAppAppointmentUrl(chamber.whatsapp, profile.doctor.name) || undefined} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /> WhatsApp</a>}{mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={() => track('map_click')}><ExternalLink /> {t.map}</a>}</div></article>;
             })}</div>
             {primaryChamber?.latitude != null && primaryChamber.longitude != null && <div className="doctor-map-frame"><iframe title={language === 'bn' ? 'চেম্বার ম্যাপ' : 'Chamber map'} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${primaryChamber.latitude},${primaryChamber.longitude}`)}&z=15&output=embed`} /></div>}
           </section>

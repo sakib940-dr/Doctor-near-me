@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import type { AccountContext, DashboardContext, PublicRegistrationRole } from '../types';
+import type { AccountContext, DashboardContext, MedicalType, PublicRegistrationRole } from '../types';
 
 export async function getMyAccountContext() {
   const { data, error } = await requireSupabase().rpc('get_my_account_context');
@@ -32,6 +32,13 @@ export async function completeAccountOnboarding(input: {
   );
   if (error) throw error;
   return data as { user_id: string; role: PublicRegistrationRole; profile_completed: boolean; onboarding_step?: number; onboarding_completed?: boolean };
+}
+
+
+export async function saveMyDoctorBasicOnboarding(medicalType: MedicalType) {
+  const { data, error } = await requireSupabase().rpc('save_my_doctor_basic_onboarding', { p_medical_type: medicalType });
+  if (error) throw error;
+  return Boolean(data);
 }
 
 export async function setMyOnboardingStep(step: number) {

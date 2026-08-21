@@ -163,6 +163,9 @@ function mapDoctorSearchRow(row: Record<string, unknown>): DoctorSearchRow {
     degree: (row.degree as string | null) ?? null,
     designation: (row.designation as string | null) ?? null,
     professional_title: (row.professional_title as string | null) ?? null,
+    medical_type: (row.medical_type as DoctorSearchRow['medical_type']) ?? null,
+    specialty_text: (row.specialty_text as string | null) ?? null,
+    public_address: (row.public_address as string | null) ?? null,
     bmdc_registration_no: (row.bmdc_registration_no as string | null) ?? null,
     medical_college: (row.medical_college as string | null) ?? null,
     present_job: (row.present_job as string | null) ?? null,
@@ -187,12 +190,47 @@ function mapDoctorSearchRow(row: Record<string, unknown>): DoctorSearchRow {
   };
 }
 
+async function hydrateDoctorCardsV2(rows: DoctorSearchRow[]) {
+  if (!rows.length) return rows;
+  const ids = Array.from(new Set(rows.map((row) => row.doctor_id))).slice(0, 100);
+  try {
+    const { data, error } = await requireSupabase().rpc('get_public_doctor_card_bundle_v2', { p_doctor_ids: ids });
+    if (error) throw error;
+    const fresh = new Map(((data ?? []) as Array<Record<string, unknown>>).map((row) => {
+      const mapped = mapDoctorSearchRow(row);
+      return [mapped.doctor_id, mapped] as const;
+    }));
+    return rows.map((row) => {
+      const current = fresh.get(row.doctor_id);
+      if (!current) return row;
+      return {
+        ...row,
+        ...current,
+        available_today: row.available_today,
+        total_count: row.total_count,
+        distance_km: row.distance_km,
+        provider_schedules: row.provider_schedules,
+        nearest_provider_id: row.nearest_provider_id ?? current.nearest_provider_id,
+        nearest_provider_name: row.nearest_provider_name ?? current.nearest_provider_name,
+        nearest_provider_type: row.nearest_provider_type ?? current.nearest_provider_type,
+        nearest_provider_address: row.nearest_provider_address ?? current.nearest_provider_address,
+        nearest_provider_latitude: row.nearest_provider_latitude ?? current.nearest_provider_latitude,
+        nearest_provider_longitude: row.nearest_provider_longitude ?? current.nearest_provider_longitude,
+      };
+    });
+  } catch {
+    // Rolling deployment safety: old public RPC output remains fully usable until migration 63 is applied.
+    return rows;
+  }
+}
+
 export async function searchDoctors(input: {
   query?: string;
   districtId?: number | null;
   upazilaId?: number | null;
   specialtyIds?: number[];
   degrees?: string[];
+  medicalTypes?: Array<'MBBS' | 'BDS'>;
   minFee?: number | null;
   maxFee?: number | null;
   availableToday?: boolean;
@@ -205,14 +243,32 @@ export async function searchDoctors(input: {
     query: input.query?.trim() || '',
     specialtyIds: [...(input.specialtyIds ?? [])].sort((a,b)=>a-b),
     degrees: [...(input.degrees ?? [])].sort(),
+    medicalTypes: [...(input.medicalTypes ?? [])].sort(),
     limit: Math.min(Math.max(input.limit ?? 20, 1), 20),
     offset: Math.max(input.offset ?? 0, 0),
   };
   const key = `public:doctor-search:${JSON.stringify(normalized)}`;
   return publicCachedRequest(key, async () => {
     const { data, error } = await requireSupabase().rpc(
-      'get_public_doctor_search_cards',
+      'get_public_doctor_search_cards_v2',
       {
+        p_query: normalized.query || null,
+        p_district_id: input.districtId ?? null,
+        p_upazila_id: input.upazilaId ?? null,
+        p_specialty_ids: normalized.specialtyIds.length ? normalized.specialtyIds : null,
+        p_degrees: normalized.degrees.length ? normalized.degrees : null,
+        p_medical_types: normalized.medicalTypes.length ? normalized.medicalTypes : null,
+        p_min_fee: input.minFee ?? null,
+        p_max_fee: input.maxFee ?? null,
+        p_available_today: input.availableToday ?? false,
+        p_sort: input.sort ?? 'name',
+        p_limit: normalized.limit,
+        p_offset: normalized.offset,
+      },
+    );
+    if (error) {
+      if (normalized.medicalTypes.length) throw error;
+      const legacy = await requireSupabase().rpc('get_public_doctor_search_cards', {
         p_query: normalized.query || null,
         p_district_id: input.districtId ?? null,
         p_upazila_id: input.upazilaId ?? null,
@@ -224,9 +280,10 @@ export async function searchDoctors(input: {
         p_sort: input.sort ?? 'name',
         p_limit: normalized.limit,
         p_offset: normalized.offset,
-      },
-    );
-    if (error) throw error;
+      });
+      if (legacy.error) throw error;
+      return ((legacy.data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+    }
     return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
   }, 20_000);
 }
@@ -248,9 +305,9 @@ export async function getHomepagePrimaryDoctorSections(input: {
     if (error) throw error;
     const raw = (data ?? {}) as { ranked?: Array<Record<string, unknown>>; general?: Array<Record<string, unknown>>; specialist?: Array<Record<string, unknown>> };
     return {
-      ranked: (raw.ranked ?? []).map(mapDoctorSearchRow),
-      general: (raw.general ?? []).map(mapDoctorSearchRow),
-      specialist: (raw.specialist ?? []).map(mapDoctorSearchRow),
+      ranked: await hydrateDoctorCardsV2((raw.ranked ?? []).map(mapDoctorSearchRow)),
+      general: await hydrateDoctorCardsV2((raw.general ?? []).map(mapDoctorSearchRow)),
+      specialist: await hydrateDoctorCardsV2((raw.specialist ?? []).map(mapDoctorSearchRow)),
     };
   }, 30_000);
 }
@@ -278,8 +335,14 @@ export async function getHomepageSecondaryDoctorSections(input: {
     if (error) throw error;
     const raw = (data ?? {}) as { premium?: Array<Record<string, unknown>>; new?: Array<Record<string, unknown>>; topics?: Record<string, Array<Record<string, unknown>>> };
     const topicRows: Record<number, DoctorSearchRow[]> = {};
-    Object.entries(raw.topics ?? {}).forEach(([topicId, rows]) => { topicRows[Number(topicId)] = (rows ?? []).map(mapDoctorSearchRow); });
-    return { premium: (raw.premium ?? []).map(mapDoctorSearchRow), new: (raw.new ?? []).map(mapDoctorSearchRow), topics: topicRows };
+    for (const [topicId, rows] of Object.entries(raw.topics ?? {})) {
+      topicRows[Number(topicId)] = await hydrateDoctorCardsV2((rows ?? []).map(mapDoctorSearchRow));
+    }
+    return {
+      premium: await hydrateDoctorCardsV2((raw.premium ?? []).map(mapDoctorSearchRow)),
+      new: await hydrateDoctorCardsV2((raw.new ?? []).map(mapDoctorSearchRow)),
+      topics: topicRows,
+    };
   }, 30_000);
 
   const fallbackTopics = topics.filter((topic) => topic.id <= 0);
@@ -313,7 +376,7 @@ export async function getMarketplaceDoctors(input: {
       p_limit: limit,
     });
     if (error) throw error;
-    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+    return hydrateDoctorCardsV2(((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow));
   }, 30_000);
 }
 
@@ -374,7 +437,7 @@ export async function getDoctorsForProvider(providerId: string, limit = 20, offs
       p_offset: safeOffset,
     });
     if (error) throw error;
-    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+    return hydrateDoctorCardsV2(((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow));
   }, 30_000);
 }
 
@@ -424,9 +487,19 @@ export async function getPublicDoctorPageBase(identifier: string) {
   const value = identifier.trim().toLowerCase();
   if (!value) return null;
   return publicCachedRequest(`public:doctor-page-base:${value}`, async () => {
-    const { data, error } = await requireSupabase().rpc('get_public_doctor_page_base', { p_identifier: value });
+    const client = requireSupabase();
+    const { data, error } = await client.rpc('get_public_doctor_page_base', { p_identifier: value });
     if (error) throw error;
-    return (data ?? null) as PublicDoctorPageBase | null;
+    const base = (data ?? null) as PublicDoctorPageBase | null;
+    if (!base?.route?.id) return base;
+    // Keep the legacy bundled page RPC for backward compatibility, then hydrate
+    // the canonical public profile so newly-added Doctor onboarding fields appear
+    // without changing the existing content/routing contract.
+    try {
+      const { data: profileData, error: profileError } = await client.rpc('get_doctor_public_profile', { p_doctor_id: base.route.id });
+      if (!profileError && profileData) return { ...base, profile: profileData as DoctorPublicProfile };
+    } catch { /* rolling-deploy fallback: preserve the existing bundled profile */ }
+    return base;
   }, 60_000);
 }
 
@@ -476,7 +549,7 @@ export async function findNearestDoctors(input: {
       p_offset: offset,
     });
     if (error) throw error;
-    return ((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow);
+    return hydrateDoctorCardsV2(((data ?? []) as Array<Record<string, unknown>>).map(mapDoctorSearchRow));
   }, 20_000);
 }
 

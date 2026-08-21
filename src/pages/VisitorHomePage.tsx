@@ -93,8 +93,8 @@ function SectionHead({ eyebrow, title, href, icon }: { eyebrow?: string; title: 
   );
 }
 
-function DoctorRail({ doctors, stats, onStatsChange }: { doctors: DoctorSearchRow[]; stats: StatsMap; onStatsChange: (doctorId: string, next: PublicProfileStats) => void }) {
-  return <div className="marketplace-horizontal-rail doctor-horizontal-scroll">{doctors.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={onStatsChange} key={doctor.doctor_id} />)}</div>;
+function DoctorRail({ doctors, stats, onStatsChange, viewerLocation }: { doctors: DoctorSearchRow[]; stats: StatsMap; onStatsChange: (doctorId: string, next: PublicProfileStats) => void; viewerLocation?: { latitude: number; longitude: number } | null }) {
+  return <div className="marketplace-horizontal-rail doctor-horizontal-scroll">{doctors.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={onStatsChange} viewerLocation={viewerLocation} key={doctor.doctor_id} />)}</div>;
 }
 
 function DoctorRailSkeleton() {
@@ -563,7 +563,7 @@ export default function VisitorHomePage() {
           <section className="marketplace-section premium-doctors-section">
             <div className="container">
               <SectionHead eyebrow="Premium" title="Premium Doctors" href={contextDoctorsHref} icon={<Crown />} />
-              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail doctors={premiumDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
+              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail viewerLocation={currentLocation} doctors={premiumDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
             </div>
           </section>
         )}
@@ -572,7 +572,7 @@ export default function VisitorHomePage() {
           <section className="marketplace-section marketplace-soft-section" id="near-me">
             <div className="container">
               <SectionHead eyebrow="GPS distance" title="Near Me" href={contextDoctorsHref} icon={<LocateFixed />} />
-              {resultsLoading ? <DoctorRailSkeleton /> : nearbyDoctors.length ? <DoctorRail doctors={nearbyDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">কাছাকাছি coordinate-সহ কোনো doctor chamber পাওয়া যায়নি।</div>}
+              {resultsLoading ? <DoctorRailSkeleton /> : nearbyDoctors.length ? <DoctorRail viewerLocation={currentLocation} doctors={nearbyDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">কাছাকাছি coordinate-সহ কোনো doctor chamber পাওয়া যায়নি।</div>}
             </div>
           </section>
         )}
@@ -580,21 +580,21 @@ export default function VisitorHomePage() {
         <section className="marketplace-section">
           <div className="container">
             <SectionHead eyebrow={areaTitle} title="আপনার এলাকার ডাক্তার" href={contextDoctorsHref} icon={<MapPin />} />
-            {loading || resultsLoading ? <DoctorRailSkeleton /> : areaDoctors.length ? <DoctorRail doctors={areaDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">এই এলাকায় ডাক্তার পাওয়া যায়নি।</div>}
+            {loading || resultsLoading ? <DoctorRailSkeleton /> : areaDoctors.length ? <DoctorRail viewerLocation={currentLocation} doctors={areaDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">এই এলাকায় ডাক্তার পাওয়া যায়নি।</div>}
           </div>
         </section>
 
         <section className="marketplace-section marketplace-soft-section">
           <div className="container">
             <SectionHead eyebrow="Degree-based" title="General Doctors" href={`${contextDoctorsHref}${contextDoctorsHref.includes('?') ? '&' : '?'}classification=general`} icon={<BadgeCheck />} />
-            {loading || resultsLoading ? <DoctorRailSkeleton /> : mbbsDoctors.length ? <DoctorRail doctors={mbbsDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">এই এলাকায় General Doctor পাওয়া যায়নি।</div>}
+            {loading || resultsLoading ? <DoctorRailSkeleton /> : mbbsDoctors.length ? <DoctorRail viewerLocation={currentLocation} doctors={mbbsDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">এই এলাকায় General Doctor পাওয়া যায়নি।</div>}
           </div>
         </section>
 
         <section className="marketplace-section">
           <div className="container">
             <SectionHead eyebrow={areaTitle} title="Specialist Doctors" href={`${contextDoctorsHref}${contextDoctorsHref.includes('?') ? '&' : '?'}classification=specialist`} icon={<Stethoscope />} />
-            {loading || resultsLoading ? <DoctorRailSkeleton /> : specialistDoctors.length ? <DoctorRail doctors={specialistDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">বিশেষজ্ঞ ডাক্তার পাওয়া যায়নি।</div>}
+            {loading || resultsLoading ? <DoctorRailSkeleton /> : specialistDoctors.length ? <DoctorRail viewerLocation={currentLocation} doctors={specialistDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} /> : <div className="marketplace-empty">বিশেষজ্ঞ ডাক্তার পাওয়া যায়নি।</div>}
           </div>
         </section>
 
@@ -602,7 +602,7 @@ export default function VisitorHomePage() {
           <section className="marketplace-section marketplace-soft-section">
             <div className="container">
               <SectionHead eyebrow={areaTitle} title="Dental Doctors" href={topicHref(dentalTopic)} icon={<Stethoscope />} />
-              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail doctors={dentalDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
+              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail viewerLocation={currentLocation} doctors={dentalDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
             </div>
           </section>
         )}
@@ -611,7 +611,7 @@ export default function VisitorHomePage() {
           <section className="marketplace-section">
             <div className="container">
               <SectionHead eyebrow="Recently joined" title="নতুন ডাক্তার" href={`${contextDoctorsHref}${contextDoctorsHref.includes('?') ? '&' : '?'}sort=newest`} icon={<Sparkles />} />
-              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail doctors={newDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
+              {secondaryLoading ? <DoctorRailSkeleton /> : <DoctorRail viewerLocation={currentLocation} doctors={newDoctors} stats={doctorStats} onStatsChange={updateDoctorStats} />}
             </div>
           </section>
         )}

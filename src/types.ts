@@ -2,6 +2,7 @@ export type SearchMode = 'doctor' | 'ambulance';
 export type PublicRegistrationRole = 'patient' | 'doctor' | 'hospital' | 'ambulance';
 export type UserRole = PublicRegistrationRole | 'chamber' | 'verification_officer' | 'admin' | 'super_admin';
 export type DashboardRole = UserRole;
+export type MedicalType = 'MBBS' | 'BDS';
 
 export interface AccountContext {
   user_id: string;
@@ -226,6 +227,9 @@ export interface DoctorSearchRow {
   degree: string | null;
   designation: string | null;
   professional_title: string | null;
+  medical_type?: MedicalType | null;
+  specialty_text?: string | null;
+  public_address?: string | null;
   bmdc_registration_no?: string | null;
   medical_college?: string | null;
   present_job?: string | null;
@@ -311,6 +315,9 @@ export interface DoctorPublicProfile {
     degree: string | null;
     designation: string | null;
     professional_title: string | null;
+    medical_type?: MedicalType | null;
+    specialty_text?: string | null;
+    public_address?: string | null;
     bmdc_registration_no: string | null;
     verification_status?: 'pending' | 'approved' | 'rejected' | 'expired';
     medical_college?: string | null;
@@ -397,7 +404,10 @@ export interface MyDoctorProfile {
     phone: string | null;
     district_id: number | null;
     upazila_id: number | null;
+    medical_type?: MedicalType | null;
     professional_title: string | null;
+    specialty_text?: string | null;
+    public_address?: string | null;
     degree: string | null;
     designation: string | null;
     bmdc_registration_no: string | null;
@@ -597,6 +607,7 @@ export interface VerificationReviewDetail {
 
 export interface DoctorVerificationProfile {
   doctor_id: string;
+  medical_type: MedicalType | null;
   medical_college: string | null;
   medical_session: string | null;
   medical_batch: string | null;
@@ -750,6 +761,7 @@ export interface AdminUserRow {
   district_id: number | null;
   upazila_id: number | null;
   professional_status: string | null;
+  medical_type?: MedicalType | null;
   entity_id: string | null;
   created_at: string;
   updated_at: string;
@@ -869,6 +881,7 @@ export interface SuperAdminUserRow {
   upazila_name: string | null;
   address_line: string | null;
   profile_completed: boolean;
+  medical_type?: MedicalType | null;
   last_location_at: string | null;
   last_sign_in_at: string | null;
   created_at: string;

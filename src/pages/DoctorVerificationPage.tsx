@@ -12,7 +12,7 @@ import {
   updateMyDoctorVerificationInfo,
   uploadEntityVerificationDocument,
 } from '../services/verification';
-import type { DoctorVerificationProfile, OwnerVerificationEvidence, VerificationEvidenceDocument } from '../types';
+import type { DoctorVerificationProfile, MedicalType, OwnerVerificationEvidence, VerificationEvidenceDocument } from '../types';
 
 const doctorDocuments = {
   bmdc_certificate: 'BMDC certificate',
@@ -34,9 +34,11 @@ export default function DoctorVerificationPage() {
   const { account, user } = useAuth();
   const [profile, setProfile] = useState<DoctorVerificationProfile | null>(null);
   const [evidence, setEvidence] = useState<OwnerVerificationEvidence | null>(null);
+  const [medicalType, setMedicalType] = useState<MedicalType | ''>('');
   const [medicalCollege, setMedicalCollege] = useState('');
   const [medicalSession, setMedicalSession] = useState('');
   const [medicalBatch, setMedicalBatch] = useState('');
+  const [bmdcRegistrationNo, setBmdcRegistrationNo] = useState('');
   const [documentType, setDocumentType] = useState('bmdc_certificate');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,9 +54,11 @@ export default function DoctorVerificationPage() {
     ]);
     setProfile(nextProfile);
     setEvidence(nextEvidence);
+    setMedicalType(nextProfile.medical_type || '');
     setMedicalCollege(nextProfile.medical_college || '');
     setMedicalSession(nextProfile.medical_session || '');
     setMedicalBatch(nextProfile.medical_batch || '');
+    setBmdcRegistrationNo(nextProfile.bmdc_registration_no || '');
   }
 
   useEffect(() => {
@@ -70,17 +74,20 @@ export default function DoctorVerificationPage() {
   const rejected = profile?.verification_status === 'rejected';
   const applicationLocked = verified || submittedPending;
   const evidenceEditable = Boolean(evidence && !applicationLocked && ['pending', 'rejected'].includes(evidence.status));
-  const canSubmitApplication = Boolean(profile && evidence && !applicationLocked && medicalCollege.trim() && medicalSession.trim() && medicalBatch.trim() && evidence.documents.length > 0);
+  const canSubmitApplication = Boolean(profile && evidence && !applicationLocked && medicalType && bmdcRegistrationNo.trim() && medicalCollege.trim() && medicalSession.trim() && medicalBatch.trim() && evidence.documents.length > 0);
 
   async function saveInformation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) return;
     setWorking('save'); setError(null); setNotice(null);
     try {
+      if (!medicalType) throw new Error('Medical Type নির্বাচন করুন।');
       const result = await updateMyDoctorVerificationInfo({
+        medicalType: medicalType as MedicalType,
         medicalCollege,
         medicalSession,
         medicalBatch,
+        bmdcRegistrationNo,
       });
       await load();
       setNotice(result.information_changed
@@ -183,12 +190,14 @@ export default function DoctorVerificationPage() {
             <form className="doctor-verification-info-card" onSubmit={saveInformation}>
               <header><GraduationCap /><div><h2>Medical education information</h2><p>এই তথ্য existing Doctor verification record-এর অংশ।</p></div></header>
               <div className="patient-form-grid doctor-verification-form-grid">
+                <label className="auth-field"><span>Medical Type</span><div><select required value={medicalType} disabled={applicationLocked} onChange={(event) => setMedicalType(event.target.value as MedicalType | '')}><option value="">Select MBBS / BDS</option><option value="MBBS">MBBS</option><option value="BDS">BDS</option></select></div></label>
+                <label className="auth-field"><span>BMDC Registration Number</span><div><input required minLength={3} value={bmdcRegistrationNo} disabled={applicationLocked} onChange={(event) => setBmdcRegistrationNo(event.target.value)} /></div></label>
                 <label className="auth-field"><span>Medical College Name</span><div><input required minLength={2} value={medicalCollege} disabled={applicationLocked} onChange={(event) => setMedicalCollege(event.target.value)} placeholder="Medical college / institute" /></div></label>
                 <label className="auth-field"><span>Session</span><div><input required value={medicalSession} disabled={applicationLocked} onChange={(event) => setMedicalSession(event.target.value)} placeholder="যেমন: 2015–2016" /></div></label>
                 <label className="auth-field"><span>Batch</span><div><input required value={medicalBatch} disabled={applicationLocked} onChange={(event) => setMedicalBatch(event.target.value)} placeholder="যেমন: 42nd Batch" /></div></label>
               </div>
               <div className="doctor-verification-readonly-grid">
-                <div><small>BMDC Number</small><strong>{profile.bmdc_registration_no || 'যোগ করা হয়নি'}</strong></div>
+                <div><small>Medical Type</small><strong>{profile.medical_type || 'যোগ করা হয়নি'}</strong></div>
                 <div><small>Degree</small><strong>{profile.degree || 'যোগ করা হয়নি'}</strong></div>
               </div>
               <p className="doctor-verification-security-note">{applicationLocked ? 'Submitted Pending বা Approved অবস্থায় verification information locked থাকে।' : 'এই তথ্য draft হিসেবে save হবে; Apply না করা পর্যন্ত review queue-তে যাবে না।'}</p>
@@ -230,7 +239,7 @@ export default function DoctorVerificationPage() {
               {working === 'submit' ? <LoaderCircle className="spin" /> : rejected ? <RefreshCcw /> : <Send />}
               {rejected ? 'Re-Verification Apply' : 'Apply for Verification'}
             </button>}
-            {!applicationLocked && !canSubmitApplication && <small>Apply করতে Medical College, Session, Batch এবং অন্তত ১টি evidence document প্রয়োজন।</small>}
+            {!applicationLocked && !canSubmitApplication && <small>Apply করতে Medical Type, BMDC, Medical College, Session, Batch এবং অন্তত ১টি evidence document প্রয়োজন।</small>}
           </section>
         </>}
 

@@ -1,6 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import { optimizeVerificationImageIfNeeded } from './imageUpload';
-import type { DoctorVerificationProfile, OwnerVerificationEvidence, VerificationEntityType, VerificationQueueRow, VerificationReviewDetail } from '../types';
+import type { DoctorVerificationProfile, MedicalType, OwnerVerificationEvidence, VerificationEntityType, VerificationQueueRow, VerificationReviewDetail } from '../types';
 
 export async function getMyEntityVerificationEvidence(entityType: 'doctor' | 'provider', entityId: string) {
   const { data, error } = await requireSupabase().rpc('get_my_entity_verification_evidence', { p_entity_type: entityType, p_entity_id: entityId });
@@ -76,14 +76,18 @@ export async function submitMyDoctorVerificationApplication() {
 }
 
 export async function updateMyDoctorVerificationInfo(input: {
+  medicalType: MedicalType;
   medicalCollege: string;
   medicalSession: string;
   medicalBatch: string;
+  bmdcRegistrationNo: string;
 }) {
-  const { data, error } = await requireSupabase().rpc('update_my_doctor_verification_info', {
+  const { data, error } = await requireSupabase().rpc('update_my_doctor_verification_info_v2', {
+    p_medical_type: input.medicalType,
     p_medical_college: input.medicalCollege,
     p_medical_session: input.medicalSession,
     p_medical_batch: input.medicalBatch,
+    p_bmdc_registration_no: input.bmdcRegistrationNo,
   });
   if (error) throw error;
   return data as {

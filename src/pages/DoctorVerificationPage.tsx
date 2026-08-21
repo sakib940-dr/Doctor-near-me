@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
-import { FileCheck2, FilePlus2, GraduationCap, LoaderCircle, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import { FileCheck2, FilePlus2, GraduationCap, LoaderCircle, RefreshCcw, Save, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -8,6 +8,7 @@ import {
   getMyDoctorVerificationProfile,
   getMyEntityVerificationEvidence,
   getVerificationDocumentUrl,
+  submitMyDoctorVerificationApplication,
   updateMyDoctorVerificationInfo,
   uploadEntityVerificationDocument,
 } from '../services/verification';
@@ -65,7 +66,11 @@ export default function DoctorVerificationPage() {
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
 
   const verified = profile?.verification_status === 'approved';
-  const evidenceEditable = evidence ? ['pending', 'rejected'].includes(evidence.status) : false;
+  const submittedPending = profile?.verification_status === 'pending' && Boolean(profile.verification_submitted_at);
+  const rejected = profile?.verification_status === 'rejected';
+  const applicationLocked = verified || submittedPending;
+  const evidenceEditable = Boolean(evidence && !applicationLocked && ['pending', 'rejected'].includes(evidence.status));
+  const canSubmitApplication = Boolean(profile && evidence && !applicationLocked && medicalCollege.trim() && medicalSession.trim() && medicalBatch.trim() && evidence.documents.length > 0);
 
   async function saveInformation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +84,7 @@ export default function DoctorVerificationPage() {
       });
       await load();
       setNotice(result.information_changed
-        ? 'Verification information সংরক্ষিত হয়েছে। তথ্য পরিবর্তনের কারণে review status pending করা হয়েছে।'
+        ? 'Verification information draft সংরক্ষিত হয়েছে। Apply করার আগে তথ্য ও evidence আবার যাচাই করুন।'
         : 'Verification information সংরক্ষিত আছে।');
     } catch (saveError) {
       setError(messageFrom(saveError));
@@ -96,9 +101,23 @@ export default function DoctorVerificationPage() {
       await uploadEntityVerificationDocument({ entityType: 'doctor', entityId: user.id, documentType, file });
       setFile(null);
       await load();
-      setNotice('Evidence upload হয়েছে এবং existing verification queue-তে জমা হয়েছে।');
+      setNotice('Evidence draft হিসেবে save হয়েছে। Review queue-তে পাঠাতে Apply for Verification চাপুন।');
     } catch (uploadError) {
       setError(messageFrom(uploadError));
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function submitApplication() {
+    if (!canSubmitApplication) return;
+    setWorking('submit'); setError(null); setNotice(null);
+    try {
+      await submitMyDoctorVerificationApplication();
+      await load();
+      setNotice(rejected ? 'Re-Verification application review queue-তে পাঠানো হয়েছে।' : 'Verification application review queue-তে পাঠানো হয়েছে।');
+    } catch (submitError) {
+      setError(messageFrom(submitError));
     } finally {
       setWorking(null);
     }
@@ -153,8 +172,10 @@ export default function DoctorVerificationPage() {
               </span>
             </div>
             <p>{verified
-              ? 'আপনার verification approved। নিচের identity তথ্য পরিবর্তন করলে status আবার pending হবে।'
-              : 'Account active থাকলে platform publication policy অনুযায়ী profile “Not verified yet” badge সহ public হতে পারে।'}</p>
+              ? 'আপনার verification approved এবং verification information locked।'
+              : submittedPending ? 'Application review queue-তে আছে। Pending অবস্থায় information, evidence edit বা re-submit করা যাবে না।'
+                : rejected ? 'Application rejected হয়েছে। Review reason দেখে তথ্য/evidence সংশোধন করে Re-Verification apply করুন।'
+                  : 'Draft সম্পূর্ণ করে evidence upload করার পর Apply for Verification করুন।'}</p>
             {profile.verification_note && <div className="doctor-verification-review-note"><b>Review note:</b> {profile.verification_note}</div>}
           </section>
 
@@ -162,16 +183,16 @@ export default function DoctorVerificationPage() {
             <form className="doctor-verification-info-card" onSubmit={saveInformation}>
               <header><GraduationCap /><div><h2>Medical education information</h2><p>এই তথ্য existing Doctor verification record-এর অংশ।</p></div></header>
               <div className="patient-form-grid doctor-verification-form-grid">
-                <label className="auth-field"><span>Medical College Name</span><div><input required minLength={2} value={medicalCollege} onChange={(event) => setMedicalCollege(event.target.value)} placeholder="Medical college / institute" /></div></label>
-                <label className="auth-field"><span>Session</span><div><input required value={medicalSession} onChange={(event) => setMedicalSession(event.target.value)} placeholder="যেমন: 2015–2016" /></div></label>
-                <label className="auth-field"><span>Batch</span><div><input required value={medicalBatch} onChange={(event) => setMedicalBatch(event.target.value)} placeholder="যেমন: 42nd Batch" /></div></label>
+                <label className="auth-field"><span>Medical College Name</span><div><input required minLength={2} value={medicalCollege} disabled={applicationLocked} onChange={(event) => setMedicalCollege(event.target.value)} placeholder="Medical college / institute" /></div></label>
+                <label className="auth-field"><span>Session</span><div><input required value={medicalSession} disabled={applicationLocked} onChange={(event) => setMedicalSession(event.target.value)} placeholder="যেমন: 2015–2016" /></div></label>
+                <label className="auth-field"><span>Batch</span><div><input required value={medicalBatch} disabled={applicationLocked} onChange={(event) => setMedicalBatch(event.target.value)} placeholder="যেমন: 42nd Batch" /></div></label>
               </div>
               <div className="doctor-verification-readonly-grid">
                 <div><small>BMDC Number</small><strong>{profile.bmdc_registration_no || 'যোগ করা হয়নি'}</strong></div>
                 <div><small>Degree</small><strong>{profile.degree || 'যোগ করা হয়নি'}</strong></div>
               </div>
-              <p className="doctor-verification-security-note">Medical College, Session বা Batch পরিবর্তন হলে existing approval invalidated হয়ে verification আবার pending হবে।</p>
-              <button className="auth-submit" disabled={working === 'save'}>{working === 'save' ? <LoaderCircle className="spin" /> : <><Save /> Verification information save</>}</button>
+              <p className="doctor-verification-security-note">{applicationLocked ? 'Submitted Pending বা Approved অবস্থায় verification information locked থাকে।' : 'এই তথ্য draft হিসেবে save হবে; Apply না করা পর্যন্ত review queue-তে যাবে না।'}</p>
+              {!applicationLocked && <button className="auth-submit" disabled={working === 'save'}>{working === 'save' ? <LoaderCircle className="spin" /> : <><Save /> Verification information save</>}</button>}
             </form>
 
             <section className="doctor-verification-evidence-card">
@@ -185,7 +206,7 @@ export default function DoctorVerificationPage() {
                   <small className="image-upload-hint">ছবি হলে প্রস্তাবিত সর্বোচ্চ 2200×2200 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে • PDF অপরিবর্তিত</small>
                   <button disabled={!file || working === 'upload'}>{working === 'upload' ? <LoaderCircle className="spin" /> : 'Upload'}</button>
                 </form>
-              ) : <p className="evidence-locked">Approved অবস্থায় existing evidence locked থাকে। Verified identity information বদলালে review আবার pending হবে।</p>}
+              ) : <p className="evidence-locked">{submittedPending ? 'Application Pending। Review শেষ না হওয়া পর্যন্ত evidence edit বা re-submit করা যাবে না।' : 'Approved verification evidence locked।'}</p>}
 
               <div className="evidence-document-list doctor-verification-documents">
                 {evidence.documents.map((document) => <article key={document.document_id}>
@@ -198,6 +219,19 @@ export default function DoctorVerificationPage() {
               </div>
             </section>
           </div>
+
+          <section className={`doctor-verification-apply-card ${profile.verification_status}`}>
+            <div>
+              <ShieldCheck />
+              <span><small>Application state</small><strong>{verified ? 'Approved & Locked' : submittedPending ? 'Pending Review' : rejected ? 'Re-Verification Available' : 'Draft / Incomplete'}</strong></span>
+            </div>
+            {submittedPending && profile.verification_submitted_at && <p>Submitted: {new Intl.DateTimeFormat('bn-BD', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(profile.verification_submitted_at))}</p>}
+            {!applicationLocked && <button type="button" disabled={!canSubmitApplication || working === 'submit'} onClick={() => void submitApplication()}>
+              {working === 'submit' ? <LoaderCircle className="spin" /> : rejected ? <RefreshCcw /> : <Send />}
+              {rejected ? 'Re-Verification Apply' : 'Apply for Verification'}
+            </button>}
+            {!applicationLocked && !canSubmitApplication && <small>Apply করতে Medical College, Session, Batch এবং অন্তত ১টি evidence document প্রয়োজন।</small>}
+          </section>
         </>}
 
         {error && <div className="auth-message error" role="alert">{error}</div>}

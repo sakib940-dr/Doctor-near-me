@@ -106,7 +106,7 @@ function formatTime(value: string) {
   return value ? value.slice(0, 5) : '';
 }
 
-export default function DoctorChamberDetailsPage() {
+export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => void | Promise<void> } = {}) {
   const { account } = useAuth();
   const [profile, setProfile] = useState<MyDoctorProfile | null>(null);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -234,6 +234,7 @@ export default function DoctorChamberDetailsPage() {
       setNotice(result.verification_reset
         ? 'চেম্বারের তথ্য সংরক্ষণ হয়েছে। নতুন/পরিবর্তিত নাম বা location-এর জন্য provider verification pending থাকবে; approval-এর পর Near Me/Public Profile-এ প্রকাশ হবে।'
         : 'চেম্বারের তথ্য সফলভাবে সংরক্ষণ হয়েছে।');
+      await onSaved?.();
     } catch (saveError) {
       setError(messageFrom(saveError));
     } finally {

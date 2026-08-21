@@ -146,6 +146,7 @@ export default function DashboardPage() {
   // Account context is the canonical role source. A secondary dashboard RPC may
   // fail or be stale, but that must never switch the shell role or create a loop.
   const role = account?.role ?? 'patient';
+  if (role === 'doctor') return <Navigate to="/doctor/appointments" replace />;
   const cards = role === 'patient'
     ? [{ icon: CalendarDays, title: 'আমার অ্যাপয়েন্টমেন্ট', detail: 'আসন্ন ও আগের appointment দেখুন', path: '/appointments' }, { icon: UserRound, title: 'আমার প্রোফাইল', detail: 'ব্যক্তিগত ও জরুরি যোগাযোগের তথ্য', path: '/profile' }]
     : role === 'doctor'

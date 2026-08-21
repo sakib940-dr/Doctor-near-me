@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   CalendarCheck2,
+  CalendarDays,
+  Clock3,
   Eye,
   Heart,
   LoaderCircle,
@@ -12,10 +14,12 @@ import {
   Share2,
   Star,
   TrendingUp,
+  UsersRound,
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyProviderDashboard } from '../services/providerDashboard';
+import { getDoctorAnalytics, type DoctorAnalytics } from '../services/doctorDashboard';
 import { getMyDoctorProfileAnalytics, getMyProviderProfileAnalytics } from '../services/profileAnalytics';
 import type { AnalyticsPeriod, ProfileAnalytics, ProviderDashboardItem } from '../types';
 
@@ -31,6 +35,7 @@ export default function ProfileAnalyticsPage() {
   const [providers, setProviders] = useState<ProviderDashboardItem[]>([]);
   const [providerId, setProviderId] = useState('');
   const [analytics, setAnalytics] = useState<ProfileAnalytics | null>(null);
+  const [appointmentAnalytics, setAppointmentAnalytics] = useState<DoctorAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const providerRole = account?.role === 'hospital' || account?.role === 'chamber';
@@ -64,11 +69,26 @@ export default function ProfileAnalyticsPage() {
     return () => { active = false; };
   }, [account, period, providerId, providerRole]);
 
+  useEffect(() => {
+    if (!account || account.role !== 'doctor') { setAppointmentAnalytics(null); return; }
+    let active = true;
+    getDoctorAnalytics(account.user_id)
+      .then((result) => { if (active) setAppointmentAnalytics(result); })
+      .catch((loadError: unknown) => { if (active) setError(loadError instanceof Error ? loadError.message : 'Appointment analytics লোড করা যায়নি।'); });
+    return () => { active = false; };
+  }, [account]);
+
   const selectedProvider = providers.find((provider) => provider.id === providerId) ?? null;
   const chartData = useMemo(() => (analytics?.series ?? []).map((point) => ({
     ...point,
     label: analytics?.bucket === 'month' ? point.bucket : point.bucket.slice(5),
   })), [analytics]);
+
+  const appointmentChartData = (appointmentAnalytics?.last7Days ?? []).map((point) => ({
+    ...point,
+    label: point.date.slice(5),
+  }));
+  const weeklyAppointments = appointmentAnalytics?.last7Days.reduce((sum, point) => sum + point.count, 0) ?? 0;
 
   const metrics = analytics ? [
     { icon: Eye, label: 'Profile Views', value: analytics.profile_views, detail: 'Public profile দেখা হয়েছে' },
@@ -95,6 +115,17 @@ export default function ProfileAnalyticsPage() {
     {!loading && !error && providerRole && !providerId && <div className="empty-state"><BarChart3 /><h3>কোনো প্রতিষ্ঠান পাওয়া যায়নি</h3></div>}
 
     {!loading && analytics && <>
+      {account?.role === 'doctor' && <section className="doctor-central-analytics-block">
+        <header><div><span><CalendarDays /> Appointment Analytics</span><h2>Appointments & Patients</h2><p>Doctor dashboard-এ আগে ছড়িয়ে থাকা appointment metrics এখন Analytics-এর এই section-এ consolidated।</p></div></header>
+        <div className="profile-analytics-metrics doctor-appointment-analytics-metrics">
+          <article><span><CalendarDays /></span><div><small>Today Appointments</small><strong>{(appointmentAnalytics?.todayAppointments ?? 0).toLocaleString('bn-BD')}</strong><p>আজ নির্ধারিত মোট appointment</p></div></article>
+          <article><span><Clock3 /></span><div><small>Pending Appointments</small><strong>{(appointmentAnalytics?.pendingAppointments ?? 0).toLocaleString('bn-BD')}</strong><p>আপনার action অপেক্ষায়</p></div></article>
+          <article><span><UsersRound /></span><div><small>Monthly Unique Patients</small><strong>{(appointmentAnalytics?.monthlyUniquePatients ?? 0).toLocaleString('bn-BD')}</strong><p>এই মাসের unique patient</p></div></article>
+          <article><span><TrendingUp /></span><div><small>Last 7 Days</small><strong>{weeklyAppointments.toLocaleString('bn-BD')}</strong><p>Total appointments</p></div></article>
+        </div>
+        <div className="profile-analytics-chart-card doctor-appointment-analytics-chart"><header><div><span><TrendingUp /> Last 7 Days</span><h2>Appointment Trend</h2></div><small>{weeklyAppointments.toLocaleString('bn-BD')} total</small></header><div className="profile-analytics-chart">{appointmentChartData.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={appointmentChartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip /><Bar dataKey="count" name="Appointments" fill="#0f766e" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer> : <div className="profile-analytics-empty">গত ৭ দিনে appointment নেই।</div>}</div></div>
+      </section>}
+
       <section className="profile-analytics-metrics">{metrics.map(({ icon: Icon, label, value, detail }) => <article key={label}><span><Icon /></span><div><small>{label}</small><strong>{value.toLocaleString('bn-BD')}</strong><p>{detail}</p></div></article>)}</section>
 
       <section className="profile-analytics-chart-card">

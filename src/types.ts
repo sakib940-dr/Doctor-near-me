@@ -606,6 +606,7 @@ export interface DoctorVerificationProfile {
   verification_note: string | null;
   bmdc_verified: boolean;
   verified_at: string | null;
+  verification_submitted_at?: string | null;
 }
 
 export interface SuperAdminDoctorVerificationPolicy {

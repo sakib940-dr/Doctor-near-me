@@ -4,16 +4,21 @@ import {
   Ambulance,
   Building2,
   CalendarDays,
-  Clock,
+  CircleHelp,
   Crown,
+  Bug,
   Droplets,
   FileCheck2,
   HeartPulse,
+  Eye,
+  KeyRound,
   LayoutDashboard,
   Link2,
   LogOut,
   Mail,
   Menu,
+  MessageCircle,
+  PanelsTopLeft,
   Search,
   Settings,
   Settings2,
@@ -139,18 +144,13 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     switch (role) {
       case 'doctor':
         return [
-          { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
-          { label: 'Premium Member হন', path: '/doctor/premium', icon: Crown },
-          { label: 'Appointments', path: '/doctor/appointments', icon: CalendarDays },
-          { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
-          { label: 'Chamber Details', path: '/doctor/chambers', icon: Building2 },
-          { label: 'Schedule', path: '/doctor/schedules', icon: Clock },
-          { label: 'Visiting Card', path: '/doctor/visiting-card', icon: UserCircle },
-          { label: 'Public Profile Content', path: '/doctor/public-profile', icon: Stethoscope },
-          { label: 'Verification', path: '/doctor/verification', icon: ShieldCheck },
-          { label: 'Profile', path: '/doctor/profile', icon: UserCircle },
-          { label: 'Providers / Invitations', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
+          { label: 'Settings', path: '/doctor/settings', icon: KeyRound },
+          { label: 'Public Content Management', path: '/doctor/public-content', icon: PanelsTopLeft },
+          { label: 'Verification Application', path: '/doctor/verification', icon: ShieldCheck },
+          { label: 'Hospital / Provider Invitation', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
+          { label: 'Support / Chat with Admin', path: '/doctor/support', icon: MessageCircle },
+          { label: 'Feedback / Bug Report', path: '/doctor/feedback', icon: Bug },
+          { label: 'FAQ / Help', path: '/doctor/help', icon: CircleHelp },
         ];
       case 'patient':
         return [
@@ -168,6 +168,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays, badge: pendingAppointments },
           { label: 'Activity', path: '/admin?tab=activity', icon: Activity },
           { label: 'CMS', path: '/admin/cms', icon: Settings2 },
+          { label: 'Doctor Support', path: '/admin/doctor-support', icon: MessageCircle },
           { label: 'Premium', path: '/admin/premium', icon: Crown },
           { label: 'Verification queue', path: '/verification/reviews', icon: ShieldCheck, badge: pendingVerification },
         ];
@@ -179,6 +180,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Admin operations', path: '/admin', icon: Activity },
           { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays, badge: pendingAppointments },
           { label: 'CMS', path: '/admin/cms', icon: Settings2 },
+          { label: 'Doctor Support', path: '/admin/doctor-support', icon: MessageCircle },
           { label: 'Premium', path: '/admin/premium', icon: Crown },
           { label: 'Verification queue', path: '/verification/reviews', icon: ShieldCheck, badge: pendingVerification },
         ];
@@ -217,6 +219,14 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     }
   }, [pendingAppointments, pendingInvitations, pendingVerification, role]);
 
+  const doctorPrimaryItems = role === 'doctor' ? [
+    { label: 'Appointment Management', path: '/doctor/appointments', icon: CalendarDays },
+    { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
+    { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
+    { label: 'My Profile', path: '/doctor/profile', icon: UserCircle },
+    { label: 'Public Profile View', path: '/doctor/public-view', icon: Eye },
+  ] : [];
+
   if (loading) return <AccountStateFallback loading />;
   if (!account) return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={signOut} />;
   if (account.role !== role) return <Navigate to="/dashboard" replace />;
@@ -236,7 +246,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
 
   const navigation = (
     <>
-      <Link className="dashboard-shell-brand" to="/dashboard" aria-label={`${SITE_NAME} dashboard`}>
+      <Link className="dashboard-shell-brand" to={role === 'doctor' ? '/doctor/appointments' : '/dashboard'} aria-label={`${SITE_NAME} dashboard`}>
         <span className="dashboard-shell-brand-icon"><HeartPulse aria-hidden="true" /></span>
         <div>
           <strong>{SITE_NAME}</strong>
@@ -289,7 +299,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         >
           <Menu aria-hidden="true" />
         </button>
-        <Link className="dashboard-shell-mobile-brand" to="/dashboard" aria-label={`${SITE_NAME} dashboard`}>
+        <Link className="dashboard-shell-mobile-brand" to={role === 'doctor' ? '/doctor/appointments' : '/dashboard'} aria-label={`${SITE_NAME} dashboard`}>
           <HeartPulse aria-hidden="true" />
           <strong>{SITE_NAME}</strong>
         </Link>
@@ -305,7 +315,10 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         {navigation}
       </aside>
 
-      <main className="dashboard-shell-content">{children}</main>
+      <main className={`dashboard-shell-content${role === 'doctor' ? ' doctor-shell-content' : ''}`}>
+        {role === 'doctor' && <nav className="doctor-primary-nav" aria-label="Doctor primary navigation">{doctorPrimaryItems.map(({ label, path, icon: Icon }) => { const active = isRouteActive(location.pathname, location.search, path); return <Link key={path} to={path} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}><Icon /><span>{label}</span></Link>; })}</nav>}
+        {children}
+      </main>
     </div>
   );
 }

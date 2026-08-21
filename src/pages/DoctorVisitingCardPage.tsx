@@ -3,7 +3,6 @@ import {
   BadgeCheck,
   Building2,
   Camera,
-  ExternalLink,
   GraduationCap,
   LoaderCircle,
   Save,
@@ -22,6 +21,7 @@ import {
   uploadDoctorPhoto,
 } from '../services/doctorDashboard';
 import { getSpecialties } from '../services/discovery';
+import { getMyDoctorVerificationProfile } from '../services/verification';
 import type { MyDoctorProfile, Specialty } from '../types';
 
 const statusLabels = {
@@ -33,7 +33,7 @@ const statusLabels = {
 
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'Visiting Card সংরক্ষণ করা যায়নি।';
 
-export default function DoctorVisitingCardPage() {
+export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => void | Promise<void> } = {}) {
   const { account, user, refreshAccount } = useAuth();
   const [profile, setProfile] = useState<MyDoctorProfile | null>(null);
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
@@ -43,12 +43,14 @@ export default function DoctorVisitingCardPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [verificationSubmittedAt, setVerificationSubmittedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getMyDoctorProfile(), getSpecialties()])
-      .then(([doctorProfile, specialtyRows]) => {
+    Promise.all([getMyDoctorProfile(), getSpecialties(), getMyDoctorVerificationProfile()])
+      .then(([doctorProfile, specialtyRows, verificationProfile]) => {
         setProfile(doctorProfile);
         setSpecialties(specialtyRows);
+        setVerificationSubmittedAt(verificationProfile?.verification_submitted_at ?? null);
       })
       .catch((loadError: unknown) => setError(messageFrom(loadError)))
       .finally(() => setLoading(false));
@@ -70,6 +72,9 @@ export default function DoctorVisitingCardPage() {
   }, [profile, specialties]);
 
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
+
+  const verificationIdentityLocked = profile?.doctor.verification_status === 'approved'
+    || (profile?.doctor.verification_status === 'pending' && Boolean(verificationSubmittedAt));
 
   function setDoctor<K extends keyof MyDoctorProfile['doctor']>(key: K, value: MyDoctorProfile['doctor'][K]) {
     setProfile((current) => current ? { ...current, doctor: { ...current.doctor, [key]: value } } : current);
@@ -120,12 +125,16 @@ export default function DoctorVisitingCardPage() {
         medicalCollege: profile.doctor.medical_college,
         presentJob: profile.doctor.present_job,
         specialtyIds: profile.specialty_ids,
+      }).catch(async (profileUpdateError) => {
+        if (uploadedPhotoPath) await cleanupDoctorPhoto(uploadedPhotoPath).catch(() => undefined);
+        throw profileUpdateError;
       });
 
       // Step 32 also treats Medical College as verification identity. Re-read
       // the canonical profile so a DB-triggered reset is reflected immediately.
-      const refreshedProfile = await getMyDoctorProfile();
+      const [refreshedProfile, refreshedVerification] = await Promise.all([getMyDoctorProfile(), getMyDoctorVerificationProfile()]);
       if (refreshedProfile) setProfile(refreshedProfile);
+      setVerificationSubmittedAt(refreshedVerification?.verification_submitted_at ?? null);
       if (uploadedPhotoPath && previousPhotoPath && previousPhotoPath !== uploadedPhotoPath) {
         await cleanupDoctorPhoto(previousPhotoPath).catch(() => undefined);
       }
@@ -135,10 +144,10 @@ export default function DoctorVisitingCardPage() {
       const verificationReset = result.credentials_changed
         || (previousStatus === 'approved' && refreshedProfile?.doctor.verification_status === 'pending');
       setNotice(verificationReset
-        ? 'Visiting Card সংরক্ষিত হয়েছে। Verification identity পরিবর্তনের কারণে পুনরায় verification প্রয়োজন।'
+        ? 'Visiting Card সংরক্ষিত হয়েছে। পরিবর্তিত verification identity এখন draft; Verification Application থেকে Apply/Re-Apply করুন।'
         : 'Visiting Card সফলভাবে সংরক্ষণ হয়েছে।');
+      await onSaved?.();
     } catch (saveError) {
-      if (uploadedPhotoPath) await cleanupDoctorPhoto(uploadedPhotoPath).catch(() => undefined);
       setError(messageFrom(saveError));
     } finally {
       setSaving(false);
@@ -198,11 +207,7 @@ export default function DoctorVisitingCardPage() {
                 </div>
               </Link>
 
-              {!['rejected', 'expired'].includes(profile.doctor.verification_status) ? (
-                <Link className="visiting-card-public-link" to={doctorPublicPath(profile.doctor.profile_slug, profile.doctor.id)} target="_blank">
-                  Existing Public Profile দেখুন <ExternalLink />
-                </Link>
-              ) : (
+              {['rejected', 'expired'].includes(profile.doctor.verification_status) && (
                 <p className="visiting-card-preview-note">Rejected/expired verification status public listing থেকে excluded থাকে।</p>
               )}
               {profile.doctor.verification_status === 'pending' && <p className="visiting-card-preview-note">Pending doctor Super Admin publication policy অনুযায়ী “Not verified yet” badge সহ public হতে পারে।</p>}
@@ -229,10 +234,10 @@ export default function DoctorVisitingCardPage() {
               <section className="visiting-card-section">
                 <h2>Professional Information</h2>
                 <div className="patient-form-grid visiting-card-form-grid">
-                  <label className="auth-field"><span>Degree</span><div><input value={profile.doctor.degree || ''} onChange={(event) => setDoctor('degree', event.target.value)} placeholder="MBBS, FCPS" /></div></label>
-                  <label className="auth-field"><span>Designation</span><div><input value={profile.doctor.designation || ''} onChange={(event) => setDoctor('designation', event.target.value)} placeholder="যেমন: Associate Professor" /></div></label>
-                  <label className="auth-field"><span>BMDC Number</span><div><input value={profile.doctor.bmdc_registration_no || ''} onChange={(event) => setDoctor('bmdc_registration_no', event.target.value)} /></div></label>
-                  <label className="auth-field"><span>Medical College</span><div><input value={profile.doctor.medical_college || ''} onChange={(event) => setDoctor('medical_college', event.target.value)} placeholder="Medical college / institute" /></div></label>
+                  <label className="auth-field"><span>Degree</span><div><input disabled={verificationIdentityLocked} value={profile.doctor.degree || ''} onChange={(event) => setDoctor('degree', event.target.value)} placeholder="MBBS, FCPS" /></div></label>
+                  <label className="auth-field"><span>Designation</span><div><input disabled={verificationIdentityLocked} value={profile.doctor.designation || ''} onChange={(event) => setDoctor('designation', event.target.value)} placeholder="যেমন: Associate Professor" /></div></label>
+                  <label className="auth-field"><span>BMDC Number</span><div><input disabled={verificationIdentityLocked} value={profile.doctor.bmdc_registration_no || ''} onChange={(event) => setDoctor('bmdc_registration_no', event.target.value)} /></div></label>
+                  <label className="auth-field"><span>Medical College</span><div><input disabled={verificationIdentityLocked} value={profile.doctor.medical_college || ''} onChange={(event) => setDoctor('medical_college', event.target.value)} placeholder="Medical college / institute" /></div></label>
                   <label className="auth-field visiting-card-wide-field"><span>Present Job / Hospital</span><div><input value={profile.doctor.present_job || ''} onChange={(event) => setDoctor('present_job', event.target.value)} placeholder="Current hospital, clinic or academic position" /></div></label>
                 </div>
               </section>
@@ -250,7 +255,7 @@ export default function DoctorVisitingCardPage() {
                 </fieldset>
               </section>
 
-              <p className="visiting-card-security-note">Degree, designation বা BMDC নম্বর পরিবর্তন করলে existing verification policy অনুযায়ী status আবার pending হবে।</p>
+              <p className="visiting-card-security-note">Verification application submit হওয়ার পর Degree, Designation, BMDC ও Medical College তথ্য review শেষ না হওয়া পর্যন্ত locked থাকবে।</p>
               {error && <div className="auth-message error" role="alert">{error}</div>}
               {notice && <div className="auth-message success">{notice}</div>}
               <button className="auth-submit doctor-save visiting-card-save" type="submit" disabled={saving}>

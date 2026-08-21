@@ -78,6 +78,30 @@ export async function getDoctorAnalytics(_doctorId: string): Promise<DoctorAnaly
   };
 }
 
+
+export interface DoctorPrivateProfile {
+  date_of_birth: string | null;
+  gender: 'male' | 'female' | 'other' | null;
+  blood_group: string | null;
+  address_line: string | null;
+}
+
+export async function getMyDoctorPrivateProfile() {
+  const { data, error } = await requireSupabase().rpc('get_my_doctor_private_profile');
+  if (error) throw error;
+  return (data ?? { date_of_birth: null, gender: null, blood_group: null, address_line: null }) as DoctorPrivateProfile;
+}
+
+export async function updateMyDoctorPrivateProfile(input: DoctorPrivateProfile) {
+  const { error } = await requireSupabase().rpc('update_my_doctor_private_profile', {
+    p_date_of_birth: input.date_of_birth || null,
+    p_gender: input.gender || null,
+    p_blood_group: input.blood_group || null,
+    p_address_line: input.address_line?.trim() || null,
+  });
+  if (error) throw error;
+}
+
 export async function updateMyDoctorProfile(input: DoctorProfileUpdate) {
   const { data, error } = await requireSupabase().rpc('update_my_doctor_profile', {
     p_full_name: input.fullName,

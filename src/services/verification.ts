@@ -69,6 +69,12 @@ export async function getMyDoctorVerificationProfile() {
   return data as DoctorVerificationProfile;
 }
 
+export async function submitMyDoctorVerificationApplication() {
+  const { data, error } = await requireSupabase().rpc('submit_my_doctor_verification_application');
+  if (error) throw error;
+  return data as { status: 'pending'; submitted_at: string };
+}
+
 export async function updateMyDoctorVerificationInfo(input: {
   medicalCollege: string;
   medicalSession: string;

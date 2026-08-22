@@ -141,6 +141,9 @@ export function notificationDeepLink(notification: Pick<AppNotification, 'type' 
     case 'premium_status':
     case 'premium_progress':
       return role === 'hospital' || role === 'chamber' ? '/provider/premium' : '/doctor/premium';
+    case 'blood_request':
+    case 'blood_direct_request': return '/blood?tab=respond';
+    case 'blood_donor_response': return '/blood?tab=request';
     default: return '/dashboard';
   }
 }

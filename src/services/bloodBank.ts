@@ -126,3 +126,14 @@ export async function sendBloodRequestToDonor(input: {
   if (error) throw error;
   return String(data);
 }
+
+export type BloodResponseStatus = 'interested' | 'accepted' | 'declined';
+
+export async function respondToBloodRequest(requestId: string, status: BloodResponseStatus) {
+  const { data, error } = await requireSupabase().rpc('respond_to_blood_request', {
+    p_request_id: requestId,
+    p_status: status,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}

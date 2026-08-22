@@ -6124,6 +6124,32 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .bb-modal label { display: grid; gap: 5px; color: #5b6e66; font-size: 10px; font-weight: 800; }
 .bb-modal input,.bb-modal textarea { width: 100%; min-height: 42px; border: 1px solid #dce5e1; border-radius: 10px; padding: 8px 10px; background: #fff; font: inherit; font-size: 12px; }
 .bb-modal textarea { min-height: 70px; resize: vertical; }
+
+/* 4-tab layout + unread count badge */
+.bb-tabs-4 { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.bb-tab-count { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--bb-700); color: #fff; font-size: 8.5px; font-weight: 900; margin-left: 2px; }
+
+/* Respond tab */
+.bb-hint-warn { background: #fdf3e3; color: #8a5a12; }
+.bb-linklike { border: 0; background: none; padding: 0; margin: 0 2px; color: var(--bb-700); font: inherit; font-weight: 850; text-decoration: underline; cursor: pointer; }
+.bb-alert-list { display: grid; gap: 10px; }
+.bb-alert-card { display: grid; grid-template-columns: 46px minmax(0,1fr) auto; grid-template-areas: "chip copy urgency" "actions actions actions"; align-items: center; gap: 10px 12px; padding: 13px; border: 1px solid var(--bb-line); border-radius: 15px; background: var(--bb-50); }
+.bb-alert-card > .bb-group-chip { grid-area: chip; }
+.bb-alert-copy { grid-area: copy; }
+.bb-alert-copy strong { display: block; color: var(--bb-ink); font-size: 12.5px; font-weight: 850; }
+.bb-alert-copy small { display: flex; align-items: center; gap: 4px; margin-top: 3px; color: var(--bb-muted); font-size: 9.5px; }
+.bb-alert-copy small svg { width: 12px; height: 12px; }
+.bb-alert-card > .bb-urgency { grid-area: urgency; }
+.bb-alert-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: 7px; }
+.bb-alert-actions button { min-height: 36px; display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 10px; padding: 0 13px; font: inherit; font-size: 10.5px; font-weight: 850; cursor: pointer; }
+.bb-alert-actions button svg { width: 14px; height: 14px; }
+.bb-alert-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.bb-alert-accept { color: #fff; background: var(--green-700); }
+.bb-alert-accept:hover:not(:disabled) { background: var(--green-800); }
+.bb-alert-interested { color: var(--bb-800); background: var(--bb-100); }
+.bb-alert-interested:hover:not(:disabled) { background: #f6c8ce; }
+.bb-alert-decline { color: #71605f; background: #efe7e6; }
+.bb-alert-decline:hover:not(:disabled) { background: #e4d8d7; }
 .success-box { margin: 10px 0; padding: 10px 12px; border: 1px solid #bde2ce; border-radius: 10px; color: #176643; background: #effaf5; font-size: 11px; font-weight: 700; }
 .success-box { margin: 10px 0; padding: 10px 12px; border: 1px solid #bde2ce; border-radius: 10px; color: #176643; background: #effaf5; font-size: 11px; font-weight: 700; }
 
@@ -6167,6 +6193,10 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   .bb-response-row { grid-template-columns: 26px 1fr auto; }
   .bb-recent-card { grid-template-columns: 38px minmax(0,1fr); }
   .bb-recent-card .bb-urgency { grid-column: 1/-1; justify-self: start; margin-top: 2px; }
+  .bb-tabs-4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .bb-alert-card { grid-template-columns: 40px minmax(0,1fr); grid-template-areas: "chip copy" "urgency urgency" "actions actions"; }
+  .bb-alert-card > .bb-urgency { justify-self: start; margin-top: 2px; }
+  .bb-alert-actions button { flex: 1; justify-content: center; }
 }
 @media (max-width: 390px) {
   .visitor-marketplace-home .doctor-horizontal-scroll,.visitor-marketplace-home .provider-marketplace-rail,.marketplace-horizontal-rail { grid-auto-columns: min(93vw,344px) !important; }

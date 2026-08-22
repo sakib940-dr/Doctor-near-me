@@ -1,8 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlarmClock,
   Award,
+  Bell,
+  CheckCircle2,
   Clock3,
   Droplet,
   Droplets,
@@ -20,23 +23,26 @@ import {
   XCircle,
 } from 'lucide-react';
 import { getMyPatientProfile } from '../services/appointments';
+import { getMyNotificationPage } from '../services/notifications';
 import {
   cancelMyBloodRequest,
   createBloodRequest,
   getMyBloodDonorProfile,
   getMyBloodRequestResponses,
   getMyBloodRequests,
+  respondToBloodRequest,
   saveMyBloodDonorProfile,
   searchBloodDonors,
   getRecentBloodRequests,
   sendBloodRequestToDonor,
 } from '../services/bloodBank';
+import type { BloodResponseStatus } from '../services/bloodBank';
 import { getDistricts, getUpazilas } from '../services/discovery';
 import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, District, PatientProfile, Upazila, PublicBloodRequestRow } from '../types';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
-type BloodTab = 'search' | 'request' | 'donor';
+type BloodTab = 'search' | 'request' | 'donor' | 'respond';
 
 const DONATION_GAP_DAYS = 120;
 
@@ -107,6 +113,49 @@ function relativeTime(dateStr: string) {
   return `${Math.floor(hours / 24)} দিন আগে`;
 }
 
+interface IncomingBloodAlert {
+  notificationId: string;
+  requestId: string;
+  bloodGroup: string;
+  districtId: number | null;
+  upazilaId: number | null;
+  neededAt: string | null;
+  createdAt: string;
+  isDirect: boolean;
+  isRead: boolean;
+  patientName: string | null;
+  hospitalLabel: string | null;
+  unitsNeeded: number | null;
+}
+
+function parseIncomingAlert(notification: { notification_id: string; type: string; data: Record<string, unknown>; is_read: boolean; created_at: string }): IncomingBloodAlert | null {
+  const requestId = notification.data?.blood_request_id;
+  if (typeof requestId !== 'string') return null;
+  const bloodGroup = typeof notification.data?.blood_group === 'string' ? notification.data.blood_group : '?';
+  const districtId = typeof notification.data?.district_id === 'number' ? notification.data.district_id : null;
+  const upazilaId = typeof notification.data?.upazila_id === 'number' ? notification.data.upazila_id : null;
+  const neededAt = typeof notification.data?.needed_at === 'string' ? notification.data.needed_at : null;
+  const patientName = typeof notification.data?.patient_name === 'string' ? notification.data.patient_name : null;
+  const hospitalLabel = typeof notification.data?.hospital_name === 'string'
+    ? notification.data.hospital_name
+    : typeof notification.data?.hospital_address === 'string' ? notification.data.hospital_address : null;
+  const unitsNeeded = typeof notification.data?.units_needed === 'number' ? notification.data.units_needed : null;
+  return {
+    notificationId: notification.notification_id,
+    requestId,
+    bloodGroup,
+    districtId,
+    upazilaId,
+    neededAt,
+    createdAt: notification.created_at,
+    isDirect: notification.type === 'blood_direct_request',
+    isRead: notification.is_read,
+    patientName,
+    hospitalLabel,
+    unitsNeeded,
+  };
+}
+
 export default function BloodBankPage() {
   const [tab, setTab] = useState<BloodTab>('search');
   const [districts, setDistricts] = useState<District[]>([]);
@@ -154,6 +203,54 @@ export default function BloodBankPage() {
   const [directHospital, setDirectHospital] = useState('');
   const [directNeededAt, setDirectNeededAt] = useState('');
   const [directMessage, setDirectMessage] = useState('');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [incomingAlerts, setIncomingAlerts] = useState<IncomingBloodAlert[]>([]);
+  const [incomingLoading, setIncomingLoading] = useState(false);
+  const [incomingLoaded, setIncomingLoaded] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [myResponses, setMyResponses] = useState<Record<string, BloodResponseStatus>>({});
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab && ['search', 'request', 'donor', 'respond'].includes(requestedTab)) {
+      setTab(requestedTab as BloodTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadIncomingAlerts() {
+    setIncomingLoading(true); setError(null);
+    try {
+      const page = await getMyNotificationPage(30, 0, false);
+      const alerts = page.items
+        .filter((item) => item.type === 'blood_request' || item.type === 'blood_direct_request')
+        .map(parseIncomingAlert)
+        .filter((item): item is IncomingBloodAlert => item !== null);
+      setIncomingAlerts(alerts);
+    } catch (loadError) { setError(messageFrom(loadError)); }
+    finally { setIncomingLoading(false); setIncomingLoaded(true); }
+  }
+
+  useEffect(() => {
+    if (tab === 'respond' && !incomingLoaded) void loadIncomingAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  function switchTab(next: BloodTab) {
+    setTab(next);
+    setSearchParams((prev) => { const params = new URLSearchParams(prev); params.set('tab', next); return params; }, { replace: true });
+  }
+
+  async function respondToAlert(alert: IncomingBloodAlert, status: BloodResponseStatus) {
+    setRespondingId(alert.requestId + status); setError(null); setNotice(null);
+    try {
+      await respondToBloodRequest(alert.requestId, status);
+      setMyResponses((prev) => ({ ...prev, [alert.requestId]: status }));
+      setNotice(status === 'declined' ? 'আপনি এই অনুরোধটি প্রত্যাখ্যান করেছেন।' : 'আপনার সাড়া পাঠানো হয়েছে — রোগীকে জানানো হয়েছে।');
+    } catch (respondError) { setError(messageFrom(respondError)); }
+    finally { setRespondingId(null); }
+  }
 
   useEffect(() => {
     let active = true;
@@ -337,7 +434,7 @@ export default function BloodBankPage() {
             <strong>জরুরি রক্ত প্রয়োজন?</strong>
             <span>অনুরোধ তৈরি করলে matching এলাকার active donor-দের সাথে সাথে notification যাবে।</span>
           </div>
-          <button type="button" onClick={() => setTab('request')}>অনুরোধ তৈরি করুন</button>
+          <button type="button" onClick={() => switchTab('request')}>অনুরোধ তৈরি করুন</button>
         </article>
         <article className="bb-quick-card bb-quick-donor">
           <div className="bb-quick-icon"><HandHeart /></div>
@@ -345,7 +442,7 @@ export default function BloodBankPage() {
             <strong>রক্ত দিতে চান?</strong>
             <span>Donor profile active করুন, matching request এলে notification পাবেন — এক ফোঁটায় একটি জীবন।</span>
           </div>
-          <button type="button" onClick={() => setTab('donor')}>Donor হোন</button>
+          <button type="button" onClick={() => switchTab('donor')}>Donor হোন</button>
         </article>
       </section>
 
@@ -370,10 +467,11 @@ export default function BloodBankPage() {
         ) : <p className="empty-state">এই মুহূর্তে কোনো active blood request নেই।</p>}
       </section>
 
-      <nav className="bb-tabs" aria-label="Blood Bank sections">
-        <button type="button" className={tab === 'search' ? 'active' : ''} onClick={() => setTab('search')}><Search /> রক্তদাতা খুঁজুন</button>
-        <button type="button" className={tab === 'request' ? 'active' : ''} onClick={() => setTab('request')}><Droplets /> রক্তের অনুরোধ</button>
-        <button type="button" className={tab === 'donor' ? 'active' : ''} onClick={() => setTab('donor')}><UserRound /> Donor Profile</button>
+      <nav className="bb-tabs bb-tabs-4" aria-label="Blood Bank sections">
+        <button type="button" className={tab === 'search' ? 'active' : ''} onClick={() => switchTab('search')}><Search /> রক্তদাতা খুঁজুন</button>
+        <button type="button" className={tab === 'request' ? 'active' : ''} onClick={() => switchTab('request')}><Droplets /> রক্তের অনুরোধ</button>
+        <button type="button" className={tab === 'respond' ? 'active' : ''} onClick={() => switchTab('respond')}><Bell /> আমার কাছে অনুরোধ{incomingAlerts.length ? <span className="bb-tab-count">{incomingAlerts.length}</span> : null}</button>
+        <button type="button" className={tab === 'donor' ? 'active' : ''} onClick={() => switchTab('donor')}><UserRound /> Donor Profile</button>
       </nav>
 
       {error && <div className="error-box" role="alert">{error}</div>}
@@ -460,6 +558,59 @@ export default function BloodBankPage() {
             );
           }) : <p className="empty-state">এখনও কোনো blood request নেই।</p>}
         </div>
+      </section>}
+
+      {tab === 'respond' && <section className="bb-panel bb-respond-panel">
+        <header className="bb-panel-head">
+          <div><small>Matching donor request</small><h2><Bell /> আমার কাছে আসা অনুরোধ</h2></div>
+          <button type="button" className="bb-icon-button" aria-label="Refresh" onClick={() => void loadIncomingAlerts()}><RefreshCcw /></button>
+        </header>
+
+        {!(isVolunteer && available) && (
+          <p className="bb-hint bb-hint-warn"><ShieldCheck /> আপনার Donor profile এখন <strong>{!isVolunteer ? 'active নয়' : 'unavailable'}</strong> — নতুন request পেতে ও সাড়া দিতে <button type="button" className="bb-linklike" onClick={() => switchTab('donor')}>Donor Profile</button> থেকে চালু করুন।</p>
+        )}
+
+        {incomingLoading && !incomingLoaded ? <div className="loading-box"><LoaderCircle className="spin" /> লোড হচ্ছে…</div> : null}
+
+        {incomingLoaded && !incomingAlerts.length ? (
+          <p className="empty-state">এই মুহূর্তে আপনার জন্য কোনো matching blood request নেই — নতুন অনুরোধ এলে এখানেই দেখতে পাবেন।</p>
+        ) : (
+          <div className="bb-alert-list">
+            {incomingAlerts.map((alert) => {
+              const urgency = requestUrgency(alert.neededAt);
+              const responded = myResponses[alert.requestId];
+              return (
+                <article key={alert.notificationId} className="bb-alert-card">
+                  <span className="bb-group-chip">{alert.bloodGroup}</span>
+                  <div className="bb-alert-copy">
+                    <strong>{alert.patientName ? `${alert.patientName}${alert.unitsNeeded ? ` · ${alert.unitsNeeded} unit` : ''}` : (alert.isDirect ? 'সরাসরি অনুরোধ পেয়েছেন' : 'জরুরি রক্তের অনুরোধ')}</strong>
+                    <small><MapPin /> {alert.hospitalLabel ? `${alert.hospitalLabel} · ` : ''}{alert.districtId ? districtNames.get(alert.districtId) || 'জেলা' : 'এলাকা উল্লেখ নেই'} · {relativeTime(alert.createdAt)}</small>
+                  </div>
+                  <span className={`bb-urgency bb-urgency-${urgency.level}`}>{urgency.level === 'critical' ? <AlarmClock /> : <Clock3 />} {urgency.label}</span>
+                  <div className="bb-alert-actions">
+                    {responded ? (
+                      <span className={`bb-status-pill bb-status-${responded === 'declined' ? 'muted' : responded === 'accepted' ? 'good' : 'info'}`}>
+                        {responded === 'accepted' ? 'আপনি রাজি হয়েছেন' : responded === 'interested' ? 'আগ্রহ জানিয়েছেন' : 'প্রত্যাখ্যান করেছেন'}
+                      </span>
+                    ) : (
+                      <>
+                        <button type="button" className="bb-alert-accept" disabled={!(isVolunteer && available) || respondingId !== null} onClick={() => void respondToAlert(alert, 'accepted')}>
+                          {respondingId === alert.requestId + 'accepted' ? <LoaderCircle className="spin" /> : <CheckCircle2 />} রাজি আছি
+                        </button>
+                        <button type="button" className="bb-alert-interested" disabled={!(isVolunteer && available) || respondingId !== null} onClick={() => void respondToAlert(alert, 'interested')}>
+                          {respondingId === alert.requestId + 'interested' ? <LoaderCircle className="spin" /> : <HandHeart />} আগ্রহী
+                        </button>
+                        <button type="button" className="bb-alert-decline" disabled={!(isVolunteer && available) || respondingId !== null} onClick={() => void respondToAlert(alert, 'declined')}>
+                          {respondingId === alert.requestId + 'declined' ? <LoaderCircle className="spin" /> : <XCircle />} পারব না
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>}
 
       {tab === 'donor' && <section className="bb-donor-layout">

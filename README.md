@@ -2,13 +2,13 @@
 
 Run locally: `npm.cmd run dev`
 
-Current application package version: `0.23.0`.
+Current application package version: `0.31.3`.
 
-Database migrations are under `supabase/`. For an existing database already on Step 26, run:
+Database migrations are under `supabase/`. For an existing database already on Step 68, run:
 
-`supabase/27_docbd_global_branding.sql`
+`supabase/69_blood_alert_notification_enrichment.sql`
 
-Step 27 standardizes the public and authenticated application brand as `docbd.info`, removes duplicate dashboard headers/navigation, and updates browser metadata without replacing existing feature architecture.
+Step 69 enriches the `blood_request` / `blood_direct_request` notification payloads (patient name, hospital label, units needed, and — for direct donor requests — the donor's own district/upazila) so the new in-app "আমার কাছে অনুরোধ" donor respond screen can render context without an extra round trip. RPC names and parameter signatures are unchanged; safe to re-run against an existing database.
 
 Complete developer handoff: `PROJECT_HANDOFF_SUMMARY.md`
 

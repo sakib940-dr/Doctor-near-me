@@ -77,7 +77,7 @@ export default function App() {
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><PatientDashboardRoute /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationCenterRoute /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><DashboardShell role="patient"><PatientProfilePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/appointments" element={<ProtectedRoute><DashboardShell role="patient"><AppointmentsPage /></DashboardShell></ProtectedRoute>} />
@@ -126,6 +126,14 @@ export default function App() {
       <PwaUpdatePrompt />
     </>
   );
+}
+
+
+function PatientDashboardRoute() {
+  const { account, loading } = useAuth();
+  if (loading) return <AccountStateFallback loading />;
+  if (account?.role === 'patient') return <Navigate to="/" replace />;
+  return <DashboardPage />;
 }
 
 function DoctorDirectoryRoute() {

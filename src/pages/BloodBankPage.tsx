@@ -215,6 +215,19 @@ export default function BloodBankPage() {
     <div className="blood-bank-page">
       <header className="blood-bank-heading"><span><Droplets /> Patient Blood Bank</span><h1>রক্ত খুঁজুন ও জরুরি অনুরোধ পরিচালনা করুন</h1><p>docbd.info-এর existing voluntary donor ও blood-request system ব্যবহার করে।</p></header>
 
+      <section className="blood-bank-panel blood-emergency-actions">
+        <article>
+          <strong>জরুরি রক্ত প্রয়োজন?</strong>
+          <span>Blood request তৈরি করলে matching active donor-দের কাছে notification যাবে।</span>
+          <button type="button" onClick={() => setTab('request')}>Create Blood Request</button>
+        </article>
+        <article>
+          <strong>রক্ত দিতে চান?</strong>
+          <span>Donor profile active করে matching request notification পান।</span>
+          <button type="button" onClick={() => setTab('donor')}>Become Donor</button>
+        </article>
+      </section>
+
       <section className="blood-bank-panel">
         <header><h2>Recent Blood Requests</h2></header>
         {recentRequests.length ? recentRequests.map((item) => <article key={item.request_id} className="blood-request-main">
@@ -242,7 +255,7 @@ export default function BloodBankPage() {
         <div className="blood-donor-results">
           {searched && !donors.length ? <p className="empty-inline">Matching available donor পাওয়া যায়নি।</p> : donors.map((donor) => <article key={donor.donor_id}>
             <span className="blood-group-chip">{donor.blood_group}</span>
-            <div><strong>{donor.donor_name}</strong><small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}{donor.last_donation_date ? ` · শেষ দান ${donor.last_donation_date}` : ''}</small></div>
+            <div><strong>{donor.donor_name}</strong><small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}{donor.last_donation_date ? ` · শেষ দান ${donor.last_donation_date}` : ''}{donor.available_for_requests === false ? ' · বর্তমানে unavailable' : ' · Available'}</small></div>
             {donor.phone ? <a href={`tel:${donor.phone}`}><Phone /> কল করুন</a> : <span className="blood-private-phone"><ShieldCheck /> Phone private</span>}
             <button type="button" disabled={donor.available_for_requests === false} onClick={() => void requestDonor(donor)}>{donor.available_for_requests === false ? 'Unavailable' : 'Send Blood Request'}</button>
           </article>)}

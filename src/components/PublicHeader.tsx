@@ -38,7 +38,7 @@ export default function PublicHeader({ mobileBottomNav = false }: { mobileBottom
           <NavLink className={navClass} to="/providers" onClick={() => setOpen(false)}>{labels.providers}</NavLink>
           <a href="/#ambulance" onClick={() => setOpen(false)}>{labels.ambulance}</a>
           <a href="/#blood" onClick={() => setOpen(false)}>{labels.blood}</a>
-          <Link className="login-button" to={user ? '/dashboard' : '/auth'} onClick={() => setOpen(false)}>{user ? labels.dashboard : labels.login}</Link>
+          <Link className="login-button" to={user && account?.role === 'patient' ? '/' : user ? '/dashboard' : '/auth'} onClick={() => setOpen(false)}>{user && account?.role === 'patient' ? labels.home : user ? labels.dashboard : labels.login}</Link>
         </nav>
         <div className="public-header-actions">
           <div className="public-language-toggle" role="group" aria-label="Language">

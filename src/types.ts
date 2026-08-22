@@ -79,6 +79,7 @@ export interface BloodDonorSearchRow {
   district_id: number | null;
   upazila_id: number | null;
   last_donation_date: string | null;
+  available_for_requests?: boolean;
 }
 
 export interface PublicBloodRequestRow {

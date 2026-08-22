@@ -43,6 +43,7 @@ export default function BloodBankPage() {
   const [donorsLoadingMore, setDonorsLoadingMore] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  const [requestPatientName, setRequestPatientName] = useState('');
   const [requestGroup, setRequestGroup] = useState('');
   const [unitsNeeded, setUnitsNeeded] = useState('1');
   const [hospitalName, setHospitalName] = useState('');
@@ -60,6 +61,11 @@ export default function BloodBankPage() {
   const [lastDonation, setLastDonation] = useState('');
   const [donorDistrict, setDonorDistrict] = useState('');
   const [donorUpazila, setDonorUpazila] = useState('');
+  const [requestModalDonor, setRequestModalDonor] = useState<BloodDonorSearchRow | null>(null);
+  const [directPatientName, setDirectPatientName] = useState('');
+  const [directHospital, setDirectHospital] = useState('');
+  const [directNeededAt, setDirectNeededAt] = useState('');
+  const [directMessage, setDirectMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -78,6 +84,7 @@ export default function BloodBankPage() {
         setRequestUpazila(defaultUpazila);
         setDonorDistrict(donor?.district_id ? String(donor.district_id) : defaultDistrict);
         setDonorUpazila(donor?.upazila_id ? String(donor.upazila_id) : defaultUpazila);
+        setRequestPatientName(patient?.full_name || '');
         setRequestGroup(patient?.blood_group || '');
         setDonorGroup(donor?.blood_group || patient?.blood_group || '');
         setContactPhone(patient?.phone || '');
@@ -128,17 +135,26 @@ export default function BloodBankPage() {
   }
 
   async function requestDonor(donor: BloodDonorSearchRow) {
-    const message = window.prompt('রোগীর নাম / প্রয়োজনের তথ্য লিখুন');
-    if (!message) return;
+    setRequestModalDonor(donor);
+    setDirectPatientName(profile?.full_name || '');
+    setDirectMessage('');
+  }
+
+  async function submitDirectDonorRequest(event: FormEvent) {
+    event.preventDefault();
+    if (!requestModalDonor) return;
     setWorking(true);
     try {
       await sendBloodRequestToDonor({
-        donorId: donor.donor_id,
-        patientName: message,
+        donorId: requestModalDonor.donor_id,
+        patientName: directPatientName.trim(),
+        hospitalAddress: directHospital.trim(),
+        neededAt: directNeededAt ? new Date(directNeededAt).toISOString() : null,
         contactPhone,
-        message,
+        message: directMessage.trim(),
       });
       setNotice('Donor-এর কাছে blood request পাঠানো হয়েছে।');
+      setRequestModalDonor(null);
     } catch (requestError) {
       setError(messageFrom(requestError));
     } finally {
@@ -153,7 +169,7 @@ export default function BloodBankPage() {
     setError(null); setNotice(null); setWorking(true);
     try {
       await createBloodRequest({
-        patientName: profile?.full_name || 'Patient', bloodGroup: requestGroup, unitsNeeded: Number(unitsNeeded), hospitalName, hospitalAddress,
+        patientName: requestPatientName.trim() || profile?.full_name || 'Patient', bloodGroup: requestGroup, unitsNeeded: Number(unitsNeeded), hospitalName, hospitalAddress,
         districtId: requestDistrict ? Number(requestDistrict) : null, upazilaId: requestUpazila ? Number(requestUpazila) : null,
         neededAt: neededAt ? new Date(neededAt).toISOString() : null, reason, contactPhone,
       });
@@ -203,7 +219,7 @@ export default function BloodBankPage() {
         <header><h2>Recent Blood Requests</h2></header>
         {recentRequests.length ? recentRequests.map((item) => <article key={item.request_id} className="blood-request-main">
           <span className="blood-group-chip">{item.blood_group}</span>
-          <div><strong>{item.patient_name}</strong><small>{item.contact_phone || ''} · {item.needed_at ? new Date(item.needed_at).toLocaleDateString() : 'Date not set'}</small></div>
+          <div><strong>{item.patient_name}</strong><small>{item.district_id ? districtNames.get(item.district_id) || 'জেলা' : ''} · {item.contact_phone || ''} · {item.needed_at ? new Date(item.needed_at).toLocaleDateString() : 'Date not set'} · {new Date(item.created_at).toLocaleString()}</small></div>
         </article>) : <p className="empty-inline">কোনো active request নেই।</p>}
       </section>
 
@@ -228,7 +244,7 @@ export default function BloodBankPage() {
             <span className="blood-group-chip">{donor.blood_group}</span>
             <div><strong>{donor.donor_name}</strong><small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}{donor.last_donation_date ? ` · শেষ দান ${donor.last_donation_date}` : ''}</small></div>
             {donor.phone ? <a href={`tel:${donor.phone}`}><Phone /> কল করুন</a> : <span className="blood-private-phone"><ShieldCheck /> Phone private</span>}
-            <button type="button" onClick={() => void requestDonor(donor)}>Send Blood Request</button>
+            <button type="button" disabled={donor.available_for_requests === false} onClick={() => void requestDonor(donor)}>{donor.available_for_requests === false ? 'Unavailable' : 'Send Blood Request'}</button>
           </article>)}
           {donorsHasMore && <div className="public-load-more-wrap"><button type="button" className="public-load-more-button" disabled={donorsLoadingMore} onClick={() => void loadDonors(false)}>{donorsLoadingMore ? <LoaderCircle className="spin" /> : null}{donorsLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও donor দেখুন'}</button></div>}
         </div>
@@ -237,6 +253,7 @@ export default function BloodBankPage() {
       {tab === 'request' && <section className="blood-bank-panel blood-request-layout">
         <form className="blood-request-form" onSubmit={submitBloodRequest}>
           <div className="blood-form-grid">
+            <label><span>রোগীর নাম</span><input required value={requestPatientName} onChange={(event) => setRequestPatientName(event.target.value)} /></label>
             <label><span>রক্তের গ্রুপ</span><select required value={requestGroup} onChange={(event) => setRequestGroup(event.target.value)}><option value="">নির্বাচন করুন</option>{bloodGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
             <label><span>ইউনিট</span><input required type="number" min="1" max="20" value={unitsNeeded} onChange={(event) => setUnitsNeeded(event.target.value)} /></label>
             <label><span>জেলা</span><select value={requestDistrict} onChange={(event) => { setRequestDistrict(event.target.value); setRequestUpazila(''); }}><option value="">নির্বাচন করুন</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></label>
@@ -275,6 +292,19 @@ export default function BloodBankPage() {
           <button className="blood-primary-button" disabled={working}>{working ? <LoaderCircle className="spin" /> : <ShieldCheck />} Save Donor Preference</button>
         </form>
       </section>}
+
+      {requestModalDonor && <div className="blood-modal-overlay">
+        <form className="blood-request-modal" onSubmit={submitDirectDonorRequest}>
+          <button type="button" className="modal-close" onClick={() => setRequestModalDonor(null)}>×</button>
+          <h2>Send Blood Request</h2>
+          <p>{requestModalDonor.donor_name} · {requestModalDonor.blood_group}</p>
+          <label>Patient name<input required value={directPatientName} onChange={(e)=>setDirectPatientName(e.target.value)} /></label>
+          <label>Hospital / Location<input value={directHospital} onChange={(e)=>setDirectHospital(e.target.value)} /></label>
+          <label>Required date<input type="datetime-local" value={directNeededAt} onChange={(e)=>setDirectNeededAt(e.target.value)} /></label>
+          <label>Message<textarea value={directMessage} onChange={(e)=>setDirectMessage(e.target.value)} /></label>
+          <button disabled={working}>Send Request</button>
+        </form>
+      </div>}
     </div>
   );
 }

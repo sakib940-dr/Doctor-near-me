@@ -82,7 +82,7 @@ export default function AuthPage() {
         if (loginError) throw loginError;
 
         const from = (location.state as { from?: string } | null)?.from;
-        navigate(from || '/dashboard', { replace: true });
+        navigate(from || (account?.role === 'patient' ? '/' : '/dashboard'), { replace: true });
       } else {
         const emailError = validateEmail(email);
         if (emailError) throw new Error(emailError);

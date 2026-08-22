@@ -424,6 +424,7 @@ export interface MyDoctorProfile {
     designation: string | null;
     bmdc_registration_no: string | null;
     medical_college: string | null;
+    show_medical_college_public?: boolean;
     present_job: string | null;
     bmdc_verified: boolean;
     bio: string | null;

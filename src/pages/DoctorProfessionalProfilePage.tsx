@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BadgeCheck, Camera, GraduationCap, LoaderCircle, MapPin, Save, ShieldAlert, Stethoscope } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
+import PrescriptionAdviceTemplatesManager from '../components/PrescriptionAdviceTemplatesManager';
 import { useAuth } from '../contexts/AuthContext';
 import { getImageUrl } from '../lib/storage';
 import {
@@ -259,6 +260,9 @@ export default function DoctorProfessionalProfilePage() {
             <label className="doctor-text-field"><span>Consultation note</span><textarea rows={3} value={profile.doctor.consultation_note || ''} onChange={(event) => setDoctor('consultation_note', event.target.value)} placeholder="রোগী আসার আগে যা জানবেন" /></label>
             <p className="doctor-profile-section-note">About Doctor content Public Content Management-এর Step 3 থেকে edit হবে, যাতে একই content-এর duplicate editor না থাকে।</p>
           </section>
+
+
+          <PrescriptionAdviceTemplatesManager />
 
           {error && <div className="auth-message error" role="alert">{error}</div>}
           {notice && <div className="auth-message success">{notice}</div>}

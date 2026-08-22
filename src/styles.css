@@ -8123,3 +8123,91 @@ img { max-width: 100%; height: auto; }
   .doctor-onboarding-photo { align-items: stretch; }
   .doctor-onboarding-photo .secondary-action { flex: 1 1 140px; }
 }
+
+/* STEP 66: Doctor visiting-card publicity + prescription enhancements */
+.visiting-card-medical-college-field{min-width:0}
+.visiting-card-public-toggle{margin-top:9px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid #dce7e3;border-radius:11px;background:#f8fbfa;cursor:pointer}
+.visiting-card-public-toggle>span{display:flex;min-width:0;flex-direction:column;gap:2px}
+.visiting-card-public-toggle strong{color:#183d31;font-size:12px}
+.visiting-card-public-toggle small{color:#71817b;font-size:10px;font-weight:600;line-height:1.35}
+.visiting-card-public-toggle input{position:absolute;opacity:0;pointer-events:none}
+.visiting-card-public-toggle i{position:relative;display:block;flex:0 0 42px;width:42px;height:24px;border-radius:999px;background:#c9d5d1;transition:.2s ease}
+.visiting-card-public-toggle i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:.2s ease}
+.visiting-card-public-toggle input:checked+i{background:#168c66}
+.visiting-card-public-toggle input:checked+i::after{transform:translateX(18px)}
+.visiting-card-public-toggle:focus-within{outline:3px solid rgba(22,140,102,.12);border-color:#168c66}
+
+.doctor-advice-template-manager{border-top:1px solid #e3ece9;padding-top:22px}
+.doctor-advice-template-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.doctor-advice-template-heading h2{margin:0 0 4px}
+.doctor-advice-template-heading p{margin:0;color:#71807b;font-size:12px;line-height:1.55}
+.doctor-advice-template-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-bottom:12px}
+.doctor-advice-template-create input,.doctor-advice-template-edit input{min-width:0;border:1px solid #d7e3df;border-radius:10px;padding:10px 12px;background:#fbfdfc;color:#1b2d27;outline:none}
+.doctor-advice-template-create input:focus,.doctor-advice-template-edit input:focus{border-color:#168c66;box-shadow:0 0 0 3px rgba(22,140,102,.08)}
+.doctor-advice-template-create button,.doctor-advice-template-actions button,.doctor-advice-template-edit button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #d5e2de;border-radius:9px;padding:8px 10px;background:#fff;color:#245244;font-weight:800;cursor:pointer}
+.doctor-advice-template-create button{background:#0c7a58;color:#fff;border-color:#0c7a58;padding-inline:14px}
+.doctor-advice-template-create button:disabled,.doctor-advice-template-actions button:disabled,.doctor-advice-template-edit button:disabled{opacity:.55;cursor:not-allowed}
+.doctor-advice-template-list{display:grid;gap:8px}
+.doctor-advice-template-list article{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e0e9e6;border-radius:11px;padding:11px;background:#fbfdfc}
+.doctor-advice-template-list article>div:first-child{display:flex;min-width:0;flex-direction:column;gap:3px}
+.doctor-advice-template-list strong{color:#183d31;font-size:12.5px;line-height:1.45;overflow-wrap:anywhere}
+.doctor-advice-template-list small{color:#7a8883;font-size:10px}
+.doctor-advice-template-actions{display:flex;flex:0 0 auto;gap:6px}
+.doctor-advice-template-actions button.danger{color:#a23b3b}
+.doctor-advice-template-actions svg,.doctor-advice-template-create svg,.doctor-advice-template-edit svg{width:15px;height:15px}
+.doctor-advice-template-edit{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important;width:100%;gap:7px}
+
+.rx-advice-template-group{margin-top:14px;padding-top:12px;border-top:1px dashed #dbe6e2}
+.rx-advice-template-group-title{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:7px}
+.rx-advice-template-group-title strong{color:#174d3c;font-size:12.5px}
+.rx-advice-template-group-title small{color:#7b8984;font-size:10px}
+.rx-add-selected-advice{display:inline-flex;align-items:center;gap:6px;margin-top:9px;border:0;border-radius:9px;padding:8px 11px;background:#0c7a58;color:#fff;font-size:11px;font-weight:800;cursor:pointer}
+.rx-add-selected-advice:disabled{opacity:.45;cursor:not-allowed}
+.rx-add-selected-advice svg{width:14px;height:14px}
+.rx-selected-advice-list{display:grid;gap:6px;margin-top:12px}
+.rx-selected-advice-list>strong{color:#183d31;font-size:11.5px}
+
+.rx-recent-grid article.is-editing{border-color:#1c8d68;box-shadow:0 0 0 2px rgba(28,141,104,.08)}
+.rx-history-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rx-history-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #d6e3df;border-radius:8px;padding:6px 8px;background:#fff;color:#245244;font-size:10.5px;font-weight:800;cursor:pointer}
+.rx-history-actions button:disabled{opacity:.55;cursor:not-allowed}
+.rx-history-actions svg{width:13px;height:13px}
+.rx-history-load-more{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px auto 0;border:1px solid #d4e3de;border-radius:10px;padding:9px 14px;background:#fff;color:#1b5f49;font-size:11px;font-weight:850;cursor:pointer}
+.rx-history-load-more:disabled{opacity:.55;cursor:not-allowed}
+.rx-history-load-more svg{width:14px;height:14px}
+
+.rx-history-preview-backdrop{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(9,25,20,.54);backdrop-filter:blur(3px)}
+.rx-history-preview-modal{width:min(900px,100%);max-height:92vh;overflow:auto;border-radius:18px;background:#fff;box-shadow:0 22px 70px rgba(0,0,0,.24)}
+.rx-history-preview-modal>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #e2ebe8}
+.rx-history-preview-modal>header small{color:#168c66;font-weight:800}
+.rx-history-preview-modal>header h2{margin:2px 0 3px;color:#173c30}
+.rx-history-preview-modal>header span{color:#7c8985;font-size:11px}
+.rx-history-preview-modal>header button{display:grid;place-items:center;border:0;border-radius:9px;padding:7px;background:#f1f5f4;color:#40534d;cursor:pointer}
+.rx-history-preview-modal>header svg{width:18px;height:18px}
+.rx-history-preview-headers{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 20px;background:#f4f8f6}
+.rx-history-preview-headers pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:600 12px/1.5 inherit;color:#213e35}
+.rx-history-preview-headers pre:last-child{text-align:right}
+.rx-history-preview-patient{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:14px 20px;border-bottom:1px solid #e5ece9}
+.rx-history-preview-patient span{display:flex;flex-direction:column;gap:2px;color:#5b6d67;font-size:11px}
+.rx-history-preview-patient strong{color:#1c4638;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.rx-history-preview-body{display:grid;grid-template-columns:.8fr 1.2fr;gap:20px;padding:20px}
+.rx-history-preview-body section{min-width:0}
+.rx-history-preview-body section>div{margin-bottom:13px}
+.rx-history-preview-body h3{margin:0 0 12px;color:#0c7a58}
+.rx-history-preview-body strong{color:#184536;font-size:12px}
+.rx-history-preview-body ul{margin:5px 0 0;padding-left:18px;color:#3e514a;font-size:12px;line-height:1.55}
+.rx-history-medicine{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-bottom:1px dashed #dfe8e5}
+.rx-history-medicine span,.rx-history-note p{margin:0;color:#5f706a;font-size:11.5px}
+.rx-history-preview-modal>footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #e4ece9}
+
+@media(max-width:760px){
+  .doctor-advice-template-create{grid-template-columns:1fr}
+  .doctor-advice-template-list article{align-items:flex-start;flex-direction:column}
+  .doctor-advice-template-actions{width:100%}
+  .doctor-advice-template-actions button{flex:1}
+  .rx-history-preview-backdrop{padding:8px}
+  .rx-history-preview-modal{max-height:96vh;border-radius:13px}
+  .rx-history-preview-headers,.rx-history-preview-body{grid-template-columns:1fr}
+  .rx-history-preview-headers pre:last-child{text-align:left}
+  .rx-history-preview-patient{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

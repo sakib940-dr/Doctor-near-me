@@ -172,6 +172,28 @@ export async function updateMyDoctorVisitingCardV2(input: DoctorVisitingCardUpda
   return data as DoctorProfileUpdateResult;
 }
 
+export interface DoctorVisitingCardUpdateV3 extends DoctorVisitingCardUpdateV2 {
+  showMedicalCollegePublic: boolean;
+}
+
+export async function updateMyDoctorVisitingCardV3(input: DoctorVisitingCardUpdateV3) {
+  const { data, error } = await requireSupabase().rpc('update_my_doctor_visiting_card_v3', {
+    p_full_name: input.fullName,
+    p_profile_photo_url: input.profilePhotoUrl,
+    p_professional_title: input.professionalTitle,
+    p_degree: input.degree,
+    p_designation: input.designation,
+    p_medical_college: input.medicalCollege,
+    p_present_job: input.presentJob,
+    p_specialty_text: input.specialtyText,
+    p_public_address: input.publicAddress,
+    p_specialty_ids: input.specialtyIds,
+    p_show_medical_college_public: input.showMedicalCollegePublic,
+  });
+  if (error) throw error;
+  return data as DoctorProfileUpdateResult & { show_medical_college_public?: boolean };
+}
+
 export async function updateMyDoctorVisitingCard(input: DoctorVisitingCardUpdate) {
   const { data, error } = await requireSupabase().rpc('update_my_doctor_visiting_card', {
     p_full_name: input.fullName,

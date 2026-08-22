@@ -18,7 +18,7 @@ import { getImageUrl } from '../lib/storage';
 import {
   cleanupDoctorPhoto,
   getMyDoctorProfile,
-  updateMyDoctorVisitingCardV2,
+  updateMyDoctorVisitingCardV3,
   uploadDoctorPhoto,
 } from '../services/doctorDashboard';
 import { getSpecialties } from '../services/discovery';
@@ -111,7 +111,7 @@ export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => vo
       let photoPath = removePhoto ? null : previousPhotoPath;
       if (photo) { uploadedPhotoPath = await uploadDoctorPhoto(photo, user.id); photoPath = uploadedPhotoPath; }
 
-      await updateMyDoctorVisitingCardV2({
+      await updateMyDoctorVisitingCardV3({
         fullName: profile.doctor.full_name || '',
         profilePhotoUrl: photoPath,
         professionalTitle: profile.doctor.professional_title,
@@ -122,6 +122,7 @@ export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => vo
         specialtyText: profile.doctor.specialty_text || null,
         publicAddress: profile.doctor.public_address || null,
         specialtyIds: profile.specialty_ids,
+        showMedicalCollegePublic: profile.doctor.show_medical_college_public !== false,
       }).catch(async (profileUpdateError) => {
         if (uploadedPhotoPath) await cleanupDoctorPhoto(uploadedPhotoPath).catch(() => undefined);
         throw profileUpdateError;
@@ -192,7 +193,7 @@ export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => vo
                   <strong>{profile.doctor.specialty_text || selectedSpecialties[0]?.name_bn || profile.doctor.professional_title || 'বিশেষজ্ঞ চিকিৎসক'}</strong>
                   {profile.doctor.degree && <p><GraduationCap /> {profile.doctor.degree}</p>}
                   {profile.doctor.designation && <p><BadgeCheck /> {profile.doctor.designation}</p>}
-                  {profile.doctor.medical_college && <p><GraduationCap /> {profile.doctor.medical_college}</p>}
+                  {profile.doctor.medical_college && profile.doctor.show_medical_college_public !== false && <p><GraduationCap /> {profile.doctor.medical_college}</p>}
                   {profile.doctor.present_job && <p><Building2 /> {profile.doctor.present_job}</p>}
                   {profile.doctor.bmdc_registration_no && <em>BMDC: {profile.doctor.bmdc_registration_no}</em>}
                 </div>
@@ -229,7 +230,24 @@ export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => vo
                   <label className="auth-field"><span>Degree</span><div><input value={profile.doctor.degree || ''} onChange={(event) => setDoctor('degree', event.target.value)} placeholder="MBBS, FCPS" /></div></label>
                   <label className="auth-field"><span>Designation</span><div><input value={profile.doctor.designation || ''} onChange={(event) => setDoctor('designation', event.target.value)} placeholder="যেমন: Associate Professor" /></div></label>
                   <label className="auth-field"><span>BMDC Number</span><div><input readOnly value={profile.doctor.bmdc_registration_no || ''} /></div><small className="field-helper">Verification Application থেকে auto-filled; এখানে editable নয়।</small></label>
-                  <label className="auth-field"><span>Medical College</span><div><input readOnly value={profile.doctor.medical_college || ''} /></div><small className="field-helper">Verification Application থেকে auto-loaded; education identity হিসেবে locked.</small></label>
+                  <div className="auth-field visiting-card-medical-college-field">
+                    <span>Medical College</span>
+                    <div><input readOnly value={profile.doctor.medical_college || ''} /></div>
+                    <label className="visiting-card-public-toggle">
+                      <span>
+                        <strong>Show on Visitor Page</strong>
+                        <small>{profile.doctor.show_medical_college_public !== false ? 'ON • public cards/profile-এ দেখা যাবে' : 'OFF • শুধু আপনার dashboard-এ থাকবে'}</small>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={profile.doctor.show_medical_college_public !== false}
+                        onChange={(event) => setDoctor('show_medical_college_public', event.target.checked)}
+                        aria-label="Show Medical College on visitor pages"
+                      />
+                      <i aria-hidden="true" />
+                    </label>
+                    <small className="field-helper">Medical College verification record থেকে আসে; visibility আপনি নিয়ন্ত্রণ করতে পারবেন।</small>
+                  </div>
                   <label className="auth-field visiting-card-wide-field"><span>Present Job / Hospital</span><div><input value={profile.doctor.present_job || ''} onChange={(event) => setDoctor('present_job', event.target.value)} placeholder="Current hospital, clinic or academic position" /></div></label>
                 </div>
               </section>

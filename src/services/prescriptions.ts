@@ -95,6 +95,47 @@ export interface PrescriptionSummary {
   created_at: string;
 }
 
+export interface PrescriptionSettings {
+  doctor_id: string;
+  default_doctor_header_text: string;
+  default_chamber_header_text: string;
+  updated_at: string;
+}
+
+export interface AdviceTemplate {
+  id: string;
+  advice_text: string;
+  created_at: string;
+  updated_at: string;
+  usage_count: number;
+  last_used_at: string | null;
+}
+
+export interface DoctorPrescriptionRecord {
+  id: string;
+  doctor_id: string;
+  patient_id: string | null;
+  appointment_id: string | null;
+  provider_id: string | null;
+  doctor_header_text: string | null;
+  chamber_header_text: string | null;
+  patient_name: string;
+  patient_age: string | null;
+  patient_address: string | null;
+  patient_mobile: string | null;
+  patient_gender: string | null;
+  chief_complaint: string[];
+  history: string[];
+  on_examination: string[];
+  investigation: string[];
+  treatment_plan: string[];
+  medicines: PrescriptionMedicineInput[];
+  advice: string[];
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function searchDrugMaster(searchTerm: string, limit = 12) {
   const { data, error } = await requireSupabase().rpc('search_drug_master', {
     p_search_term: searchTerm,
@@ -146,11 +187,56 @@ export async function getPrescriptionAppointmentContext(appointmentId: string) {
 }
 
 export async function saveMyPrescription(payload: PrescriptionPayload) {
-  const { data, error } = await requireSupabase().rpc('save_my_prescription', {
+  const { data, error } = await requireSupabase().rpc('save_my_prescription_v2', {
     p_payload: payload,
   });
   if (error) throw error;
   return data as string;
+}
+
+export async function updateMyPrescription(prescriptionId: string, payload: PrescriptionPayload) {
+  const { data, error } = await requireSupabase().rpc('update_my_prescription', {
+    p_prescription_id: prescriptionId,
+    p_payload: payload,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function getMyPrescription(prescriptionId: string) {
+  const { data, error } = await requireSupabase().rpc('get_my_prescription', {
+    p_prescription_id: prescriptionId,
+  });
+  if (error) throw error;
+  return (data ?? null) as DoctorPrescriptionRecord | null;
+}
+
+export async function getMyPrescriptionSettings() {
+  const { data, error } = await requireSupabase().rpc('get_my_prescription_settings');
+  if (error) throw error;
+  return (data ?? null) as PrescriptionSettings | null;
+}
+
+export async function getMyAdviceTemplates() {
+  const { data, error } = await requireSupabase().rpc('get_my_advice_templates');
+  if (error) throw error;
+  return (data ?? []) as AdviceTemplate[];
+}
+
+export async function saveMyAdviceTemplate(adviceText: string, adviceId: string | null = null) {
+  const { data, error } = await requireSupabase().rpc('save_my_advice_template', {
+    p_advice_id: adviceId,
+    p_advice_text: adviceText,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function deleteMyAdviceTemplate(adviceId: string) {
+  const { error } = await requireSupabase().rpc('delete_my_advice_template', {
+    p_advice_id: adviceId,
+  });
+  if (error) throw error;
 }
 
 export async function getMyPrescriptions(limit = 30, offset = 0) {

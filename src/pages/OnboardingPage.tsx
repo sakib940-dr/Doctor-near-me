@@ -353,7 +353,7 @@ function EvidenceEditor({ evidence,file,setFile,documentType,setDocumentType,onU
     <header><FilePlus2/><div><h3>Verification evidence</h3><p>{deferredUpload?'ছবি বাছাই করুন—Save & Next চাপলে upload ও submit হবে।':'Documents private verification-documents bucket-এ থাকবে।'}</p></div></header>
     <div className="evidence-picker-row">
       <select disabled={disabled||busy} value={documentType} onChange={e=>setDocumentType(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
-      <label className={`evidence-file-picker ${file?'selected':''}`}><FilePlus2/><span><strong>{file?'ছবি / document পরিবর্তন করুন':'ছবি / document নির্বাচন করুন'}</strong><small>{file?file.name:'JPG, PNG, WebP, AVIF অথবা PDF'}</small></span><input ref={fileInputRef} disabled={disabled||busy} type="file" data-skip-global-guard="true" accept="image/jpeg,image/png,image/webp,image/avif,application/pdf" onChange={handleFileChange}/></label>
+      <div className={`evidence-native-file ${file?'selected':''}`}><FilePlus2/><input ref={fileInputRef} aria-label="Verification image or PDF নির্বাচন করুন" disabled={disabled||busy} type="file" data-skip-global-guard="true" accept="image/jpeg,image/png,image/webp,image/avif,application/pdf" onChange={handleFileChange}/></div>
     </div>
     {file&&<div className="evidence-selected-preview">
       {previewUrl?<img src={previewUrl} alt="নির্বাচিত verification document-এর বড় preview"/>:<div className="evidence-pdf-preview"><FileCheck2/><strong>PDF document নির্বাচিত</strong></div>}

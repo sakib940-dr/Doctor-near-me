@@ -5337,14 +5337,11 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .onboarding-evidence header p { margin: 2px 0 0; color: var(--muted); font-size: 9px; }
 .evidence-picker-row { display: grid; grid-template-columns: minmax(160px,210px) minmax(0,1fr); gap: 10px; align-items: stretch; }
 .evidence-picker-row > select { min-width: 0; min-height: 52px; padding: 10px 12px; border: 1px solid #dfe6e2; border-radius: 12px; background: #fff; color: var(--green-950); }
-.evidence-file-picker { position: relative; display: flex; min-width: 0; min-height: 52px; align-items: center; gap: 10px; padding: 9px 12px; border: 1px dashed #a9c8ba; border-radius: 12px; background: #fff; color: var(--green-800); cursor: pointer; overflow: hidden; }
-.evidence-file-picker.selected { border-style: solid; border-color: var(--green-600); background: #f3faf7; }
-.evidence-file-picker > svg { flex: 0 0 auto; width: 22px; }
-.evidence-file-picker > span { min-width: 0; }
-.evidence-file-picker strong,.evidence-file-picker small { display: block; }
-.evidence-file-picker strong { font-size: 11px; }
-.evidence-file-picker small { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.evidence-file-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.evidence-native-file { display: grid; min-width: 0; min-height: 52px; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 8px; padding: 6px 8px; border: 1px dashed #a9c8ba; border-radius: 12px; background: #fff; color: var(--green-800); overflow: hidden; }
+.evidence-native-file.selected { border-style: solid; border-color: var(--green-600); background: #f3faf7; }
+.evidence-native-file > svg { width: 22px; }
+.evidence-native-file input { display: block; width: 100%; min-width: 0; min-height: 40px; padding: 4px; border: 0; background: transparent; color: var(--green-950); font: inherit; }
+.evidence-native-file input::file-selector-button { margin-right: 9px; padding: 9px 11px; border: 0; border-radius: 9px; background: var(--green-700); color: #fff; cursor: pointer; font-weight: 800; }
 .evidence-selected-preview { overflow: hidden; border: 1px solid #dbe8e1; border-radius: 16px; background: #edf3f0; box-shadow: 0 12px 30px rgba(18,73,50,.08); }
 .evidence-selected-preview > img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: contain; background: #e6eeea; }
 .evidence-pdf-preview { display: grid; min-height: 260px; place-content: center; justify-items: center; gap: 10px; color: var(--green-800); }

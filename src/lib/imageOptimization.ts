@@ -146,25 +146,43 @@ function baseName(name: string) {
   return (name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'image').slice(0, 60);
 }
 
-async function decodeImage(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
-  if (typeof createImageBitmap === 'function') {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
-  }
+async function decodeImageWithElement(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
   if (typeof document === 'undefined') throw new Error('এই browser-এ image optimization support নেই।');
   const url = URL.createObjectURL(file);
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const element = new Image();
       element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error('ছবিটি পড়া যাচ্ছে না।'));
+      element.onerror = () => reject(new Error('ছবিটি browser decode করতে পারছে না। JPG, PNG, WebP অথবা AVIF ছবি দিন।'));
       element.src = url;
     });
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error('ছবিটির width/height পাওয়া যায়নি।');
     return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => URL.revokeObjectURL(url) };
   } catch (error) {
     URL.revokeObjectURL(url);
     throw error;
   }
+}
+
+async function decodeImage(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      if (bitmap.width && bitmap.height) return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+      bitmap.close();
+    } catch {
+      // Android/WhatsApp JPEG metadata can fail the orientation-aware decoder.
+      // Retry the browser's plain bitmap decoder before using an HTMLImageElement.
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      if (bitmap.width && bitmap.height) return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+      bitmap.close();
+    } catch {
+      // Final compatibility fallback below.
+    }
+  }
+  return decodeImageWithElement(file);
 }
 
 function drawToCanvas(

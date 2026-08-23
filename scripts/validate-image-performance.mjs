@@ -22,6 +22,8 @@ for (const preset of ['profile','logo','slider','banner','category','gallery','s
   assert(optimizer.includes(`${preset}: {`), `Missing ${preset} image preset`);
 }
 assert(optimizer.includes("canvasToBlob(working, 'image/webp'"), 'WebP encoder missing');
+assert(optimizer.includes('decodeImageWithElement'), 'HTML image decoder fallback missing');
+assert(optimizer.includes('const bitmap = await createImageBitmap(file);'), 'Plain ImageBitmap retry missing');
 assert(optimizer.includes('targetBytes: 150_000'), 'Profile target size missing');
 assert(optimizer.includes('targetBytes: 180_000'), 'Slider/banner target size missing');
 assert(optimizer.includes('imageSmoothingQuality = \'high\''), 'High-quality resize missing');

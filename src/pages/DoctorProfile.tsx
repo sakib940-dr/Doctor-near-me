@@ -61,7 +61,7 @@ const copy = {
     about: 'ডাক্তার সম্পর্কে', schedule: 'চেম্বারের সময়সূচি', services: 'সেবাসমূহ', treatment: 'চিকিৎসার খরচ', investigation: 'পরীক্ষা / ইনভেস্টিগেশন খরচ',
     contact: 'যোগাযোগ, ম্যাপ ও দূরত্ব', noAbout: 'এই ডাক্তার সম্পর্কে বিস্তারিত তথ্য এখনো যোগ করা হয়নি।',
     noSchedule: 'সময়সূচি এখনো যোগ করা হয়নি।', noServices: 'সেবার তালিকা এখনো যোগ করা হয়নি।', noCost: 'খরচের তালিকা এখনো যোগ করা হয়নি।',
-    distance: 'আপনার অবস্থান থেকে', showDistance: 'আমার দূরত্ব দেখুন', locating: 'Location নেওয়া হচ্ছে…', map: 'ম্যাপ খুলুন',
+    distance: 'আপনার অবস্থান থেকে', showDistance: 'আমার দূরত্ব দেখুন', locating: 'Location নেওয়া হচ্ছে…', map: 'Google Maps-এ খুলুন',
     open: 'এখন খোলা', closed: 'এখন বন্ধ', today: 'আজ', unavailable: 'তথ্য নেই',
     costDisclaimer: 'খরচ সেবা, চিকিৎসা পরিকল্পনা ও রোগীর অবস্থার উপর পরিবর্তিত হতে পারে।',
     verified: 'Verified', premium: 'Premium', new: 'নতুন', unverified: 'যাচাই হয়নি',
@@ -75,7 +75,7 @@ const copy = {
     about: 'About Doctor', schedule: 'Chamber Schedule', services: 'Services', treatment: 'Treatment Costs', investigation: 'Investigation Costs',
     contact: 'Contact, Map & Distance', noAbout: 'No detailed profile information has been added yet.',
     noSchedule: 'No schedule has been added yet.', noServices: 'No services have been added yet.', noCost: 'No cost information has been added yet.',
-    distance: 'From your location', showDistance: 'Show my distance', locating: 'Getting location…', map: 'Open map',
+    distance: 'From your location', showDistance: 'Show my distance', locating: 'Getting location…', map: 'Open in Google Maps',
     open: 'Open now', closed: 'Closed now', today: 'Today', unavailable: 'Not available',
     costDisclaimer: 'Costs may vary based on service, treatment plan and patient condition.',
     verified: 'Verified', premium: 'Premium', new: 'New', unverified: 'Unverified',
@@ -194,6 +194,15 @@ export default function DoctorProfile() {
   const categorySpecialty = profile ? (language === 'bn' ? profile.specialties[0]?.name_bn : profile.specialties[0]?.name_en || profile.specialties[0]?.name_bn) || '' : '';
   const primarySpecialty = profile ? profile.doctor.specialty_text?.trim() || categorySpecialty || (language === 'bn' ? 'চিকিৎসক' : 'Doctor') : '';
   const primaryChamber = profile?.chambers?.[0] ?? null;
+  const mapChamber = profile?.chambers?.find((chamber) => chamber.latitude != null && chamber.longitude != null)
+    ?? profile?.chambers?.find((chamber) => Boolean(chamber.address))
+    ?? primaryChamber;
+  const mapQuery = mapChamber?.latitude != null && mapChamber.longitude != null
+    ? `${mapChamber.latitude},${mapChamber.longitude}`
+    : mapChamber?.address?.trim() || '';
+  const publicMapHref = mapChamber?.map_url || (mapQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+    : '');
 
   // Visitor contact must always come from chamber/provider data.
   // Do not use auth/login/personal phone numbers.
@@ -351,6 +360,7 @@ export default function DoctorProfile() {
 
           <section className="doctor-contact-map-v2">
             <div className="doctor-section-title"><span><MapPin /></span><div><small>{language === 'bn' ? 'চেম্বারভিত্তিক' : 'By chamber'}</small><h2>{t.contact}</h2></div></div>
+            {mapQuery ? <div className="doctor-public-map-block"><div className="doctor-map-frame"><iframe title={language === 'bn' ? 'ডাক্তারের চেম্বার ম্যাপ' : 'Doctor chamber map'} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`} /></div>{publicMapHref && <a className="doctor-open-google-map" href={publicMapHref} target="_blank" rel="noreferrer" onClick={() => track('map_click')}><ExternalLink /> {t.map}</a>}</div> : <div className="doctor-map-unavailable"><MapPin /><p>{language === 'bn' ? 'Doctor এখনো chamber map location যোগ করেননি।' : 'The Doctor has not added a chamber map location yet.'}</p></div>}
             <button className="doctor-distance-button" type="button" onClick={() => void captureDistance()} disabled={distanceBusy}>{distanceBusy ? <LoaderCircle className="spin" /> : <Navigation />}{distanceBusy ? t.locating : t.showDistance}</button>
             {distanceError && <p className="doctor-distance-error">{distanceError}</p>}
             <div className="doctor-contact-chamber-list">{profile.chambers.map((chamber) => {
@@ -361,7 +371,6 @@ export default function DoctorProfile() {
                 : null);
               return <article key={chamber.id}><div><h3>{language === 'bn' ? chamber.name_bn : chamber.name_en || chamber.name_bn}</h3><p><MapPin /> {chamber.address || t.unavailable}</p><span className={status.open ? 'open' : 'closed'}>{status.text}</span>{distance != null && <strong><Navigation /> {t.distance} {numberText(distance, language, 1)} {language === 'bn' ? 'কিমি' : 'km'}</strong>}</div><div>{chamber.phone && <a href={`tel:${cleanPhone(chamber.phone)}`} onClick={() => track('call_click')}><Phone /> {t.call}</a>}{chamber.whatsapp && buildWhatsAppAppointmentUrl(chamber.whatsapp, profile.doctor.name) && <a href={buildWhatsAppAppointmentUrl(chamber.whatsapp, profile.doctor.name) || undefined} target="_blank" rel="noreferrer" onClick={() => track('whatsapp_click')}><MessageCircle /> WhatsApp</a>}{mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={() => track('map_click')}><ExternalLink /> {t.map}</a>}</div></article>;
             })}</div>
-            {primaryChamber?.latitude != null && primaryChamber.longitude != null && <div className="doctor-map-frame"><iframe title={language === 'bn' ? 'চেম্বার ম্যাপ' : 'Chamber map'} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${primaryChamber.latitude},${primaryChamber.longitude}`)}&z=15&output=embed`} /></div>}
           </section>
 
           <StructuredReviewSection targetType="doctor" targetId={profile.doctor.id} entityLabel="ডাক্তার" language={language} />

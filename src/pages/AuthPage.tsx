@@ -62,7 +62,7 @@ export default function AuthPage() {
       setError('দুইটি পাসওয়ার্ড মিলছে না।');
       return;
     }
-    if (!acceptedTerms) { setError('Terms & Conditions এবং Privacy Policy-তে সম্মতি দিন।'); return; }
+    if (mode === 'register' && !acceptedTerms) { setError('Terms & Conditions এবং Privacy Policy-তে সম্মতি দিন।'); return; }
 
     setSubmitting(true);
     try {
@@ -142,10 +142,10 @@ export default function AuthPage() {
             <label className="auth-field"><span>পাসওয়ার্ড</span><div><LockKeyhole /><input required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="কমপক্ষে ৮ অক্ষর" /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Password লুকান' : 'Password দেখুন'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
             {mode === 'register' && <label className="auth-field"><span>পাসওয়ার্ড নিশ্চিত করুন</span><div><LockKeyhole /><input required minLength={8} type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="পাসওয়ার্ডটি আবার লিখুন" /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label={showConfirmPassword ? 'Password লুকান' : 'Password দেখুন'}>{showConfirmPassword ? <EyeOff /> : <Eye />}</button></div></label>}
             {mode === 'login' && <button className="forgot-link" type="button" onClick={() => void sendReset()}>পাসওয়ার্ড ভুলে গেছেন?</button>}
-            <label className="auth-terms-consent"><input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} /><span><Link to="/terms" target="_blank">Terms & Conditions</Link> এবং <Link to="/privacy" target="_blank">Privacy Policy</Link> পড়েছি ও সম্মত।</span></label>
+            {mode === 'register' && <label className="auth-terms-consent"><input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} /><span><Link to="/terms" target="_blank">Terms & Conditions</Link> এবং <Link to="/privacy" target="_blank">Privacy Policy</Link> পড়েছি ও সম্মত।</span></label>}
             {error && <div className="auth-message error" role="alert">{error}</div>}
             {notice && <div className="auth-message success" role="status">{notice}</div>}
-            <button className="auth-submit" type="submit" disabled={submitting || !acceptedTerms}>{submitting ? <LoaderCircle className="spin" /> : mode === 'login' ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'}</button>
+            <button className="auth-submit" type="submit" disabled={submitting || (mode === 'register' && !acceptedTerms)}>{submitting ? <LoaderCircle className="spin" /> : mode === 'login' ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'}</button>
           </form>
         </section>
       </main>

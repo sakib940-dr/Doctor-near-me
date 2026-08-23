@@ -16,6 +16,7 @@ import {
   Link2,
   LogOut,
   Mail,
+  MapPin,
   Menu,
   MessageCircle,
   PanelsTopLeft,
@@ -124,6 +125,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     switch (role) {
       case 'doctor':
         return [
+          { label: 'Location & Public Map', path: '/doctor/chambers', icon: MapPin },
           { label: 'Settings', path: '/doctor/settings', icon: KeyRound },
           { label: 'Public Content Management', path: '/doctor/public-content', icon: PanelsTopLeft },
           { label: 'Verification Application', path: '/doctor/verification', icon: ShieldCheck },

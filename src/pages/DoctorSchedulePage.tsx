@@ -37,7 +37,7 @@ export default function DoctorSchedulePage() {
   useEffect(load, []);
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
 
-  const availableChambers = profile?.chambers.filter((chamber) => chamber.link_status === 'approved' && (Boolean(chamber.owned_by_doctor) || (chamber.provider_status === 'approved' && chamber.verified))) || [];
+  const availableChambers = profile?.chambers.filter((chamber) => chamber.owned_by_doctor && chamber.link_status === 'approved') || [];
 
   function openForm(chamber: DoctorDashboardChamber, schedule?: DoctorDashboardSchedule) {
     setForm(schedule ? {
@@ -131,12 +131,12 @@ export default function DoctorSchedulePage() {
           </form>
         )}
 
-        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> Schedule লোড হচ্ছে…</div> : !profile?.chambers.length ? (
-          <div className="empty-state"><span><Building2 /></span><h3>কোনো চেম্বার সংযুক্ত নেই</h3><p>Hospital/Chamber কর্তৃপক্ষ আপনাকে link করে অনুমোদন করলে এখানে schedule যোগ করতে পারবেন।</p></div>
+        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> Schedule লোড হচ্ছে…</div> : !availableChambers.length ? (
+          <div className="empty-state"><span><Building2 /></span><h3>নিজস্ব chamber যোগ করা হয়নি</h3><p>প্রথমে নিজের chamber, address ও GPS map location যোগ করুন; কোনো Hospital invitation প্রয়োজন নেই।</p><Link className="auth-submit" to="/doctor/chambers">Location ও Chamber যোগ করুন</Link></div>
         ) : (
           <div className="doctor-chamber-grid">
-            {profile.chambers.map((chamber) => {
-              const canManage = chamber.link_status === 'approved' && (Boolean(chamber.owned_by_doctor) || (chamber.provider_status === 'approved' && chamber.verified));
+            {availableChambers.map((chamber) => {
+              const canManage = true;
               return (
                 <article className="doctor-chamber-card" key={chamber.id}>
                   <header><span><Building2 /></span><div><h2>{chamber.name_bn}</h2><p>{chamber.address || 'ঠিকানা দেওয়া হয়নি'}</p></div><b className={canManage ? 'approved' : 'pending'}>{canManage ? 'অনুমোদিত' : 'অপেক্ষমাণ'}</b></header>
@@ -150,7 +150,6 @@ export default function DoctorSchedulePage() {
                       </div>
                     )) : <p className="no-schedule">এখনো কোনো schedule নেই।</p>}
                   </div>
-                  {!canManage && <p className="chamber-warning">Link status: {chamber.link_status}; provider status: {chamber.provider_status}. Shared provider-এর verification/link সম্পন্ন না হওয়া পর্যন্ত schedule বদলানো যাবে না।</p>}
                 </article>
               );
             })}

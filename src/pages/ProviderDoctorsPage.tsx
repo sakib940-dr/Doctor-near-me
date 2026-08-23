@@ -53,7 +53,7 @@ export default function ProviderDoctorsPage() {
   }
 
   return <div className="app-shell provider-dashboard-page provider-managed-doctors-page"><main className="provider-dashboard-main container">
-    <Link className="back-link" to="/dashboard"><ArrowLeft /> Dashboard-এ ফিরুন</Link><div className="provider-page-heading"><span><Stethoscope /></span><div><small>Independent reception directory</small><h1>Hospital Doctor Cards</h1><p>Doctor account বা invitation ছাড়াই Reception-এর জন্য Doctor card ও serial contact পরিচালনা করুন।</p></div></div>
+    <Link className="back-link" to="/dashboard"><ArrowLeft /> Dashboard-এ ফিরুন</Link><div className="provider-page-heading"><span><Stethoscope /></span><div><small>Independent reception directory</small><h1>Hospital Doctor Cards</h1><p>Reception-এর নিজস্ব Doctor card, contact এবং serial flow পরিচালনা করুন। Doctor account থেকে এটি সম্পূর্ণ স্বাধীন।</p></div></div>
     {providers.length > 1 && <label className="provider-card-selector"><Building2 /><select value={providerId} onChange={(event) => { setProviderId(event.target.value); setForm(emptyForm); }}>{providers.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select></label>}
     {error && <div className="error-box" role="alert">{error}</div>}{notice && <div className="auth-message success"><CheckCircle2 /> {notice}</div>}
     {!loading && !provider && <div className="empty-state"><Building2 /><h3>প্রথমে Hospital profile তৈরি করুন</h3><Link className="inline-primary" to="/provider/profile">Profile তৈরি করুন</Link></div>}

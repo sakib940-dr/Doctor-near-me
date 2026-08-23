@@ -497,16 +497,6 @@ export interface ProviderDashboardItem {
   doctor_links: ProviderDoctorLink[];
 }
 
-export interface ProviderDoctorSearchRow {
-  doctor_id: string;
-  doctor_name: string;
-  avatar_url: string | null;
-  degree: string | null;
-  designation: string | null;
-  professional_title: string | null;
-  specialty_names_bn: string[];
-}
-
 export interface ProviderManagedDoctorCard {
   id: string;
   provider_id: string;
@@ -553,15 +543,6 @@ export interface PublicContentPage {
   seo_title: string | null;
   meta_description: string | null;
   updated_at: string;
-}
-
-export interface DoctorProviderInvitation {
-  provider_id: string;
-  provider_name: string;
-  provider_type: 'hospital' | 'chamber';
-  address: string | null;
-  link_status: 'pending' | 'approved' | 'rejected' | 'removed';
-  invited_at: string;
 }
 
 export type AmbulanceVehicleType = 'ac' | 'non_ac' | 'icu' | 'freezer' | 'basic' | 'other';

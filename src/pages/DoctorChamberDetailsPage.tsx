@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Building2,
-  CheckCircle2,
   Clock3,
   Crosshair,
   LoaderCircle,
@@ -150,7 +149,6 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
   }, [draft?.districtId]);
 
   const ownedChambers = profile?.chambers.filter((chamber) => chamber.owned_by_doctor) || [];
-  const linkedProviders = profile?.chambers.filter((chamber) => !chamber.owned_by_doctor) || [];
 
   if (account && account.role !== 'doctor') return <Navigate to="/dashboard" replace />;
 
@@ -216,6 +214,10 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
     }
     if (!draft.districtId) {
       setError('চেম্বারের জেলা নির্বাচন করুন।');
+      return;
+    }
+    if (draft.latitude == null || draft.longitude == null) {
+      setError('Public profile-এ map দেখানোর জন্য GPS চালু করে Latitude ও Longitude যোগ করুন।');
       return;
     }
 
@@ -384,11 +386,11 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
               </label>
               <label className="auth-field">
                 <span>Latitude</span>
-                <div><input type="number" step="any" min={-90} max={90} value={draft.latitude ?? ''} onChange={(event) => setDraftValue('latitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="23.8103" /></div>
+                <div><input required type="number" step="any" min={-90} max={90} value={draft.latitude ?? ''} onChange={(event) => setDraftValue('latitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="23.8103" /></div>
               </label>
               <label className="auth-field">
                 <span>Longitude</span>
-                <div><input type="number" step="any" min={-180} max={180} value={draft.longitude ?? ''} onChange={(event) => setDraftValue('longitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="90.4125" /></div>
+                <div><input required type="number" step="any" min={-180} max={180} value={draft.longitude ?? ''} onChange={(event) => setDraftValue('longitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="90.4125" /></div>
               </label>
             </div>
 
@@ -433,15 +435,6 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
             {!ownedChambers.length && <div className="chamber-empty-card"><Building2 /><h3>নিজস্ব chamber যোগ করা হয়নি</h3><p>“নতুন Chamber” থেকে ঠিকানা, district/upazila ও GPS coordinate save করুন।</p><button type="button" onClick={startNewChamber}><Plus /> Chamber যোগ করুন</button></div>}
           </div>
         )}
-
-        <div className="chamber-section-title linked-provider-title">
-          <div><small>Legacy provider records</small><h2>আগের Linked Hospital / Chamber</h2><p>আগে তৈরি হওয়া link থাকলে compatibility-এর জন্য এখানে দেখা যাবে। নতুন Hospital card ও Reception appointment Doctor account থেকে স্বাধীনভাবে পরিচালিত হয়।</p></div>
-        </div>
-
-        {!loading && <div className="linked-provider-grid">
-          {linkedProviders.map((chamber) => <ChamberCard key={chamber.id} chamber={chamber} readonly onSchedule={(schedule) => openSchedule(chamber, schedule)} onDeleteSchedule={(id) => void removeSchedule(id)} workingScheduleId={workingScheduleId} />)}
-          {!linkedProviders.length && <div className="chamber-empty-card compact"><CheckCircle2 /><h3>কোনো পুরোনো provider link নেই</h3><p>Doctor-এর নিজস্ব chamber ও appointment চালাতে কোনো Hospital invitation প্রয়োজন নেই।</p></div>}
-        </div>}
 
         <section className="chamber-data-flow-note">
           <ShieldAlert />

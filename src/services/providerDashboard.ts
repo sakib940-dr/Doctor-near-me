@@ -1,6 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import { removeOptimizedImageVariants, uploadOptimizedImage } from './imageUpload';
-import type { DoctorProviderInvitation, ProviderDashboardItem, ProviderDoctorSearchRow } from '../types';
+import type { ProviderDashboardItem } from '../types';
 
 export interface ProviderProfileInput {
   providerId: string | null;
@@ -87,51 +87,4 @@ export async function uploadProviderMedia(file: File, userId: string, kind: 'log
 
 export async function cleanupProviderMedia(path: string | null | undefined) {
   return removeOptimizedImageVariants('public-images', path);
-}
-
-export async function searchApprovedDoctorsForProvider(query: string) {
-  const { data, error } = await requireSupabase().rpc('search_approved_doctors_for_provider', { p_query: query.trim() || null, p_limit: 20 });
-  if (error) throw error;
-  return (data ?? []) as ProviderDoctorSearchRow[];
-}
-
-export async function inviteDoctorToMyProvider(providerId: string, doctorId: string) {
-  const { error } = await requireSupabase().rpc('invite_doctor_to_my_provider', { p_provider_id: providerId, p_doctor_id: doctorId });
-  if (error) throw error;
-}
-
-export async function removeDoctorFromMyProvider(providerId: string, doctorId: string) {
-  const { error } = await requireSupabase().rpc('remove_doctor_from_my_provider', { p_provider_id: providerId, p_doctor_id: doctorId });
-  if (error) throw error;
-}
-
-export async function getMyDoctorProviderInvitations() {
-  const { data, error } = await requireSupabase().rpc('get_my_doctor_provider_invitations');
-  if (error) throw error;
-  return (data ?? []) as DoctorProviderInvitation[];
-}
-
-export async function respondToProviderInvitation(providerId: string, accept: boolean) {
-  const { error } = await requireSupabase().rpc('respond_to_provider_invitation', { p_provider_id: providerId, p_accept: accept });
-  if (error) throw error;
-}
-
-export async function saveProviderDoctorSchedule(input: { providerId: string; doctorId: string; dayOfWeek: number; startTime: string; endTime: string; fee: number | null; isActive: boolean; scheduleId: string | null }) {
-  const { data, error } = await requireSupabase().rpc('save_provider_doctor_schedule', {
-    p_provider_id: input.providerId,
-    p_doctor_id: input.doctorId,
-    p_day_of_week: input.dayOfWeek,
-    p_start_time: input.startTime,
-    p_end_time: input.endTime,
-    p_fee: input.fee,
-    p_is_active: input.isActive,
-    p_schedule_id: input.scheduleId,
-  });
-  if (error) throw error;
-  return data as string;
-}
-
-export async function deleteProviderDoctorSchedule(providerId: string, scheduleId: string) {
-  const { error } = await requireSupabase().rpc('delete_provider_doctor_schedule', { p_provider_id: providerId, p_schedule_id: scheduleId });
-  if (error) throw error;
 }

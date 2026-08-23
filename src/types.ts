@@ -507,6 +507,54 @@ export interface ProviderDoctorSearchRow {
   specialty_names_bn: string[];
 }
 
+export interface ProviderManagedDoctorCard {
+  id: string;
+  provider_id: string;
+  doctor_name: string;
+  photo_path: string | null;
+  degree: string | null;
+  designation: string | null;
+  specialty: string | null;
+  bmdc_registration_no: string | null;
+  experience_years: number | null;
+  consultation_fee: number | null;
+  visiting_schedule: string | null;
+  appointment_note: string | null;
+  is_active?: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProviderReceptionAppointment {
+  appointment_id: string;
+  provider_id: string;
+  provider_name: string;
+  doctor_card_id: string;
+  doctor_name: string;
+  patient_id: string;
+  patient_name: string;
+  patient_phone: string | null;
+  appointment_date: string;
+  preferred_time: string | null;
+  patient_note: string | null;
+  serial_number: number | null;
+  status: AppointmentStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicContentPage {
+  slug: 'terms' | 'privacy';
+  title_bn: string;
+  title_en: string | null;
+  body_bn: string;
+  body_en: string | null;
+  seo_title: string | null;
+  meta_description: string | null;
+  updated_at: string;
+}
+
 export interface DoctorProviderInvitation {
   provider_id: string;
   provider_name: string;
@@ -678,6 +726,39 @@ export interface AdminOperationalSummary {
   pending_appointments: number;
   appointments_last_30_days: number;
   role_counts: Partial<Record<UserRole, number>>;
+}
+
+export type ProfileReportTargetType = 'doctor' | 'provider';
+export type ProfileReportReason = 'fake_doctor' | 'fake_bmdc_information' | 'wrong_degree' | 'fake_hospital_chamber' | 'wrong_phone_number' | 'inappropriate_content' | 'other';
+
+export interface AdminProfileReportSummary {
+  pending_reports: number;
+  flagged_profiles: number;
+  high_priority_profiles: number;
+}
+
+export interface AdminProfileReportItem {
+  id: string;
+  reason: ProfileReportReason;
+  details: string | null;
+  status: 'pending' | 'reviewed' | 'dismissed' | 'actioned';
+  created_at: string;
+  admin_note: string | null;
+}
+
+export interface AdminProfileReportQueueRow {
+  target_type: ProfileReportTargetType;
+  target_id: string;
+  target_name: string;
+  provider_type: 'hospital' | 'chamber' | null;
+  public_slug: string | null;
+  target_status: string;
+  pending_report_count: number;
+  total_report_count: number;
+  last_reported_at: string;
+  reason_counts: Partial<Record<ProfileReportReason, number>>;
+  recent_reports: AdminProfileReportItem[];
+  total_count: number;
 }
 
 export interface AdminOperationalTrendRow {

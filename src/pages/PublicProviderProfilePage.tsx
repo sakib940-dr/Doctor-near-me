@@ -20,6 +20,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import DoctorResultCard from '../components/DoctorResultCard';
 import ProfileShareButton from '../components/ProfileShareButton';
+import ProfileReportButton from '../components/ProfileReportButton';
+import ProviderManagedDoctorCard from '../components/ProviderManagedDoctorCard';
 import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
@@ -33,7 +35,8 @@ import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
 import { getPublicProviderPageBase } from '../services/discovery';
 import { getProviderPublicStats, getPublicProfileStatsBatch, recordProviderInteraction } from '../services/engagement';
 import { getProviderDistance, type ProviderOpeningHour, type ProviderPublicPageContent } from '../services/providerPublicContent';
-import type { DoctorSearchRow, ProviderDirectoryRow, PublicProfileStats, PublicRankingTier } from '../types';
+import { getPublicProviderManagedDoctorCards } from '../services/providerReception';
+import type { DoctorSearchRow, ProviderDirectoryRow, ProviderManagedDoctorCard as ProviderManagedDoctorCardRow, PublicProfileStats, PublicRankingTier } from '../types';
 
 const daysBn = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
 const daysEn = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -67,20 +70,20 @@ function todayDoctorSchedule(doctor:DoctorSearchRow,language:VisitorLanguage){
 export default function PublicProviderProfilePage(){
   const {providerId=''}=useParams();
   const navigate=useNavigate(),location=useLocation();
-  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[publicSlug,setPublicSlug]=useState(''),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[doctors,setDoctors]=useState<DoctorSearchRow[]>([]),[doctorStats,setDoctorStats]=useState<Record<string,PublicProfileStats>>({}),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
+  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[publicSlug,setPublicSlug]=useState(''),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[doctors,setDoctors]=useState<DoctorSearchRow[]>([]),[managedDoctors,setManagedDoctors]=useState<ProviderManagedDoctorCardRow[]>([]),[doctorStats,setDoctorStats]=useState<Record<string,PublicProfileStats>>({}),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
   const {language}=useVisitorLanguage();
   const [loading,setLoading]=useState(isSupabaseConfigured),[error,setError]=useState<string|null>(null),[activeSlide,setActiveSlide]=useState(0),[contactOpen,setContactOpen]=useState(false),[distance,setDistance]=useState<number|null>(null),[distanceBusy,setDistanceBusy]=useState(false),[distanceError,setDistanceError]=useState<string|null>(null);
   const sliderRef=useRef<HTMLDivElement>(null),trackedView=useRef<string|null>(null);
 
-  useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);setError(null);setProvider(null);setContent(null);setDoctors([]);setProviderStats(null);setPublicSlug('');
+  useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);setError(null);setProvider(null);setContent(null);setDoctors([]);setManagedDoctors([]);setProviderStats(null);setPublicSlug('');
     getPublicProviderPageBase(providerId,10).then(async base=>{
-      if(!base?.route||!base.provider)return [null,null,[],null,''] as const;
+      if(!base?.route||!base.provider)return [null,null,[],[],null,''] as const;
       const canonicalPath=providerPublicPath(base.provider.provider_type,base.route.slug,base.route.id);
       if(location.pathname!==canonicalPath)navigate(canonicalPath,{replace:true});
-      const statsResult=await getProviderPublicStats(base.route.id);
-      return [base.provider,base.content,base.doctors,statsResult,base.route.slug] as const;
+      const [statsResult,managed]=await Promise.all([getProviderPublicStats(base.route.id),getPublicProviderManagedDoctorCards(base.route.id)]);
+      return [base.provider,base.content,base.doctors,managed,statsResult,base.route.slug] as const;
     })
-    .then(([p,c,d,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors([...d]);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
+    .then(([p,c,d,m,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setDoctors([...d]);setManagedDoctors([...m]);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
     .catch((e:unknown)=>alive&&setError(e instanceof Error?e.message:'প্রতিষ্ঠানের তথ্য লোড করা যায়নি।')).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[providerId,location.pathname,navigate]);
 
   useEffect(()=>{if(!provider?.id||trackedView.current===provider.id)return;trackedView.current=provider.id;void recordProviderInteraction(provider.id,'profile_view','provider_profile_v2').catch(()=>undefined)},[provider?.id]);
@@ -117,6 +120,7 @@ export default function PublicProviderProfilePage(){
       <button type="button" disabled={!phone&&!whatsappUrl} onClick={()=>{track('appointment_click');setContactOpen(true)}}><CalendarDays/><span>{t.contact}</span></button>
       <FollowSaveButton targetType="provider" targetId={provider.id} stats={providerStats} variant="button" entityLabel={typeLabel} onStatsChange={setProviderStats} language={language}/>
       {publicSlug&&<ProfileShareButton targetType="provider" targetId={provider.id} slug={publicSlug} title={language==='bn'?provider.name_bn:(provider.name_en||provider.name_bn)} language={language} providerType={provider.provider_type} className="provider-profile-share-action"/>}
+      <ProfileReportButton targetType="provider" targetId={provider.id} entityLabel={typeLabel}/>
       {directionUrl?<a href={directionUrl} target="_blank" rel="noreferrer" onClick={()=>track('map_click')}><Navigation/><span>{t.direction}</span></a>:<button disabled><Navigation/><span>{t.direction}</span></button>}
     </section>
 
@@ -131,7 +135,7 @@ export default function PublicProviderProfilePage(){
       <details className="provider-profile-accordion-v2"><summary><span><BadgeCheck/>{t.investigation}</span><ChevronDown/></summary><div className="provider-accordion-body-v2 provider-cost-public-v2">{content?.investigation_costs.length?content.investigation_costs.map(c=><article key={c.id}><strong>{localText(c.name,language)}</strong><b>{localText(c.cost,language)||'—'}</b></article>):<p>{t.noInfo}</p>}<small className="provider-cost-disclaimer-v2">{t.costDisclaimer}</small></div></details>
     </section>
 
-    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{Number(doctors[0]?.total_count??doctors.length)>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{doctors.length?<div className="provider-doctor-rail-v2">{doctors.slice(0,10).map(doctor=><article className="provider-doctor-card-shell-v2" key={doctor.doctor_id}><DoctorResultCard doctor={doctor} stats={doctorStats[doctor.doctor_id]} onStatsChange={(id,next)=>setDoctorStats(current=>({...current,[id]:next}))}/>{todayDoctorSchedule(doctor,language)&&<div className="provider-doctor-schedule-v2"><Clock3/>{todayDoctorSchedule(doctor,language)}</div>}<div className="provider-doctor-common-contact-v2">{phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click','provider_doctor_card')}><Phone/>{t.call}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click','provider_doctor_card')}><MessageCircle/>{t.whatsapp}</a>}</div></article>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
+    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{(Number(doctors[0]?.total_count??doctors.length)+managedDoctors.length)>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{doctors.length||managedDoctors.length?<div className="provider-doctor-rail-v2">{managedDoctors.slice(0,10).map(card=><ProviderManagedDoctorCard key={card.id} card={card} provider={provider}/>)}{doctors.slice(0,Math.max(0,10-managedDoctors.length)).map(doctor=><article className="provider-doctor-card-shell-v2" key={doctor.doctor_id}><DoctorResultCard doctor={doctor} stats={doctorStats[doctor.doctor_id]} onStatsChange={(id,next)=>setDoctorStats(current=>({...current,[id]:next}))}/>{todayDoctorSchedule(doctor,language)&&<div className="provider-doctor-schedule-v2"><Clock3/>{todayDoctorSchedule(doctor,language)}</div>}<div className="provider-doctor-common-contact-v2">{phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click','provider_doctor_card')}><Phone/>{t.call}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click','provider_doctor_card')}><MessageCircle/>{t.whatsapp}</a>}<Link to={`/doctors/${doctor.doctor_id}/book?provider=${provider.id}`}><CalendarDays/>{language==='bn'?'সিরিয়াল':'Appointment'}</Link></div></article>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
 
     <section className="provider-contact-map-v2"><div className="provider-section-title-v2"><MapPin/><div><small>{typeLabel}</small><h2>{t.map}</h2></div></div><div className="provider-contact-grid-v2"><div><h3>{language==='bn'?provider.name_bn:(provider.name_en||provider.name_bn)}</h3><p><MapPin/>{provider.address||t.noInfo}</p>{provider.phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click')}><Phone/>{provider.phone}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click')}><MessageCircle/>WhatsApp</a>}{distance!=null&&<strong><Navigation/>{t.distance} {numberText(distance,language,1)} {language==='bn'?'কিমি':'km'}</strong>}</div><button className="provider-distance-button-v2" type="button" disabled={distanceBusy} onClick={()=>void captureDistance()}>{distanceBusy?<LoaderCircle className="spin"/>:<Navigation/>}{distanceBusy?t.locating:t.showDistance}</button></div>{distanceError&&<p className="provider-distance-error-v2">{distanceError}</p>}{provider.latitude!=null&&provider.longitude!=null&&<div className="provider-map-frame-v2"><iframe title={`${provider.name_bn} map`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${provider.latitude},${provider.longitude}`)}&z=15&output=embed`}/></div>}{directionUrl&&<a className="provider-map-direction-v2" href={directionUrl} target="_blank" rel="noreferrer" onClick={()=>track('map_click')}><ExternalLink/>{t.direction}</a>}</section>
 

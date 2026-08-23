@@ -31,7 +31,6 @@ import {
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAdminOperationalSummary } from '../services/adminDashboard';
-import { getMyDoctorProviderInvitations } from '../services/providerDashboard';
 import { getMyPendingVerificationCount } from '../services/verification';
 import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
@@ -79,7 +78,6 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [pendingInvitations, setPendingInvitations] = useState(0);
   const [pendingVerification, setPendingVerification] = useState(0);
   const [pendingAppointments, setPendingAppointments] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -87,24 +85,6 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname, location.search]);
-
-  useEffect(() => {
-    if (role !== 'doctor' || account?.role !== 'doctor') {
-      setPendingInvitations(0);
-      return;
-    }
-
-    let active = true;
-    void getMyDoctorProviderInvitations()
-      .then((rows) => {
-        if (active) setPendingInvitations(rows.filter((row) => row.link_status === 'pending').length);
-      })
-      .catch(() => {
-        if (active) setPendingInvitations(0);
-      });
-
-    return () => { active = false; };
-  }, [account?.role, location.pathname, role]);
 
   useEffect(() => {
     if (!['admin', 'super_admin'].includes(role) || account?.role !== role) {
@@ -147,7 +127,6 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Settings', path: '/doctor/settings', icon: KeyRound },
           { label: 'Public Content Management', path: '/doctor/public-content', icon: PanelsTopLeft },
           { label: 'Verification Application', path: '/doctor/verification', icon: ShieldCheck },
-          { label: 'Hospital / Provider Invitation', path: '/doctor/invitations', icon: Mail, badge: pendingInvitations },
           { label: 'Support / Chat with Admin', path: '/doctor/support', icon: MessageCircle },
           { label: 'Feedback / Bug Report', path: '/doctor/feedback', icon: Bug },
           { label: 'FAQ / Help', path: '/doctor/help', icon: CircleHelp },
@@ -217,7 +196,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Hospital links', path: '/ambulance/hospitals', icon: Building2 },
         ];
     }
-  }, [pendingAppointments, pendingInvitations, pendingVerification, role]);
+  }, [pendingAppointments, pendingVerification, role]);
 
   const doctorPrimaryItems = role === 'doctor' ? [
     { label: 'Appointment Management', path: '/doctor/appointments', icon: CalendarDays },

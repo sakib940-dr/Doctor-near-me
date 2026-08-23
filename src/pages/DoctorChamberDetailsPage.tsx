@@ -435,13 +435,12 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
         )}
 
         <div className="chamber-section-title linked-provider-title">
-          <div><small>Existing provider links</small><h2>Linked Hospital / Chamber</h2><p>এই তথ্য provider account-এর source of truth। Doctor shared provider profile edit করতে পারবেন না; visiting schedule manage করতে পারবেন।</p></div>
-          <Link to="/doctor/invitations">Provider links দেখুন</Link>
+          <div><small>Legacy provider records</small><h2>আগের Linked Hospital / Chamber</h2><p>আগে তৈরি হওয়া link থাকলে compatibility-এর জন্য এখানে দেখা যাবে। নতুন Hospital card ও Reception appointment Doctor account থেকে স্বাধীনভাবে পরিচালিত হয়।</p></div>
         </div>
 
         {!loading && <div className="linked-provider-grid">
           {linkedProviders.map((chamber) => <ChamberCard key={chamber.id} chamber={chamber} readonly onSchedule={(schedule) => openSchedule(chamber, schedule)} onDeleteSchedule={(id) => void removeSchedule(id)} workingScheduleId={workingScheduleId} />)}
-          {!linkedProviders.length && <div className="chamber-empty-card compact"><CheckCircle2 /><h3>কোনো linked provider নেই</h3><p>Hospital/Chamber invitation accept করলে এখানে দেখা যাবে।</p></div>}
+          {!linkedProviders.length && <div className="chamber-empty-card compact"><CheckCircle2 /><h3>কোনো পুরোনো provider link নেই</h3><p>Doctor-এর নিজস্ব chamber ও appointment চালাতে কোনো Hospital invitation প্রয়োজন নেই।</p></div>}
         </div>}
 
         <section className="chamber-data-flow-note">

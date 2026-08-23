@@ -12,6 +12,10 @@ interface Props {
   stats?: PublicProfileStats | null;
   onStatsChange?: (doctorId: string, stats: PublicProfileStats) => void;
   viewerLocation?: { latitude: number; longitude: number } | null;
+  profileHref?: string | null;
+  hideSave?: boolean;
+  avatarBucket?: 'avatars' | 'public-images';
+  cardBadge?: string;
 }
 
 function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number) {
@@ -39,10 +43,10 @@ const rankingLabel: Record<PublicProfileStats['ranking_tier'], string> = {
   unverified: 'Unverified',
 };
 
-export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerLocation }: Props) {
+export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerLocation, profileHref, hideSave = false, avatarBucket = 'avatars', cardBadge }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const [localStats, setLocalStats] = useState<PublicProfileStats | null>(stats ?? null);
-  const avatar = getImageUrl(doctor.avatar_url, 'avatars', 'thumbnail');
+  const avatar = getImageUrl(doctor.avatar_url, avatarBucket, 'thumbnail');
   const primarySpecialty = doctor.specialties.find((item) => item.is_primary) ?? doctor.specialties[0];
   const specialtyParts = Array.from(new Set([doctor.specialty_text, doctor.professional_title, primarySpecialty?.name_bn].filter((value): value is string => Boolean(value?.trim()))));
   const specialtyLabel = specialtyParts.join(' · ') || 'General Practitioner';
@@ -54,7 +58,7 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerL
   const distanceText = computedDistance != null ? `${computedDistance.toFixed(1)} km দূরে` : null;
   const isVerified = doctor.verification_status === 'approved';
   const tier = localStats?.ranking_tier ?? (isVerified ? 'verified' : 'unverified');
-  const publicHref = doctorPublicPath(doctor.profile_slug, doctor.doctor_id);
+  const publicHref = profileHref === undefined ? doctorPublicPath(doctor.profile_slug, doctor.doctor_id) : profileHref;
 
   useEffect(() => setLocalStats(stats ?? null), [stats]);
 
@@ -66,21 +70,24 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerL
   return (
     <article className="directory-doctor-card visitor-doctor-card marketplace-card marketplace-doctor-card-compact visitor-horizontal-profile-card">
       <div className="marketplace-card-media visitor-horizontal-profile-media">
-        <Link to={publicHref} aria-label={`${doctor.doctor_name} Doctor Details দেখুন`}>
+        {publicHref ? <Link to={publicHref} aria-label={`${doctor.doctor_name} Doctor Details দেখুন`}>
           {avatar && !imageFailed ? (
             <img src={avatar} alt={doctor.doctor_name} loading="lazy" decoding="async" onError={() => setImageFailed(true)} />
           ) : (
             <div className="doctor-photo-fallback" aria-hidden="true"><Stethoscope /></div>
           )}
-        </Link>
+        </Link> : <div aria-label={`${doctor.doctor_name} Hospital Doctor Card`}>
+          {avatar && !imageFailed ? <img src={avatar} alt={doctor.doctor_name} loading="lazy" decoding="async" onError={() => setImageFailed(true)} /> : <div className="doctor-photo-fallback" aria-hidden="true"><Stethoscope /></div>}
+        </div>}
         <div className="marketplace-doctor-badges visitor-horizontal-badges">
           {tier === 'premium' ? <span className="rank-badge premium"><Crown /> Premium</span> : null}
           {tier === 'new' ? <span className="rank-badge new"><Sparkles /> New</span> : null}
           {tier !== 'premium' && tier !== 'new' ? <VerifiedBadge verified={isVerified} label={rankingLabel[tier]} /> : null}
+          {cardBadge ? <span className="rank-badge hospital-card"><Building2 /> {cardBadge}</span> : null}
         </div>
       </div>
 
-      <Link className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body" to={publicHref}>
+      {publicHref ? <Link className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body" to={publicHref}>
         <div className="visitor-doctor-copy">
           <h2>{doctor.doctor_name}</h2>
           {doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}
@@ -94,16 +101,18 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerL
             {localStats && localStats.follower_count > 0 ? <span><Heart /> {localStats.follower_count.toLocaleString('bn-BD')}</span> : null}
           </div>
         </div>
-      </Link>
+      </Link> : <div className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body">
+        <div className="visitor-doctor-copy"><h2>{doctor.doctor_name}</h2>{doctor.degree && <p className="visitor-doctor-degree">{doctor.degree}</p>}<strong>{specialtyLabel}</strong>{doctor.bmdc_registration_no && <p className="visitor-doctor-bmdc"><BadgeCheck /><span>বিএমডিসি: {doctor.bmdc_registration_no}</span></p>}{institutionLabel && <p className="visitor-doctor-work"><Building2 /><span>{institutionLabel}</span></p>}<p className="visitor-doctor-location"><MapPin /><span>{locationLabel || 'Hospital reception'}</span></p></div>
+      </div>}
 
-      <FollowSaveButton
+      {!hideSave && <FollowSaveButton
         targetType="doctor"
         targetId={doctor.doctor_id}
         stats={localStats}
         className="doctor-save-button visitor-horizontal-save-button"
         entityLabel="ডাক্তার"
         onStatsChange={updateStats}
-      />
+      />}
     </article>
   );
 }

@@ -26,7 +26,6 @@ import DoctorFeedbackPage from './pages/DoctorFeedbackPage';
 import DoctorHelpPage from './pages/DoctorHelpPage';
 import DoctorChamberDetailsPage from './pages/DoctorChamberDetailsPage';
 import DoctorDirectory from './pages/DoctorDirectory';
-import DoctorInvitationsPage from './pages/DoctorInvitationsPage';
 import DoctorProfessionalProfilePage from './pages/DoctorProfessionalProfilePage';
 import DoctorPublicProfileContentPage from './pages/DoctorPublicProfileContentPage';
 import DoctorPublicContentManagementPage from './pages/DoctorPublicContentManagementPage';
@@ -51,6 +50,7 @@ import ProviderProfilePage from './pages/ProviderProfilePage';
 import PublicProviderProfilePage from './pages/PublicProviderProfilePage';
 import ProviderWebsitePage from './pages/ProviderWebsitePage';
 import PublicProvidersPage from './pages/PublicProvidersPage';
+import PublicLegalPage from './pages/PublicLegalPage';
 import SavedProfilesPage from './pages/SavedProfilesPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import VerificationEvidencePage from './pages/VerificationEvidencePage';
@@ -76,6 +76,8 @@ export default function App() {
       <Route path="/chamber/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/terms" element={<PublicLegalPage slug="terms" />} />
+      <Route path="/privacy" element={<PublicLegalPage slug="privacy" />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><PatientDashboardRoute /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationCenterRoute /></ProtectedRoute>} />
@@ -100,7 +102,7 @@ export default function App() {
       <Route path="/doctor/chambers" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorChamberDetailsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
-      <Route path="/doctor/invitations" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorInvitationsPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/doctor/invitations" element={<Navigate to="/doctor/chambers" replace />} />
       <Route path="/doctor/prescriptions" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPrescriptionPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />

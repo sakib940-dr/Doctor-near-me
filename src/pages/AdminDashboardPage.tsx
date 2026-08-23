@@ -3,12 +3,13 @@ import { Activity, AlertTriangle, Ambulance, ArrowRight, BadgeCheck, Bell, Build
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import AdminProfileReportsPanel from '../components/AdminProfileReportsPanel';
 import { getImageUrl } from '../lib/storage';
 import { getDistricts, getSpecialties, getUpazilas } from '../services/discovery';
-import { getAdminActivity, getAdminAppointmentDirectory, getAdminHighLevelAnalytics, getAdminHospitalEngagementAnalytics, getAdminTopDoctorsAnalytics, getAdminOperationalSummary, getAdminOperationalTrends, getAdminUserDirectory, overrideAdminAppointmentStatus, setAdminUserAccountStatus } from '../services/adminDashboard';
-import type { AdminActivityRow, AdminAnalyticsRangeKey, AdminAppointmentRow, AdminHighLevelAnalytics, AdminHospitalEngagementAnalytics, AdminOperationalSummary, AdminOperationalTrendRow, AdminTopDoctorMetricKey, AdminTopHospitalMetricKey, AdminTopDoctorRangeKey, AdminTopDoctorsAnalytics, AdminUserRow, AppointmentStatus, District, Specialty, Upazila, UserRole } from '../types';
+import { getAdminActivity, getAdminAppointmentDirectory, getAdminHighLevelAnalytics, getAdminHospitalEngagementAnalytics, getAdminTopDoctorsAnalytics, getAdminOperationalSummary, getAdminOperationalTrends, getAdminUserDirectory, getAdminProfileReportSummary, overrideAdminAppointmentStatus, setAdminUserAccountStatus } from '../services/adminDashboard';
+import type { AdminActivityRow, AdminAnalyticsRangeKey, AdminAppointmentRow, AdminHighLevelAnalytics, AdminHospitalEngagementAnalytics, AdminOperationalSummary, AdminOperationalTrendRow, AdminProfileReportSummary, AdminTopDoctorMetricKey, AdminTopHospitalMetricKey, AdminTopDoctorRangeKey, AdminTopDoctorsAnalytics, AdminUserRow, AppointmentStatus, District, Specialty, Upazila, UserRole } from '../types';
 
-type Tab = 'overview' | 'users' | 'appointments' | 'activity';
+type Tab = 'overview' | 'reports' | 'users' | 'appointments' | 'activity';
 const roleLabels: Record<UserRole, string> = { patient: 'Patient', doctor: 'Doctor', chamber: 'Chamber', hospital: 'Hospital', ambulance: 'Ambulance', verification_officer: 'Verification Officer', admin: 'Admin', super_admin: 'Super Admin' };
 const appointmentStatuses: AppointmentStatus[] = ['pending', 'confirmed', 'rejected', 'cancelled', 'completed', 'no_show'];
 const ADMIN_LIST_PAGE_SIZE = 30;
@@ -79,8 +80,9 @@ export default function AdminDashboardPage() {
   const { account } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab') as Tab | null;
-  const [tab, setTab] = useState<Tab>(requestedTab && ['overview', 'users', 'appointments', 'activity'].includes(requestedTab) ? requestedTab : 'overview');
+  const [tab, setTab] = useState<Tab>(requestedTab && ['overview', 'reports', 'users', 'appointments', 'activity'].includes(requestedTab) ? requestedTab : 'overview');
   const [summary, setSummary] = useState<AdminOperationalSummary | null>(null);
+  const [reportSummary, setReportSummary] = useState<AdminProfileReportSummary | null>(null);
   const [trends, setTrends] = useState<AdminOperationalTrendRow[]>([]);
   const [analytics, setAnalytics] = useState<AdminHighLevelAnalytics | null>(null);
   const [analyticsRange, setAnalyticsRange] = useState<AdminAnalyticsRangeKey>('30d');
@@ -131,8 +133,8 @@ export default function AdminDashboardPage() {
   async function loadOverview() {
     setLoading(true); setError(null);
     try {
-      const [summaryData, trendData] = await Promise.all([getAdminOperationalSummary(), getAdminOperationalTrends()]);
-      setSummary(summaryData); setTrends(trendData);
+      const [summaryData, trendData, reportData] = await Promise.all([getAdminOperationalSummary(), getAdminOperationalTrends(), getAdminProfileReportSummary()]);
+      setSummary(summaryData); setTrends(trendData); setReportSummary(reportData);
     } catch (loadError) { setError(messageFrom(loadError)); } finally { setLoading(false); }
   }
 
@@ -229,6 +231,7 @@ export default function AdminDashboardPage() {
     }
     if (tab === 'users') { void loadUsers(true); return; }
     if (tab === 'appointments') { void loadAppointments(true); return; }
+    if (tab === 'reports') { setLoading(false); return; }
     if (tab === 'activity') void loadActivity();
   }, [account?.user_id, account?.role, tab]);
   useEffect(() => {
@@ -243,7 +246,7 @@ export default function AdminDashboardPage() {
   }, [userDistrictId]);
   useEffect(() => {
     const next = searchParams.get('tab') as Tab | null;
-    if (next && ['overview', 'users', 'appointments', 'activity'].includes(next) && next !== tab) setTab(next);
+    if (next && ['overview', 'reports', 'users', 'appointments', 'activity'].includes(next) && next !== tab) setTab(next);
     if (!next && tab !== 'overview') setTab('overview');
   }, [searchParams]);
   if (account && !['admin', 'super_admin'].includes(account.role)) return <Navigate to="/dashboard" replace />;
@@ -309,6 +312,7 @@ export default function AdminDashboardPage() {
     }
     if (tab === 'users') { void loadUsers(true); return; }
     if (tab === 'appointments') { void loadAppointments(true); return; }
+    if (tab === 'reports') { setLoading(false); return; }
     void loadActivity();
   }
   const analyticsBusy = analyticsLoading || topDoctorsLoading || hospitalAnalyticsLoading;
@@ -389,6 +393,7 @@ export default function AdminDashboardPage() {
   ] as const : [];
 
   const pendingActions = summary ? [
+    { label: 'Doctor/Hospital Profile Reports', count: reportSummary?.pending_reports ?? 0, path: '/admin?tab=reports', icon: Flag, detail: `${reportSummary?.flagged_profiles ?? 0}টি profile review করুন`, tone: 'review' },
     { label: 'Pending Doctor Verification', count: summary.pending_doctor_verifications ?? summary.pending_doctors ?? 0, path: '/verification/reviews', icon: ShieldCheck, detail: 'Doctor verification queue review করুন', tone: 'verification' },
     { label: 'Pending Hospital Verification', count: summary.pending_hospital_verifications ?? 0, path: '/verification/reviews', icon: Building2, detail: 'Hospital verification queue review করুন', tone: 'verification' },
     { label: 'Premium Requests', count: summary.premium_requests ?? summary.pending_premium_memberships ?? 0, path: '/admin/premium?filter=pending', icon: Crown, detail: 'Pending Premium requests সিদ্ধান্ত দিন', tone: 'premium' },
@@ -406,6 +411,7 @@ export default function AdminDashboardPage() {
     { label: 'Categories', path: '/admin/cms?tab=specialties', icon: Settings2 },
     { label: 'Prescription Footer', path: '/admin/cms?tab=prescription', icon: FileText },
     { label: 'Notifications', path: '/notifications', icon: Bell },
+    { label: 'Profile Reports', path: '/admin?tab=reports', icon: Flag },
     { label: 'Users', path: '/admin?tab=users', icon: Users },
     { label: 'Appointments', path: '/admin?tab=appointments', icon: CalendarDays },
     { label: 'Activity Log', path: '/admin?tab=activity', icon: Activity },
@@ -421,7 +427,7 @@ export default function AdminDashboardPage() {
       <button className="admin-refresh-button" onClick={refreshCurrent} disabled={refreshBusy}><RefreshCw className={refreshBusy ? 'spin' : ''} /><span>{refreshBusy ? 'Updating' : 'Refresh'}</span></button>
     </header>
 
-    <nav className="admin-tabs" aria-label="Admin dashboard sections">{([['overview', Activity, 'Overview'], ['users', Users, 'Users'], ['appointments', CalendarDays, 'Appointments'], ['activity', Clock3, 'Activity']] as const).map(([value, Icon, label]) => <button className={tab === value ? 'active' : ''} key={value} onClick={() => { setTab(value); setSearchParams(value === 'overview' ? {} : { tab: value }); }}><Icon /> <span>{label}</span></button>)}</nav>
+    <nav className="admin-tabs" aria-label="Admin dashboard sections">{([['overview', Activity, 'Overview'], ['reports', Flag, 'Reports'], ['users', Users, 'Users'], ['appointments', CalendarDays, 'Appointments'], ['activity', Clock3, 'Activity']] as const).map(([value, Icon, label]) => <button className={tab === value ? 'active' : ''} key={value} onClick={() => { setTab(value); setSearchParams(value === 'overview' ? {} : { tab: value }); }}><Icon /> <span>{label}</span></button>)}</nav>
     {error && <div className="error-box">{error}</div>}
     {notice && <div className="auth-message success">{notice}</div>}
     {loading && tab === 'overview' && <AdminOverviewSkeleton/>}
@@ -526,6 +532,8 @@ export default function AdminDashboardPage() {
         <article><header><h2>Role distribution</h2><Stethoscope /></header><div className="admin-role-compact">{Object.entries(summary.role_counts).map(([key, value]) => <span key={key}><b>{roleLabels[key as UserRole] || key}</b><small>{value}</small></span>)}</div><Link to="/admin/cms">CMS & settings <ArrowRight /></Link></article>
       </section>
     </div>}
+
+  {!loading && tab === 'reports' && <AdminProfileReportsPanel />}
 
   {!loading && tab === 'users' && <section className="admin-panel"><div className="admin-panel-title"><div><h2>User management</h2><p>Admin/Super Admin ছাড়া operational account suspend বা restore করুন।</p></div><b>{users[0]?.total_count ?? 0} users</b></div><form className="admin-filters" onSubmit={searchUsers}><select value={role} onChange={(event) => setRole(event.target.value as UserRole | 'all')}><option value="all">সব role</option>{roles.map((item) => <option value={item} key={item}>{roleLabels[item]}</option>)}</select><select value={userStatus} onChange={(event) => setUserStatus(event.target.value)}><option value="all">সব status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select><select value={medicalType} onChange={(event) => setMedicalType(event.target.value as 'all' | 'MBBS' | 'BDS')}><option value="all">All Medical Type</option><option value="MBBS">MBBS</option><option value="BDS">BDS</option></select><select value={userDistrictId ?? ''} onChange={(event) => { setUserDistrictId(event.target.value ? Number(event.target.value) : null); setUserUpazilaId(null); }}><option value="">সব জেলা</option>{userDistricts.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select disabled={!userDistrictId} value={userUpazilaId ?? ''} onChange={(event) => setUserUpazilaId(event.target.value ? Number(event.target.value) : null)}><option value="">সব উপজেলা</option>{userUpazilas.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><select value={userSpecialtyId ?? ''} onChange={(event) => setUserSpecialtyId(event.target.value ? Number(event.target.value) : null)}><option value="">সব স্পেশালিটি</option>{userSpecialties.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select><label><Search /><input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="নাম, ইমেইল বা ফোন" /></label><button>খুঁজুন</button></form>{selectedUserIds.length > 0 && <div className="admin-bulk-bar"><div><strong>{selectedUserIds.length} selected</strong><small>প্রতিটি account action আলাদা audit log তৈরি করবে।</small></div><input value={bulkUserReason} onChange={(event) => { setBulkUserReason(event.target.value); setBulkUserConfirm(null); }} placeholder="Common reason (suspend-এর জন্য required)" /><button className={bulkUserConfirm === 'suspended' ? 'danger confirming' : 'danger'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('suspended')}>{bulkUserWorking ? <LoaderCircle className="spin" /> : bulkUserConfirm === 'suspended' ? 'Confirm suspend' : 'Suspend selected'}</button><button className={bulkUserConfirm === 'active' ? 'primary confirming' : 'primary'} disabled={bulkUserWorking} onClick={() => void applyBulkUserStatus('active')}>{bulkUserConfirm === 'active' ? 'Confirm restore' : 'Restore selected'}</button><button onClick={() => { setSelectedUserIds([]); setBulkUserConfirm(null); }}>Clear</button></div>}<div className="admin-user-select-all"><label><input type="checkbox" checked={allBulkUsersSelected} onChange={toggleAllUsers} disabled={!bulkManageableUsers.length} /> <span>এই পাতার manageable users নির্বাচন</span></label></div><div className="admin-user-list">{users.map((user) => { const manageable = canBulkManageUser(user); return <article key={user.user_id} className={selectedUserIds.includes(user.user_id) ? 'selected' : ''}><label className="admin-user-checkbox" title={manageable ? 'Select user' : 'এই user bulk action-এ নেওয়া যাবে না'}><input type="checkbox" checked={selectedUserIds.includes(user.user_id)} onChange={() => toggleUserSelection(user.user_id)} disabled={!manageable} /></label><div className="admin-user-avatar">{(user.full_name || 'U').slice(0, 1).toUpperCase()}</div><div><strong>{user.full_name || 'নাম দেওয়া হয়নি'}</strong><small>{user.email || user.phone || 'যোগাযোগ নেই'}</small><p>{roleLabels[user.role]} {user.medical_type && <b>{user.medical_type}</b>} {user.professional_status && <b>{user.professional_status}</b>}</p></div><span className={`admin-status ${user.account_status}`}>{user.account_status}</span>{manageable && <button className={user.account_status === 'active' ? 'suspend' : 'activate'} onClick={() => { setUserAction({ user, status: user.account_status === 'active' ? 'suspended' : 'active' }); setReason(''); setConfirmed(false); }}>{user.account_status === 'active' ? 'Suspend' : 'Restore'}</button>}</article>; })}{!users.length && <p className="empty-inline">কোনো user পাওয়া যায়নি।</p>}</div>{usersHasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={usersLoadingMore} onClick={() => void loadUsers(false)}>{usersLoadingMore ? <LoaderCircle className="spin" /> : null}{usersLoadingMore ? 'আরও লোড হচ্ছে…' : 'আরও users দেখুন'}</button></div>}</section>}
 

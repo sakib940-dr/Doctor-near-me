@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import type { AdminActivityRow, AdminAnalyticsRangeKey, AdminAppointmentRow, AdminHighLevelAnalytics, AdminHospitalEngagementAnalytics, AdminOperationalSummary, AdminOperationalTrendRow, AdminTopDoctorRangeKey, AdminTopDoctorsAnalytics, AdminUserRow, AppointmentStatus, UserRole } from '../types';
+export { getAdminProfileReportSummary } from './profileReports';
 
 
 const adminReadInflight = new Map<string, Promise<unknown>>();

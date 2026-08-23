@@ -22,6 +22,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import FollowSaveButton from '../components/FollowSaveButton';
 import ProfileShareButton from '../components/ProfileShareButton';
+import ProfileReportButton from '../components/ProfileReportButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
 import VisitorBottomNav from '../components/VisitorBottomNav';
@@ -311,6 +312,7 @@ export default function DoctorProfile() {
             {canOnlineBook ? <Link to={`/doctors/${profile.doctor.id}/book`} onClick={() => track('appointment_click')}><CalendarDays /><span>{t.appointment}</span></Link> : <button type="button" disabled={!callPhone} onClick={() => { track('appointment_click'); setContactOpen(true); }}><CalendarDays /><span>{t.appointment}</span></button>}
             <FollowSaveButton targetType="doctor" targetId={profile.doctor.id} stats={profileStats} variant="button" entityLabel="ডাক্তার" onStatsChange={setProfileStats} className="doctor-profile-follow-action" language={language} />
             {publicSlug && <ProfileShareButton targetType="doctor" targetId={profile.doctor.id} slug={publicSlug} title={profile.doctor.name} language={language} className="doctor-profile-share-action" />}
+            <ProfileReportButton targetType="doctor" targetId={profile.doctor.id} entityLabel="ডাক্তার" />
           </section>
 
           <section className="doctor-social-summary-v2">

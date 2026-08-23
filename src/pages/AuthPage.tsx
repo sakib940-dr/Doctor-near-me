@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Building2, HeartPulse, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, Sparkles, Stethoscope, UserRound } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { Building2, Eye, EyeOff, HeartPulse, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import PublicHeader from '../components/PublicHeader';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,13 +13,6 @@ const roles: Array<{ value: PublicRegistrationRole; title: string; detail: strin
   { value: 'hospital', title: 'হাসপাতাল / ক্লিনিক', detail: 'প্রতিষ্ঠান, সেবা ও linked Doctor profile পরিচালনা করুন', icon: Building2 },
   { value: 'ambulance', title: 'অ্যাম্বুলেন্স সেবা', detail: 'সেবা ও availability তথ্য প্রকাশ করুন', icon: HeartPulse },
 ];
-
-const roleHighlights: Record<PublicRegistrationRole, { title: string; text: string }> = {
-  patient: { title: 'Patient account', text: 'পছন্দের ডাক্তার/হাসপাতাল সংরক্ষণ করুন, structured rating দিন এবং appointment history এক জায়গায় রাখুন।' },
-  doctor: { title: 'Doctor account', text: 'Professional profile, chamber schedule, public content, appointment এবং analytics পরিচালনা করুন।' },
-  hospital: { title: 'Hospital account', text: 'Hospital profile, services, opening hours, linked Doctors এবং visitor analytics পরিচালনা করুন।' },
-  ambulance: { title: 'Ambulance account', text: 'আপনার ambulance service-এর availability ও প্রয়োজনীয় যোগাযোগ তথ্য প্রকাশ করুন।' },
-};
 
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
 
@@ -35,12 +28,13 @@ export default function AuthPage() {
   const [identifier, setIdentifier] = useState(() => searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [role, setRole] = useState<PublicRegistrationRole>('patient');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const selectedRole = useMemo(() => roles.find((item) => item.value === role) || roles[0], [role]);
-  const SelectedRoleIcon = selectedRole.icon;
 
   useEffect(() => {
     const referral = searchParams.get('ref')?.trim().toUpperCase();
@@ -53,6 +47,7 @@ export default function AuthPage() {
     setSearchParams(next === 'register' ? { mode: 'register' } : {});
     setError(null);
     setNotice(null);
+    setAcceptedTerms(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -67,6 +62,7 @@ export default function AuthPage() {
       setError('দুইটি পাসওয়ার্ড মিলছে না।');
       return;
     }
+    if (!acceptedTerms) { setError('Terms & Conditions এবং Privacy Policy-তে সম্মতি দিন।'); return; }
 
     setSubmitting(true);
     try {
@@ -126,17 +122,7 @@ export default function AuthPage() {
     <div className="app-shell auth-page auth-page-premium">
       <PublicHeader />
       <main className="auth-main container auth-main-premium">
-        <section className="auth-benefits auth-benefits-premium">
-          <span className="auth-kicker"><Sparkles size={17} /> docbd.info account</span>
-          <h1>{mode === 'login' ? 'স্বাস্থ্যসেবা, এক জায়গায়' : 'আপনার সঠিক account দিয়ে শুরু করুন'}</h1>
-          <p>{mode === 'login' ? 'নিজের dashboard-এ ফিরে গিয়ে appointment, saved profile এবং professional tools পরিচালনা করুন।' : 'Patient, Doctor বা Hospital—যে role আপনার জন্য প্রযোজ্য সেটি বেছে নিয়ে কয়েক ধাপে profile প্রস্তুত করুন।'}</p>
-          <div className="auth-premium-points">
-            <span><ShieldCheck /> এক account, role-based experience</span>
-            <span><Stethoscope /> Doctor ও Hospital discovery</span>
-            <span><HeartPulse /> Saved, review ও appointment tools</span>
-          </div>
-          <Link to="/doctors">অ্যাকাউন্ট ছাড়াই ডাক্তার খুঁজুন <ArrowRight size={17} /></Link>
-        </section>
+        <section className="auth-benefits auth-benefits-premium"><div className="auth-brand-mark"><ShieldCheck /></div><span className="auth-kicker">docbd.info secure access</span><h1>স্বাস্থ্যসেবা ব্যবস্থাপনা, সহজ ও নিরাপদ</h1><p>Patient, Doctor এবং Hospital-এর জন্য একটি নির্ভরযোগ্য medical platform.</p></section>
 
         <section className="auth-card auth-card-premium">
           <div className="auth-card-heading">
@@ -153,16 +139,14 @@ export default function AuthPage() {
               <p className="auth-helper-note">Email ও Phone Number দুটোই সঠিকভাবে দিন, যাতে account information নির্ভুল থাকে।</p>
             </>}
             {mode === 'login' && <label className="auth-field"><span>Email অথবা Phone Number</span><div>{isEmailIdentifier(identifier) || !identifier ? <Mail /> : <Phone />}<input required autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="name@example.com অথবা 01XXXXXXXXX" /></div></label>}
-            <label className="auth-field"><span>পাসওয়ার্ড</span><div><LockKeyhole /><input required minLength={8} type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="কমপক্ষে ৮ অক্ষর" /></div></label>
-            {mode === 'register' && <label className="auth-field"><span>পাসওয়ার্ড নিশ্চিত করুন</span><div><LockKeyhole /><input required minLength={8} type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="পাসওয়ার্ডটি আবার লিখুন" /></div></label>}
+            <label className="auth-field"><span>পাসওয়ার্ড</span><div><LockKeyhole /><input required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="কমপক্ষে ৮ অক্ষর" /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Password লুকান' : 'Password দেখুন'}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
+            {mode === 'register' && <label className="auth-field"><span>পাসওয়ার্ড নিশ্চিত করুন</span><div><LockKeyhole /><input required minLength={8} type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="পাসওয়ার্ডটি আবার লিখুন" /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label={showConfirmPassword ? 'Password লুকান' : 'Password দেখুন'}>{showConfirmPassword ? <EyeOff /> : <Eye />}</button></div></label>}
             {mode === 'login' && <button className="forgot-link" type="button" onClick={() => void sendReset()}>পাসওয়ার্ড ভুলে গেছেন?</button>}
+            <label className="auth-terms-consent"><input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} /><span><Link to="/terms" target="_blank">Terms & Conditions</Link> এবং <Link to="/privacy" target="_blank">Privacy Policy</Link> পড়েছি ও সম্মত।</span></label>
             {error && <div className="auth-message error" role="alert">{error}</div>}
             {notice && <div className="auth-message success" role="status">{notice}</div>}
-            <button className="auth-submit" type="submit" disabled={submitting}>{submitting ? <LoaderCircle className="spin" /> : mode === 'login' ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'}</button>
-            <p className="auth-terms">রেজিস্ট্রেশন করে আপনি প্ল্যাটফর্মের Terms ও Privacy Policy মেনে নিচ্ছেন।</p>
+            <button className="auth-submit" type="submit" disabled={submitting || !acceptedTerms}>{submitting ? <LoaderCircle className="spin" /> : mode === 'login' ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'}</button>
           </form>
-
-          {mode === 'register' ? <div className="auth-role-highlight"><SelectedRoleIcon /><div><strong>{roleHighlights[role].title}</strong><p>{roleHighlights[role].text}</p></div></div> : <div className="auth-login-role-strip"><span><UserRound /> Patient: Saved + Appointment</span><span><Stethoscope /> Doctor: Profile + Analytics</span><span><Building2 /> Hospital: Services + Doctors</span></div>}
         </section>
       </main>
     </div>

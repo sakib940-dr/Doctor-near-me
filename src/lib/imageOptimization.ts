@@ -87,7 +87,8 @@ export interface OptimizedImageSet {
 }
 
 export function assertOptimizableImage(file: File) {
-  if (!supportedImageTypes.has(file.type)) {
+  const hasSupportedExtension = /\.(?:jpe?g|png|webp|avif)$/i.test(file.name);
+  if (!supportedImageTypes.has(file.type) && !hasSupportedExtension) {
     throw new Error('JPG, PNG, WebP অথবা AVIF ছবি দিন।');
   }
   if (file.size > MAX_SOURCE_IMAGE_BYTES) {
@@ -164,6 +165,46 @@ async function decodeImageWithElement(file: Blob): Promise<{ source: CanvasImage
   }
 }
 
+async function isJpegFile(file: Blob) {
+  const header = new Uint8Array(await file.slice(0, 3).arrayBuffer());
+  return header.length === 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+}
+
+async function decodeJpegWithJavaScript(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
+  if (typeof document === 'undefined') throw new Error('এই browser-এ image optimization support নেই।');
+
+  const { decode } = await import('jpeg-js');
+  const decoded = decode(new Uint8Array(await file.arrayBuffer()), {
+    useTArray: true,
+    formatAsRGBA: true,
+    tolerantDecoding: true,
+    maxResolutionInMP: 40,
+    maxMemoryUsageInMB: 256,
+  });
+  if (!decoded.width || !decoded.height || decoded.data.length !== decoded.width * decoded.height * 4) {
+    throw new Error('JPEG ছবিটির pixel data সঠিক নয়।');
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = decoded.width;
+  canvas.height = decoded.height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Image canvas unavailable');
+  const imageData = context.createImageData(decoded.width, decoded.height);
+  imageData.data.set(decoded.data);
+  context.putImageData(imageData, 0, 0);
+
+  return {
+    source: canvas,
+    width: decoded.width,
+    height: decoded.height,
+    close: () => {
+      canvas.width = 1;
+      canvas.height = 1;
+    },
+  };
+}
+
 async function decodeImage(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
   if (typeof createImageBitmap === 'function') {
     try {
@@ -182,7 +223,21 @@ async function decodeImage(file: Blob): Promise<{ source: CanvasImageSource; wid
       // Final compatibility fallback below.
     }
   }
-  return decodeImageWithElement(file);
+  try {
+    return await decodeImageWithElement(file);
+  } catch (browserDecodeError) {
+    // Some Android/WhatsApp JPEGs contain metadata or scan layouts rejected by
+    // every native browser decoder. jpeg-js tolerantly decodes the pixels so the
+    // shared canvas/WebP upload pipeline still works on those files.
+    if (await isJpegFile(file)) {
+      try {
+        return await decodeJpegWithJavaScript(file);
+      } catch {
+        throw new Error('JPEG ছবিটি নষ্ট বা অসম্পূর্ণ। অন্য একটি ছবি নির্বাচন করুন।');
+      }
+    }
+    throw browserDecodeError;
+  }
 }
 
 function drawToCanvas(

@@ -311,16 +311,31 @@ function HospitalVerificationStep({ onError, onNext, onPrevious }: StepProps) {
   return <form className="onboarding-card professional-step-card" onSubmit={submit}><header><FileCheck2/><div><small>Step 4</small><h2>Hospital Verification</h2><p>Existing provider verification evidence ও review queue preserve করা হয়েছে।</p></div></header><div className={`identity-status ${provider.verified?'verified':'pending'}`}><ShieldCheck/><span><strong>{provider.verified?'Verified':'Not verified yet'}</strong><small>Publication-এর existing Hospital verification policy অপরিবর্তিত।</small></span></div><EvidenceEditor evidence={evidence} file={file} setFile={setFile} documentType={docType} setDocumentType={setDocType} onUpload={upload} onDelete={remove}/><StepActions onPrevious={onPrevious} saving={saving} label="Continue"/></form>;
 }
 
+const evidenceMimeByExtension:Record<string,string>={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',avif:'image/avif',pdf:'application/pdf'};
+function normalizeEvidenceFile(file:File){
+  const extension=file.name.split('.').pop()?.toLowerCase()||'';
+  const extensionMime=evidenceMimeByExtension[extension];
+  const normalizedType=file.type==='image/jpg'?'image/jpeg':file.type;
+  const allowed=new Set(['image/jpeg','image/png','image/webp','image/avif','application/pdf']);
+  const type=allowed.has(normalizedType)?normalizedType:extensionMime;
+  if(!type||!allowed.has(type))return null;
+  return type===file.type?file:new File([file],file.name,{type,lastModified:file.lastModified});
+}
+function isSupportedEvidenceImage(file:File){return ['image/jpeg','image/png','image/webp','image/avif'].includes(file.type);}
+
 function EvidenceEditor({ evidence,file,setFile,documentType,setDocumentType,onUpload,onDelete,doctor=false,deferredUpload=false,disabled=false,busy=false,operationError=null,operationNotice=null }:{evidence:OwnerVerificationEvidence|null;file:File|null;setFile:(f:File|null)=>void;documentType:string;setDocumentType:(v:string)=>void;onUpload?:()=>Promise<void>;onDelete:(d:VerificationEvidenceDocument)=>Promise<void>;doctor?:boolean;deferredUpload?:boolean;disabled?:boolean;busy?:boolean;operationError?:string|null;operationNotice?:string|null}) {
   const options=doctor?[['bmdc_certificate','BMDC certificate'],['medical_degree','Medical degree'],['national_id','National ID'],['other','Other']]:[['trade_license','Trade license'],['organization_document','Organization document'],['facility_photo','Facility photo'],['other','Other']];
   const [previewUrl,setPreviewUrl]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
+  const [selectionNotice,setSelectionNotice]=useState<string|null>(null);
   const fileInputRef=useRef<HTMLInputElement|null>(null);
+  const pickerWatchRef=useRef<number|null>(null);
 
   useEffect(()=>{if(!file&&fileInputRef.current)fileInputRef.current.value='';},[file]);
+  useEffect(()=>()=>{if(pickerWatchRef.current!==null)window.clearInterval(pickerWatchRef.current);},[]);
 
   useEffect(()=>{
-    if (!file || !file.type.startsWith('image/')) {
+    if (!file || !isSupportedEvidenceImage(file)) {
       setPreviewUrl(null);
       return;
     }
@@ -329,23 +344,40 @@ function EvidenceEditor({ evidence,file,setFile,documentType,setDocumentType,onU
     return ()=>URL.revokeObjectURL(url);
   },[file]);
 
-  function handleFileChange(e:ChangeEvent<HTMLInputElement>) {
-    const selected=e.target.files?.[0]||null;
+  function acceptSelectedFile(selected:File|null,input:HTMLInputElement) {
     setError(null);
-    if(!selected){setFile(null);return;}
-    if(selected.type.startsWith('image/')&&selected.size > 5 * 1024 * 1024){
+    if(!selected)return;
+    const normalized=normalizeEvidenceFile(selected);
+    if(!normalized){
+      setError('এই file format support করে না। JPG, JPEG, PNG, WebP, AVIF অথবা PDF দিন।');
+      setSelectionNotice(null);input.value='';setFile(null);return;
+    }
+    if(isSupportedEvidenceImage(normalized)&&normalized.size > 5 * 1024 * 1024){
       setError('ছবির সর্বোচ্চ সাইজ 5 MB।');
-      e.target.value='';
-      setFile(null);
-      return;
+      setSelectionNotice(null);input.value='';setFile(null);return;
     }
-    if(selected.type==='application/pdf'&&selected.size > 10 * 1024 * 1024){
+    if(normalized.type==='application/pdf'&&normalized.size > 10 * 1024 * 1024){
       setError('PDF সর্বোচ্চ ১০ MB হতে পারবে।');
-      e.target.value='';
-      setFile(null);
-      return;
+      setSelectionNotice(null);input.value='';setFile(null);return;
     }
-    setFile(selected);
+    if(pickerWatchRef.current!==null){window.clearInterval(pickerWatchRef.current);pickerWatchRef.current=null;}
+    setFile(normalized);
+    setSelectionNotice(`নির্বাচিত: ${normalized.name} • ${(normalized.size/1024).toFixed(1)} KB`);
+  }
+
+  function handleFileEvent(e:ChangeEvent<HTMLInputElement>|FormEvent<HTMLInputElement>) {
+    acceptSelectedFile(e.currentTarget.files?.[0]||null,e.currentTarget);
+  }
+
+  function watchNativePicker() {
+    if(pickerWatchRef.current!==null)window.clearInterval(pickerWatchRef.current);
+    let attempts=0;
+    pickerWatchRef.current=window.setInterval(()=>{
+      attempts+=1;
+      const input=fileInputRef.current;
+      if(input?.files?.[0])acceptSelectedFile(input.files[0],input);
+      if(attempts>=30&&pickerWatchRef.current!==null){window.clearInterval(pickerWatchRef.current);pickerWatchRef.current=null;}
+    },300);
   }
 
   const sizeLabel=file?`${(file.size/1024/1024).toFixed(2)} MB`:'';
@@ -353,13 +385,14 @@ function EvidenceEditor({ evidence,file,setFile,documentType,setDocumentType,onU
     <header><FilePlus2/><div><h3>Verification evidence</h3><p>{deferredUpload?'ছবি বাছাই করুন—Save & Next চাপলে upload ও submit হবে।':'Documents private verification-documents bucket-এ থাকবে।'}</p></div></header>
     <div className="evidence-picker-row">
       <select disabled={disabled||busy} value={documentType} onChange={e=>setDocumentType(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
-      <div className={`evidence-native-file ${file?'selected':''}`}><FilePlus2/><input ref={fileInputRef} aria-label="Verification image or PDF নির্বাচন করুন" disabled={disabled||busy} type="file" data-skip-global-guard="true" accept="image/jpeg,image/png,image/webp,image/avif,application/pdf" onChange={handleFileChange}/></div>
+      <div className={`evidence-native-file ${file?'selected':''}`}><FilePlus2/><input ref={fileInputRef} aria-label="Verification image or PDF নির্বাচন করুন" disabled={disabled||busy} type="file" data-skip-global-guard="true" accept="image/jpeg,image/png,image/webp,image/avif,application/pdf,.jpg,.jpeg,.png,.webp,.avif,.pdf" onClick={watchNativePicker} onInput={handleFileEvent} onChange={handleFileEvent}/></div>
     </div>
     {file&&<div className="evidence-selected-preview">
       {previewUrl?<img src={previewUrl} alt="নির্বাচিত verification document-এর বড় preview"/>:<div className="evidence-pdf-preview"><FileCheck2/><strong>PDF document নির্বাচিত</strong></div>}
       <div className="evidence-selected-meta"><span><strong>{file.name}</strong><small>{sizeLabel} • {documentType.replaceAll('_',' ')}</small></span><button type="button" disabled={busy} onClick={()=>setFile(null)} aria-label="নির্বাচিত document সরান"><Trash2/> সরান</button></div>
     </div>}
     {(error||operationError)&&<small className="form-error evidence-operation-message" role="alert">{error||operationError}</small>}
+    {selectionNotice&&file&&<small className="form-success evidence-operation-message" role="status">{selectionNotice}</small>}
     {operationNotice&&<small className="form-success evidence-operation-message" role="status">{operationNotice}</small>}
     <small className="image-upload-hint">ছবির প্রস্তাবিত সর্বোচ্চ 2200×2200 px • Original image সর্বোচ্চ 5 MB • Upload-এর আগে 100–200 KB WebP-তে auto-compress হবে • PDF সর্বোচ্চ 10 MB</small>
     {deferredUpload&&file&&<div className="evidence-save-prompt"><Save/><span><strong>Preview প্রস্তুত</strong><small>নিচের Save & Next চাপলে document upload হয়ে verification application submit হবে।</small></span></div>}

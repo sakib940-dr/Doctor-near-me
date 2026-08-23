@@ -12,7 +12,10 @@ const auth = read('src/contexts/AuthContext.tsx');
 const app = read('src/App.tsx');
 const sw = read('public/sw.js');
 const migration = read('supabase/51_web_push_notification_center.sql');
+const bloodMigration = read('supabase/70_blood_push_and_expiry_scheduler.sql');
 const worker = read('supabase/functions/send-web-push/index.ts');
+const bloodService = read('src/services/bloodBank.ts');
+const bloodPage = read('src/pages/BloodBankPage.tsx');
 const env = read('.env.example');
 
 // Permission default: browser permission request must be user-initiated through custom UI.
@@ -60,7 +63,27 @@ for (const event of [
   'appointment_new', 'appointment_provider_new', 'appointment_confirmed', 'appointment_reminder',
   'appointment_changed', 'appointment_cancelled', 'provider_contact_request', 'new_follower', 'new_review',
   'doctor_verification', 'provider_verification', 'premium_status', 'premium_progress', 'saved_doctor_update', 'system_notification',
+  'blood_request', 'blood_direct_request', 'blood_donor_response',
 ]) expect(migration.includes(event) || worker.includes(event), `required notification event missing ${event}`);
+
+// Blood events reuse the canonical outbox worker and deep-link to their existing tabs.
+for (const token of ["'/blood?tab=respond'", "'/blood?tab=request'", 'defaultDeepLink']) {
+  expect(worker.includes(token), `blood push routing missing ${token}`);
+}
+expect(!worker.includes('contact_phone'), 'blood push worker must not expose contact_phone');
+
+// Expiry is system-only, scheduled, and stale alerts are filtered by active request status.
+for (const token of [
+  'create extension if not exists pg_cron',
+  "'*/15 * * * *'",
+  'select public.expire_old_blood_requests()',
+  'if auth.uid() is not null',
+  "revoke all on function public.expire_old_blood_requests() from public,anon,authenticated",
+  "r.status in ('open','partially_fulfilled')",
+  'get_my_active_blood_alerts',
+]) expect(bloodMigration.includes(token), `blood expiry/alert hardening missing ${token}`);
+expect(bloodService.includes("rpc('get_my_active_blood_alerts'"), 'blood service must use active-alert RPC');
+expect(bloodPage.includes('getMyActiveBloodAlerts'), 'blood response tab must load active alerts only');
 
 // Privacy: lock-screen payload must be server-generated generic copy, not private DB body/patient note/prescription content.
 expect(worker.includes('lockScreenCopy'), 'privacy-safe lock-screen mapping missing');

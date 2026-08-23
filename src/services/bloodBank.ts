@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, PublicBloodRequestRow } from '../types';
+import type { AppNotification } from './notifications';
 
 export async function getMyBloodDonorProfile() {
   const { data, error } = await requireSupabase().rpc('get_my_blood_donor_profile');
@@ -38,6 +39,9 @@ export async function searchBloodDonors(input: {
   bloodGroup: string;
   districtId?: number | null;
   upazilaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  includeCompatible?: boolean;
   limit?: number;
   offset?: number;
 }) {
@@ -45,6 +49,9 @@ export async function searchBloodDonors(input: {
     p_blood_group: input.bloodGroup,
     p_district_id: input.districtId ?? null,
     p_upazila_id: input.upazilaId ?? null,
+    p_latitude: input.latitude ?? null,
+    p_longitude: input.longitude ?? null,
+    p_include_compatible: input.includeCompatible ?? false,
     p_limit: Math.min(Math.max(input.limit ?? 20, 1), 50),
     p_offset: Math.max(input.offset ?? 0, 0),
   });
@@ -63,6 +70,7 @@ export async function createBloodRequest(input: {
   neededAt?: string | null;
   reason?: string | null;
   contactPhone?: string | null;
+  includeCompatibleDonors?: boolean;
 }) {
   const { data, error } = await requireSupabase().rpc('create_blood_request_and_notify', {
     p_patient_name: input.patientName,
@@ -75,6 +83,7 @@ export async function createBloodRequest(input: {
     p_needed_at: input.neededAt || null,
     p_reason: input.reason?.trim() || null,
     p_contact_phone: input.contactPhone?.trim() || null,
+    p_include_compatible: input.includeCompatibleDonors ?? false,
   });
   if (error) throw error;
   return String(data);
@@ -83,7 +92,21 @@ export async function createBloodRequest(input: {
 export async function getMyBloodRequests() {
   const { data, error } = await requireSupabase().rpc('get_my_blood_requests');
   if (error) throw error;
-  return ((data ?? []) as BloodRequestRow[]).map((row) => ({ ...row, response_count: Number(row.response_count ?? 0) }));
+  return ((data ?? []) as BloodRequestRow[]).map((row) => ({
+    ...row,
+    units_fulfilled: Number(row.units_fulfilled ?? 0),
+    response_count: Number(row.response_count ?? 0),
+  }));
+}
+
+export async function confirmBloodDonation(requestId: string, donorId: string, units = 1) {
+  const { data, error } = await requireSupabase().rpc('confirm_blood_donation', {
+    p_request_id: requestId,
+    p_donor_id: donorId,
+    p_units: Math.max(1,Math.min(Math.trunc(units),20)),
+  });
+  if (error) throw error;
+  return data as { request_id: string; donor_id: string; units_fulfilled: number; units_needed: number; status: string };
 }
 
 export async function getMyBloodRequestResponses(requestId: string) {
@@ -105,6 +128,15 @@ export async function getRecentBloodRequests(limit = 10) {
   });
   if (error) throw error;
   return (data ?? []) as PublicBloodRequestRow[];
+}
+
+export async function getMyActiveBloodAlerts(limit = 30, offset = 0) {
+  const { data, error } = await requireSupabase().rpc('get_my_active_blood_alerts', {
+    p_limit: Math.min(Math.max(limit, 1), 50),
+    p_offset: Math.max(offset, 0),
+  });
+  if (error) throw error;
+  return (data ?? []) as AppNotification[];
 }
 
 export async function sendBloodRequestToDonor(input: {

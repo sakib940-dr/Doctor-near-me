@@ -79,6 +79,12 @@ function safeDeepLink(value: unknown) {
 
 function lockScreenCopy(type: string) {
   switch (type) {
+    case 'blood_request':
+      return { title: 'জরুরি রক্তের অনুরোধ', body: 'আপনার রক্তের গ্রুপের একজন রোগীর জরুরি সহায়তা প্রয়োজন।' };
+    case 'blood_direct_request':
+      return { title: 'সরাসরি রক্তের অনুরোধ', body: 'একজন রোগী সরাসরি আপনার কাছে রক্তের অনুরোধ পাঠিয়েছেন।' };
+    case 'blood_donor_response':
+      return { title: 'রক্তদাতার সাড়া পাওয়া গেছে', body: 'আপনার রক্তের অনুরোধে একজন donor সাড়া দিয়েছেন।' };
     case 'appointment_new':
     case 'appointment_provider_new':
       return { title: 'নতুন অ্যাপয়েন্টমেন্ট', body: 'একটি নতুন অ্যাপয়েন্টমেন্ট অনুরোধ এসেছে।' };
@@ -111,9 +117,24 @@ function lockScreenCopy(type: string) {
   }
 }
 
+function defaultDeepLink(type: string) {
+  switch (type) {
+    case 'blood_request':
+    case 'blood_direct_request':
+      return '/blood?tab=respond';
+    case 'blood_donor_response':
+      return '/blood?tab=request';
+    default:
+      return '/dashboard';
+  }
+}
+
 function payloadFor(notification: NotificationRow) {
   const copy = lockScreenCopy(notification.type);
-  const deepLink = safeDeepLink(notification.data?.deep_link);
+  const explicitDeepLink = notification.data?.deep_link;
+  const deepLink = typeof explicitDeepLink === 'string'
+    ? safeDeepLink(explicitDeepLink)
+    : defaultDeepLink(notification.type);
   return JSON.stringify({
     title: copy.title,
     body: copy.body,

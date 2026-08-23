@@ -6011,8 +6011,10 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .bb-hint svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; }
 
 /* Search form */
-.bb-search-form { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr auto; gap: 8px; align-items: end; margin-bottom: 14px; }
+.bb-search-form { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr auto auto; gap: 8px; align-items: end; margin-bottom: 14px; }
 .bb-search-form label,.bb-form-grid label { min-width: 0; display: grid; gap: 5px; color: #5b6e66; font-size: 10px; font-weight: 800; }
+.bb-search-form .bb-compatible-toggle { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 4px; color: var(--bb-ink); white-space: nowrap; cursor: pointer; }
+.bb-compatible-toggle input { width: 16px; height: 16px; accent-color: var(--bb-700); }
 .bb-search-form select,.bb-form-grid select,.bb-form-grid input,.bb-form-grid textarea {
   width: 100%; min-height: 42px; border: 1px solid #dce5e1; border-radius: 10px; padding: 8px 10px; background: #fff; font: inherit; font-size: 12px;
   transition: border-color .15s, box-shadow .15s;
@@ -6077,12 +6079,21 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .bb-request-actions button { min-height: 30px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e0d6d8; border-radius: 8px; padding: 0 9px; color: #6f5257; background: #fff; font: inherit; font-size: 9.5px; font-weight: 800; cursor: pointer; }
 .bb-request-actions button.danger { color: #a62436; border-color: #f0c9cd; }
 .bb-request-actions svg { width: 13px; height: 13px; }
+.bb-unit-progress { display: grid; gap: 4px; margin-top: 9px; }
+.bb-unit-progress span { color: var(--bb-700); font-size: 9.5px; font-weight: 800; }
+.bb-unit-progress progress { width: 100%; height: 7px; overflow: hidden; border: 0; border-radius: 999px; accent-color: var(--bb-700); }
 .bb-response-list { display: grid; gap: 6px; margin-top: 10px; padding: 9px; border-radius: 11px; background: var(--bb-50); }
 .bb-response-row { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; align-items: center; gap: 8px; }
 .bb-response-copy strong { display: block; font-size: 10.5px; color: var(--bb-ink); }
 .bb-response-copy small { display: block; color: var(--bb-muted); font-size: 9px; text-transform: capitalize; }
 .bb-response-row a { display: inline-flex; align-items: center; gap: 4px; color: var(--bb-700); text-decoration: none; font-weight: 800; font-size: 9.5px; }
 .bb-response-row a svg { width: 12px; height: 12px; }
+.bb-response-controls { display: grid; justify-items: end; gap: 5px; }
+.bb-confirm-donation { display: flex; align-items: center; gap: 4px; }
+.bb-confirm-donation input { width: 48px; height: 29px; border: 1px solid #decfd2; border-radius: 7px; padding: 0 5px; color: var(--bb-ink); background: #fff; font: inherit; font-size: 10px; }
+.bb-confirm-donation button { min-height: 29px; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 7px; padding: 0 8px; color: #fff; background: var(--bb-700); font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.bb-confirm-donation button:disabled { opacity: .65; cursor: wait; }
+.bb-confirm-donation svg { width: 12px; height: 12px; }
 .bb-empty-compact { padding: 10px; font-size: 9.5px; }
 
 /* Donor tab */
@@ -6191,6 +6202,9 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
   .bb-donor-card .bb-donor-actions a,.bb-donor-card .bb-donor-actions button { flex: 1; justify-content: center; }
   .bb-donor-card .bb-group-chip-sm { display: none; }
   .bb-response-row { grid-template-columns: 26px 1fr auto; }
+  .bb-response-controls { grid-column: 1/-1; width: 100%; justify-items: stretch; }
+  .bb-confirm-donation { width: 100%; }
+  .bb-confirm-donation button { flex: 1; justify-content: center; }
   .bb-recent-card { grid-template-columns: 38px minmax(0,1fr); }
   .bb-recent-card .bb-urgency { grid-column: 1/-1; justify-self: start; margin-top: 2px; }
   .bb-tabs-4 { grid-template-columns: repeat(2,minmax(0,1fr)); }

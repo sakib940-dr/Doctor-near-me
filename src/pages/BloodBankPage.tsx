@@ -23,9 +23,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import { getMyPatientProfile } from '../services/appointments';
-import { getMyNotificationPage } from '../services/notifications';
 import {
   cancelMyBloodRequest,
+  confirmBloodDonation,
   createBloodRequest,
   getMyBloodDonorProfile,
   getMyBloodRequestResponses,
@@ -34,6 +34,7 @@ import {
   saveMyBloodDonorProfile,
   searchBloodDonors,
   getRecentBloodRequests,
+  getMyActiveBloodAlerts,
   sendBloodRequestToDonor,
 } from '../services/bloodBank';
 import type { BloodResponseStatus } from '../services/bloodBank';
@@ -41,7 +42,22 @@ import { getDistricts, getUpazilas } from '../services/discovery';
 import type { BloodDonorProfile, BloodDonorSearchRow, BloodRequestResponseRow, BloodRequestRow, District, PatientProfile, Upazila, PublicBloodRequestRow } from '../types';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'অনুরোধটি সম্পন্ন করা যায়নি।';
+const messageFrom = (error: unknown) => {
+  const message = error instanceof Error ? error.message : '';
+  if (message.includes('DONOR_NOT_ELIGIBLE_YET')) {
+    const eligibleDate = message.match(/eligible on (\d{4}-\d{2}-\d{2})/)?.[1];
+    return eligibleDate
+      ? `এই donor এখনো রক্তদানের জন্য eligible নন। ${eligibleDate} তারিখের পর আবার চেষ্টা করুন।`
+      : 'শেষ রক্তদানের পর ১২০ দিন পূর্ণ না হওয়ায় donor এখনো eligible নন।';
+  }
+  if (message.includes('DONOR_BLOOD_GROUP_INCOMPATIBLE')) return 'এই donor-এর blood group রোগীর জন্য compatible নয়।';
+  if (message.includes('BLOOD_DONOR_COOLDOWN_ACTIVE')) return 'এই donor-এর কাছে গত ২৪ ঘণ্টার মধ্যে ইতোমধ্যে অনুরোধ পাঠানো হয়েছে। পরে আবার চেষ্টা করুন।';
+  if (message.includes('BLOOD_DIRECT_REQUEST_RATE_LIMIT')) return 'এক ঘণ্টায় সর্বোচ্চ ১০টি সরাসরি blood request পাঠানো যায়। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+  if (message.includes('DONATION_ALREADY_CONFIRMED')) return 'এই donor-এর রক্তদান ইতোমধ্যে নিশ্চিত করা হয়েছে।';
+  if (message.includes('DONOR_RESPONSE_NOT_CONFIRMABLE') || message.includes('DONOR_RESPONSE_REQUIRED')) return 'এই donor-এর গ্রহণযোগ্য response ছাড়া রক্তদান নিশ্চিত করা যাবে না।';
+  if (message.includes('BLOOD_REQUEST_NOT_ACTIVE')) return 'এই blood request আর active নেই।';
+  return message || 'অনুরোধটি সম্পন্ন করা যায়নি।';
+};
 type BloodTab = 'search' | 'request' | 'donor' | 'respond';
 
 const DONATION_GAP_DAYS = 120;
@@ -175,6 +191,7 @@ export default function BloodBankPage() {
   const [searchGroup, setSearchGroup] = useState('');
   const [searchDistrict, setSearchDistrict] = useState('');
   const [searchUpazila, setSearchUpazila] = useState('');
+  const [includeCompatible, setIncludeCompatible] = useState(false);
   const [donors, setDonors] = useState<BloodDonorSearchRow[]>([]);
   const [donorsHasMore, setDonorsHasMore] = useState(false);
   const [donorsLoadingMore, setDonorsLoadingMore] = useState(false);
@@ -210,6 +227,8 @@ export default function BloodBankPage() {
   const [incomingLoaded, setIncomingLoaded] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [myResponses, setMyResponses] = useState<Record<string, BloodResponseStatus>>({});
+  const [fulfillmentUnits, setFulfillmentUnits] = useState<Record<string, string>>({});
+  const [confirmingResponseId, setConfirmingResponseId] = useState<string | null>(null);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
@@ -222,8 +241,8 @@ export default function BloodBankPage() {
   async function loadIncomingAlerts() {
     setIncomingLoading(true); setError(null);
     try {
-      const page = await getMyNotificationPage(30, 0, false);
-      const alerts = page.items
+      const items = await getMyActiveBloodAlerts(30, 0);
+      const alerts = items
         .filter((item) => item.type === 'blood_request' || item.type === 'blood_direct_request')
         .map(parseIncomingAlert)
         .filter((item): item is IncomingBloodAlert => item !== null);
@@ -314,6 +333,9 @@ export default function BloodBankPage() {
         bloodGroup: searchGroup,
         districtId: searchDistrict ? Number(searchDistrict) : null,
         upazilaId: searchUpazila ? Number(searchUpazila) : null,
+        latitude: profile?.latitude ?? null,
+        longitude: profile?.longitude ?? null,
+        includeCompatible,
         limit: 20, offset,
       });
       setDonors((current) => {
@@ -376,7 +398,7 @@ export default function BloodBankPage() {
     event.preventDefault();
     setError(null); setNotice(null); setWorking(true);
     try {
-      await saveMyBloodDonorProfile({ bloodGroup: donorGroup, isVolunteer, phonePublic, lastDonationDate: lastDonation || null, availableForRequests: available, districtId: donorDistrict ? Number(donorDistrict) : null, upazilaId: donorUpazila ? Number(donorUpazila) : null });
+      await saveMyBloodDonorProfile({ bloodGroup: donorGroup, isVolunteer, phonePublic, lastDonationDate: lastDonation || null, availableForRequests: available, districtId: donorDistrict ? Number(donorDistrict) : null, upazilaId: donorUpazila ? Number(donorUpazila) : null, latitude: donorProfile?.latitude ?? null, longitude: donorProfile?.longitude ?? null });
       setDonorProfile(await getMyBloodDonorProfile());
       setNotice('Blood donor preference save হয়েছে।');
     } catch (saveError) { setError(messageFrom(saveError)); }
@@ -399,6 +421,26 @@ export default function BloodBankPage() {
     try { await cancelMyBloodRequest(requestId); setRequests(await getMyBloodRequests()); }
     catch (cancelError) { setError(messageFrom(cancelError)); }
     finally { setWorking(false); }
+  }
+
+  async function confirmDonation(requestId: string, response: BloodRequestResponseRow) {
+    const units = Number(fulfillmentUnits[response.response_id] || '1');
+    if (!Number.isInteger(units) || units<1 || units>20) {
+      setError('নিশ্চিত ইউনিট ১ থেকে ২০-এর মধ্যে হতে হবে।');
+      return;
+    }
+    setConfirmingResponseId(response.response_id); setError(null); setNotice(null);
+    try {
+      await confirmBloodDonation(requestId,response.donor_id,units);
+      const [nextRequests,nextResponses] = await Promise.all([
+        getMyBloodRequests(),
+        getMyBloodRequestResponses(requestId),
+      ]);
+      setRequests(nextRequests);
+      setResponses((current) => ({ ...current,[requestId]: nextResponses }));
+      setNotice(`${units.toLocaleString('bn-BD')} ইউনিট রক্তদান নিশ্চিত হয়েছে।`);
+    } catch (confirmError) { setError(messageFrom(confirmError)); }
+    finally { setConfirmingResponseId(null); }
   }
 
   if (loading) return <div className="loading-box"><LoaderCircle className="spin" /> Blood Bank লোড হচ্ছে…</div>;
@@ -482,17 +524,18 @@ export default function BloodBankPage() {
           <label><span>রক্তের গ্রুপ</span><select required value={searchGroup} onChange={(event) => setSearchGroup(event.target.value)}><option value="">নির্বাচন করুন</option>{bloodGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
           <label><span>জেলা</span><select value={searchDistrict} onChange={(event) => { setSearchDistrict(event.target.value); setSearchUpazila(''); }}><option value="">সারা বাংলাদেশ</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></label>
           <label><span>উপজেলা / এলাকা</span><select value={searchUpazila} disabled={!searchDistrict} onChange={(event) => setSearchUpazila(event.target.value)}><option value="">সকল উপজেলা / এলাকা</option>{searchUpazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></label>
+          <label className="bb-compatible-toggle"><input type="checkbox" checked={includeCompatible} onChange={(event) => { setIncludeCompatible(event.target.checked); setDonors([]); setDonorsHasMore(false); setSearched(false); }} /><span>compatible group-ও দেখান</span></label>
           <button disabled={working}>{working ? <LoaderCircle className="spin" /> : <Search />} খুঁজুন</button>
         </form>
         {compatibleGroupsForSearch.length > 0 && (
-          <p className="bb-hint"><ShieldCheck /> <strong>{searchGroup}</strong>-এর রোগী এই গ্রুপগুলো থেকেও রক্ত নিতে পারেন: {compatibleGroupsForSearch.filter((g) => g !== searchGroup).join(', ') || 'শুধু নিজ গ্রুপ থেকে'}</p>
+          <p className="bb-hint"><ShieldCheck /> <strong>{searchGroup}</strong>-এর রোগী এই গ্রুপগুলো থেকেও রক্ত নিতে পারেন: {compatibleGroupsForSearch.filter((g) => g !== searchGroup).join(', ') || 'শুধু নিজ গ্রুপ থেকে'} · {includeCompatible ? 'Compatible matching চালু আছে' : 'Compatible matching বর্তমানে বন্ধ'}</p>
         )}
         <div className="bb-donor-results">
           {searched && !donors.length ? <p className="empty-state">Matching available donor পাওয়া যায়নি — জেলা পরিবর্তন করে আবার চেষ্টা করুন।</p> : donors.map((donor) => <article key={donor.donor_id} className="bb-donor-card">
             <span className="bb-avatar">{initialsOf(donor.donor_name)}<em className={donor.available_for_requests === false ? 'bb-dot-off' : 'bb-dot-on'} /></span>
             <div className="bb-donor-copy">
               <strong>{donor.donor_name}</strong>
-              <small><MapPin /> {donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}</small>
+              <small><MapPin /> {donor.distance_km != null ? `${Number(donor.distance_km).toFixed(1)} km দূরে` : donor.district_id ? districtNames.get(donor.district_id) || 'জেলা' : 'সারা বাংলাদেশ'}</small>
               <small className="bb-donor-meta">{donor.last_donation_date ? `শেষ দান ${donor.last_donation_date}` : 'দানের রেকর্ড নেই'} · {donor.available_for_requests === false ? 'বর্তমানে unavailable' : 'Available'}</small>
             </div>
             <span className="bb-group-chip bb-group-chip-sm">{donor.blood_group}</span>
@@ -545,15 +588,26 @@ export default function BloodBankPage() {
                   </div>
                   <span className={`bb-status-pill bb-status-${status.tone}`}>{status.label}</span>
                 </div>
+                <div className="bb-unit-progress">
+                  <span>{request.units_fulfilled.toLocaleString('bn-BD')}/{request.units_needed.toLocaleString('bn-BD')} ইউনিট নিশ্চিত হয়েছে</span>
+                  <progress value={Math.min(request.units_fulfilled,request.units_needed)} max={request.units_needed} />
+                </div>
                 <div className="bb-request-actions">
                   <button type="button" onClick={() => void loadResponses(request.request_id)}><Users /> Response ({request.response_count})</button>
                   {['open', 'partially_fulfilled'].includes(request.status) ? <button className="danger" type="button" onClick={() => void cancelRequest(request.request_id)}><XCircle /> বাতিল</button> : null}
                 </div>
-                {responses[request.request_id] && <div className="bb-response-list">{responses[request.request_id].length ? responses[request.request_id].map((response) => <div key={response.response_id} className="bb-response-row">
-                  <span className="bb-avatar bb-avatar-sm">{initialsOf(response.donor_name)}</span>
-                  <div className="bb-response-copy"><strong>{response.donor_name}</strong><small>{response.status}</small></div>
-                  {response.phone ? <a href={`tel:${response.phone}`}><Phone /> {response.phone}</a> : <small className="bb-private-phone"><ShieldCheck /> Private</small>}
-                </div>) : <p className="empty-state bb-empty-compact">এখনও কোনো donor response নেই।</p>}</div>}
+                {responses[request.request_id] && <div className="bb-response-list">{responses[request.request_id].length ? responses[request.request_id].map((response) => {
+                  const confirmable = ['open','partially_fulfilled'].includes(request.status) && ['interested','accepted'].includes(response.status);
+                  const maxUnits = Math.max(1,request.units_needed-request.units_fulfilled);
+                  return <div key={response.response_id} className="bb-response-row">
+                    <span className="bb-avatar bb-avatar-sm">{initialsOf(response.donor_name)}</span>
+                    <div className="bb-response-copy"><strong>{response.donor_name}</strong><small>{response.status === 'completed' ? 'দান নিশ্চিত' : response.status}</small></div>
+                    <div className="bb-response-controls">
+                      {response.phone ? <a href={`tel:${response.phone}`}><Phone /> {response.phone}</a> : <small className="bb-private-phone"><ShieldCheck /> Private</small>}
+                      {confirmable ? <div className="bb-confirm-donation"><input aria-label="Donated units" type="number" min="1" max={maxUnits} value={fulfillmentUnits[response.response_id] || '1'} onChange={(event) => setFulfillmentUnits((current) => ({ ...current,[response.response_id]: event.target.value }))} /><button type="button" disabled={confirmingResponseId!==null} onClick={() => void confirmDonation(request.request_id,response)}>{confirmingResponseId===response.response_id ? <LoaderCircle className="spin" /> : <CheckCircle2 />} Mark as donated</button></div> : null}
+                    </div>
+                  </div>;
+                }) : <p className="empty-state bb-empty-compact">এখনও কোনো donor response নেই।</p>}</div>}
               </article>
             );
           }) : <p className="empty-state">এখনও কোনো blood request নেই।</p>}

@@ -56,6 +56,8 @@ export interface PatientProfile {
   emergency_contact_phone: string | null;
   preferred_language: string;
   profile_completed: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface BloodDonorProfile {
@@ -80,6 +82,7 @@ export interface BloodDonorSearchRow {
   upazila_id: number | null;
   last_donation_date: string | null;
   available_for_requests?: boolean;
+  distance_km: number | null;
 }
 
 export interface PublicBloodRequestRow {
@@ -99,6 +102,7 @@ export interface BloodRequestRow {
   patient_name: string;
   blood_group: string;
   units_needed: number;
+  units_fulfilled: number;
   hospital_name: string | null;
   hospital_address: string | null;
   district_id: number | null;

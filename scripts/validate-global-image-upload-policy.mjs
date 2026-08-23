@@ -38,7 +38,7 @@ for (const file of sourceFiles) {
     const tag = match[0];
     if (!/accept=["'][^"']*image\//.test(tag)) continue;
     imageInputCount += 1;
-    const after = text.slice((match.index ?? 0) + tag.length, (match.index ?? 0) + tag.length + 900);
+    const after = text.slice((match.index ?? 0) + tag.length, (match.index ?? 0) + tag.length + 3000);
     ok(after.includes('প্রস্তাবিত'), `${path.relative(root, file)} image field missing recommended resolution hint`);
     ok(after.includes('সর্বোচ্চ 5 MB'), `${path.relative(root, file)} image field missing 5 MB hint`);
     ok(after.includes('100–200 KB WebP-তে auto-compress হবে'), `${path.relative(root, file)} image field missing auto-compress hint`);

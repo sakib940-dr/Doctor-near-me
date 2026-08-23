@@ -5335,8 +5335,34 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 .onboarding-evidence > header svg { width: 20px; color: var(--green-700); }
 .onboarding-evidence h3 { margin: 0; color: var(--green-950); font-size: 13px; }
 .onboarding-evidence header p { margin: 2px 0 0; color: var(--muted); font-size: 9px; }
-.evidence-upload-row { display: grid; grid-template-columns: 180px minmax(0,1fr) auto; gap: 8px; align-items: center; }
-.evidence-upload-row select,.evidence-upload-row input { min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid #dfe6e2; border-radius: 10px; background: #fff; }
+.evidence-picker-row { display: grid; grid-template-columns: minmax(160px,210px) minmax(0,1fr); gap: 10px; align-items: stretch; }
+.evidence-picker-row > select { min-width: 0; min-height: 52px; padding: 10px 12px; border: 1px solid #dfe6e2; border-radius: 12px; background: #fff; color: var(--green-950); }
+.evidence-file-picker { position: relative; display: flex; min-width: 0; min-height: 52px; align-items: center; gap: 10px; padding: 9px 12px; border: 1px dashed #a9c8ba; border-radius: 12px; background: #fff; color: var(--green-800); cursor: pointer; overflow: hidden; }
+.evidence-file-picker.selected { border-style: solid; border-color: var(--green-600); background: #f3faf7; }
+.evidence-file-picker > svg { flex: 0 0 auto; width: 22px; }
+.evidence-file-picker > span { min-width: 0; }
+.evidence-file-picker strong,.evidence-file-picker small { display: block; }
+.evidence-file-picker strong { font-size: 11px; }
+.evidence-file-picker small { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-file-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.evidence-selected-preview { overflow: hidden; border: 1px solid #dbe8e1; border-radius: 16px; background: #edf3f0; box-shadow: 0 12px 30px rgba(18,73,50,.08); }
+.evidence-selected-preview > img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: contain; background: #e6eeea; }
+.evidence-pdf-preview { display: grid; min-height: 260px; place-content: center; justify-items: center; gap: 10px; color: var(--green-800); }
+.evidence-pdf-preview svg { width: 52px; height: 52px; }
+.evidence-selected-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; background: #fff; }
+.evidence-selected-meta span { min-width: 0; }
+.evidence-selected-meta strong,.evidence-selected-meta small { display: block; }
+.evidence-selected-meta strong { overflow: hidden; color: var(--green-950); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-selected-meta small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+.evidence-selected-meta button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; padding: 7px 9px; border: 0; border-radius: 9px; background: #fff0ed; color: #9c3f32; cursor: pointer; font-weight: 700; }
+.evidence-selected-meta button svg { width: 15px; }
+.evidence-operation-message { display: block; margin: 0; padding: 9px 11px; border-radius: 10px; }
+.evidence-save-prompt { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 11px; background: #e8f6ef; color: var(--green-800); }
+.evidence-save-prompt > svg { width: 19px; }
+.evidence-save-prompt strong,.evidence-save-prompt small { display: block; }
+.evidence-save-prompt strong { font-size: 10px; }
+.evidence-save-prompt small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+.evidence-upload-button { justify-self: start; min-width: 160px; }
 .onboarding-evidence-list { display: grid; gap: 7px; }
 .onboarding-evidence-list > div { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 10px; background: #fff; border: 1px solid #e5ebe8; }
 .onboarding-evidence-list > div > svg { width: 18px; color: var(--green-700); }
@@ -5359,7 +5385,7 @@ footer p a { color: white; font-weight: 800; text-decoration: underline; }
 
 @media (max-width: 820px) {
   .professional-step-card,.phone-identity-card { padding: 17px; }
-  .evidence-upload-row { grid-template-columns: 1fr; }
+  .evidence-picker-row { grid-template-columns: 1fr; }
   .onboarding-step-actions { grid-template-columns: 1fr 1fr; }
   .phone-otp-row { grid-template-columns: 1fr; }
 }

@@ -18,7 +18,8 @@
 
 ## Quick test
 
-- Doctor onboarding → BMDC certificate হিসেবে 1–5 MB JPG/PNG দিন এবং Upload চাপুন।
+- Doctor onboarding → BMDC certificate হিসেবে 1–5 MB JPG/PNG নির্বাচন করুন।
+- Updated onboarding-এ আলাদা Upload button নেই: file select করলে বড় preview দেখাবে এবং `Save & Next` চাপলেই upload + verification submit হবে।
 - একই page-এ college/session/BMDC লেখা upload-এর পরও আছে কিনা দেখুন।
 - 5 MB-এর বড় image select করলে সঙ্গে সঙ্গে Bengali error দেখা উচিত।
 - Doctor/Hospital slider, profile photo, gallery ও Reception Doctor photo দিয়ে একই পরীক্ষা করুন।

@@ -40,7 +40,12 @@ import type {
   DoctorTreatmentCostItem,
 } from '../types';
 
-const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'কাজটি সম্পন্ন করা যায়নি।';
+const messageFrom = (error: unknown) => {
+  const message = error instanceof Error ? error.message : error && typeof error === 'object' && 'message' in error ? String(error.message) : '';
+  if (/row-level security|violates.*policy|unauthorized/i.test(message)) return 'Save/Upload permission পাওয়া যায়নি। সর্বশেষ SQL migration deploy করে আবার চেষ্টা করুন।';
+  if (/SLIDER_IMAGE_LIMIT_REACHED/.test(message)) return 'সর্বোচ্চ ৪টি slider image রাখা যাবে।';
+  return message || 'কাজটি সম্পন্ন করা যায়নি।';
+};
 
 export interface DoctorPublicProfileContentPageProps {
   section?: 'all' | 'about' | 'services' | 'treatment' | 'investigation';
@@ -59,18 +64,20 @@ export default function DoctorPublicProfileContentPage({ section = 'all', embedd
   const [savingAbout, setSavingAbout] = useState(false);
   const [publicHref, setPublicHref] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (options?: { silent?: boolean; preserveDrafts?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError(null);
     try {
       const result = await getMyDoctorPublicContent();
       setContent(result);
-      setAboutBn(result?.bio_bn || '');
-      setAboutEn(result?.bio_en || '');
+      if (!options?.preserveDrafts) {
+        setAboutBn(result?.bio_bn || '');
+        setAboutEn(result?.bio_en || '');
+      }
     } catch (loadError) {
       setError(messageFrom(loadError));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, []);
 
@@ -121,7 +128,7 @@ export default function DoctorPublicProfileContentPage({ section = 'all', embedd
         {loading ? <div className="loading-box"><LoaderCircle className="spin" /> Content লোড হচ্ছে…</div> : !content ? <div className="empty-state"><h3>Content পাওয়া যায়নি</h3></div> : (
           <div className="doctor-public-editor-stack">
             {(section === 'all' || section === 'about') && <>
-              <SliderManager rows={content.slider_images} reload={load} onSaved={onSaved} setError={setError} setNotice={setNotice} />
+              <SliderManager rows={content.slider_images} reload={() => load({ silent: true, preserveDrafts: true })} onSaved={onSaved} setError={setError} setNotice={setNotice} />
               <section className="doctor-content-editor-card">
                 <header><div><small>বাংলা default</small><h2>About Doctor</h2></div></header>
                 <form className="doctor-bilingual-form" onSubmit={saveAbout}>
@@ -131,9 +138,9 @@ export default function DoctorPublicProfileContentPage({ section = 'all', embedd
                 </form>
               </section>
             </>}
-            {(section === 'all' || section === 'services') && <ServiceManager rows={content.services} reload={load} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
-            {(section === 'all' || section === 'treatment') && <TreatmentCostManager rows={content.treatment_costs} reload={load} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
-            {(section === 'all' || section === 'investigation') && <InvestigationCostManager rows={content.investigation_costs} reload={load} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
+            {(section === 'all' || section === 'services') && <ServiceManager rows={content.services} reload={() => load({ silent: true, preserveDrafts: true })} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
+            {(section === 'all' || section === 'treatment') && <TreatmentCostManager rows={content.treatment_costs} reload={() => load({ silent: true, preserveDrafts: true })} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
+            {(section === 'all' || section === 'investigation') && <InvestigationCostManager rows={content.investigation_costs} reload={() => load({ silent: true, preserveDrafts: true })} onSaved={onSaved} setError={setError} setNotice={setNotice} />}
           </div>
         )}
       </main>
@@ -156,6 +163,7 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
   const [captionEn, setCaptionEn] = useState('');
   const [active, setActive] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   function startEdit(row: DoctorSliderImage) {
     setEdit(row);
@@ -167,8 +175,10 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
   }
 
   function reset() {
+    if (preview) URL.revokeObjectURL(preview);
     setEdit(null);
     setFile(null);
+    setPreview(null);
     setCaptionBn('');
     setCaptionEn('');
     setActive(true);
@@ -178,20 +188,21 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
     const selected = event.target.files?.[0] || null;
     if (!selected) return;
     if (!selected.type.startsWith('image/')) {
-      setError('শুধু image file upload করা যাবে।');
+      setLocalError('শুধু image file upload করা যাবে।');
       return;
     }
+    if (selected.size > 10 * 1024 * 1024) { setLocalError('Slider image সর্বোচ্চ 10 MB হতে পারবে।'); event.target.value = ''; return; }
     if (preview) URL.revokeObjectURL(preview);
     setFile(selected);
     setPreview(URL.createObjectURL(selected));
-    setError(null);
+    setError(null); setLocalError(null);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!edit && !file) { setError('নতুন slider-এর জন্য একটি ছবি নির্বাচন করুন।'); return; }
+    if (!edit && !file) { setLocalError('নতুন slider-এর জন্য একটি ছবি নির্বাচন করুন।'); return; }
     setBusy(true);
-    setError(null);
+    setError(null); setLocalError(null);
     setNotice(null);
     try {
       if (edit) {
@@ -206,11 +217,12 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
           throw createError;
         }
       }
+      await reload();
       reset();
       setNotice(edit ? 'Slider image আপডেট হয়েছে।' : 'Slider image যোগ হয়েছে।');
-      await reload(); await onSaved?.();
+      await onSaved?.();
     } catch (saveError) {
-      setError(messageFrom(saveError));
+      const message = messageFrom(saveError); setLocalError(message); setError(message);
     } finally {
       setBusy(false);
     }
@@ -221,13 +233,13 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
-    setError(null);
-    try { await reorderDoctorSliderImages(next); await reload(); await onSaved?.(); } catch (moveError) { setError(messageFrom(moveError)); }
+    setError(null); setLocalError(null);
+    try { await reorderDoctorSliderImages(next); await reload(); await onSaved?.(); } catch (moveError) { const message=messageFrom(moveError);setLocalError(message);setError(message); }
   }
 
   async function remove(row: DoctorSliderImage) {
-    setError(null);
-    try { await deleteDoctorSliderImage(row); setNotice('Slider image মুছে ফেলা হয়েছে।'); if (edit?.id === row.id) reset(); await reload(); await onSaved?.(); } catch (deleteError) { setError(messageFrom(deleteError)); }
+    setError(null); setLocalError(null);
+    try { await deleteDoctorSliderImage(row); setNotice('Slider image মুছে ফেলা হয়েছে।'); if (edit?.id === row.id) reset(); await reload(); await onSaved?.(); } catch (deleteError) { const message=messageFrom(deleteError);setLocalError(message);setError(message); }
   }
 
   return (
@@ -235,7 +247,8 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
       <header><div><small>{rows.length}/4 images</small><h2>Profile Image Slider</h2></div><ImagePlus /></header>
       <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
       <form className="doctor-content-compact-form" onSubmit={submit}>
-        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-skip-global-guard="true" onChange={handleFileChange} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input key={file?`${file.name}-${file.lastModified}`:'empty-slider'} type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-skip-global-guard="true" onChange={handleFileChange} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        {localError && <div className="doctor-content-inline-error" role="alert">{localError}</div>}
         {preview && <div className="doctor-slider-preview"><img src={preview} alt="Selected slider preview" width="320" /></div>}
         <input value={captionBn} onChange={(event) => setCaptionBn(event.target.value)} placeholder="বাংলা caption (optional)" />
         <input value={captionEn} onChange={(event) => setCaptionEn(event.target.value)} placeholder="English caption (optional)" />
@@ -258,21 +271,23 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
 function ServiceManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorServiceItem[] }) {
   const [edit, setEdit] = useState<DoctorServiceItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const input = {
       name: { bn: String(form.get('bn') || '').trim(), en: String(form.get('en') || '').trim() },
       description: { bn: String(form.get('dbn') || '').trim(), en: String(form.get('den') || '').trim() },
       is_active: form.get('active') === 'on',
       sort_order: edit?.sort_order ?? rows.length,
     };
-    setBusy(true); setError(null);
-    try { if (edit) await doctorServices.update(edit.id, input); else await doctorServices.create(input); setEdit(null); event.currentTarget.reset(); setNotice('সেবার তালিকা সংরক্ষণ হয়েছে।'); await reload(); await onSaved?.(); } catch (saveError) { setError(messageFrom(saveError)); } finally { setBusy(false); }
+    setBusy(true); setError(null); setLocalError(null);
+    try { if (edit) await doctorServices.update(edit.id, input); else await doctorServices.create(input); await reload(); setEdit(null); formElement.reset(); setNotice('সেবার তালিকা সংরক্ষণ হয়েছে।'); await onSaved?.(); } catch (saveError) { const message=messageFrom(saveError);setLocalError(message);setError(message); } finally { setBusy(false); }
   }
   async function move(index: number, direction: number) { const next = [...rows]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; try { await doctorServices.reorder(next); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }
-  return <section className="doctor-content-editor-card"><header><div><small>Bilingual list</small><h2>সেবাসমূহ</h2></div><Plus /></header><form className="doctor-content-grid-form" onSubmit={submit}><input name="bn" key={`bn-${edit?.id ?? 'new'}`} defaultValue={edit?.name.bn || ''} required placeholder="সেবার নাম বাংলা" /><input name="en" key={`en-${edit?.id ?? 'new'}`} defaultValue={edit?.name.en || ''} placeholder="Service name English" /><textarea name="dbn" key={`dbn-${edit?.id ?? 'new'}`} defaultValue={edit?.description?.bn || ''} placeholder="বাংলা description (optional)" /><textarea name="den" key={`den-${edit?.id ?? 'new'}`} defaultValue={edit?.description?.en || ''} placeholder="English description (optional)" /><label className="doctor-content-check"><input name="active" type="checkbox" defaultChecked={edit?.is_active ?? true} /> Public-এ দেখান</label><button disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button>{edit && <button type="button" className="doctor-content-cancel" onClick={() => setEdit(null)}><X /> Cancel</button>}</form><ContentRows rows={rows} title={(row) => row.name.bn || row.name.en || 'Service'} subtitle={(row) => row.description?.bn || row.description?.en || ''} move={move} edit={setEdit} remove={async (row) => { try { await doctorServices.remove(row.id); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }} /></section>;
+  return <section className="doctor-content-editor-card"><header><div><small>Bilingual list</small><h2>সেবাসমূহ</h2></div><Plus /></header><form className="doctor-content-grid-form" onSubmit={submit}><input name="bn" key={`bn-${edit?.id ?? 'new'}`} defaultValue={edit?.name.bn || ''} required placeholder="সেবার নাম বাংলা" /><input name="en" key={`en-${edit?.id ?? 'new'}`} defaultValue={edit?.name.en || ''} placeholder="Service name English" /><textarea name="dbn" key={`dbn-${edit?.id ?? 'new'}`} defaultValue={edit?.description?.bn || ''} placeholder="বাংলা description (optional)" /><textarea name="den" key={`den-${edit?.id ?? 'new'}`} defaultValue={edit?.description?.en || ''} placeholder="English description (optional)" /><label className="doctor-content-check"><input name="active" type="checkbox" defaultChecked={edit?.is_active ?? true} /> Public-এ দেখান</label>{localError&&<div className="doctor-content-inline-error" role="alert">{localError}</div>}<button disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button>{edit && <button type="button" className="doctor-content-cancel" onClick={() => setEdit(null)}><X /> Cancel</button>}</form><ContentRows rows={rows} title={(row) => row.name.bn || row.name.en || 'Service'} subtitle={(row) => row.description?.bn || row.description?.en || ''} move={move} edit={setEdit} remove={async (row) => { try { await doctorServices.remove(row.id); await reload(); await onSaved?.(); } catch (error) { const message=messageFrom(error);setLocalError(message);setError(message); } }} /></section>;
 }
 
 function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: EditorCommon & { rows: DoctorTreatmentCostItem[] }) {
@@ -280,11 +295,11 @@ function TreatmentCostManager({ rows, reload, onSaved, setError, setNotice }: Ed
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const form = new FormData(event.currentTarget);
+    event.preventDefault(); const formElement=event.currentTarget; const form = new FormData(formElement);
     const min = Number(form.get('min')); const maxRaw = String(form.get('max') || '').trim(); const max = maxRaw ? Number(maxRaw) : null;
     if (!Number.isFinite(min) || min < 0 || (max != null && (!Number.isFinite(max) || max < min))) { setError('Treatment cost সঠিকভাবে দিন; maximum cost starting cost-এর সমান বা বেশি হবে।'); return; }
     const input = { name: { bn: String(form.get('bn') || '').trim(), en: String(form.get('en') || '').trim() }, cost: { min, max, note_bn: String(form.get('noteBn') || '').trim(), note_en: String(form.get('noteEn') || '').trim() }, sort_order: edit?.sort_order ?? rows.length };
-    setBusy(true); setError(null); try { if (edit) await doctorTreatmentCosts.update(edit.id, input); else await doctorTreatmentCosts.create(input); setEdit(null); event.currentTarget.reset(); setNotice('Treatment cost সংরক্ষণ হয়েছে।'); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } finally { setBusy(false); }
+    setBusy(true); setError(null); try { if (edit) await doctorTreatmentCosts.update(edit.id, input); else await doctorTreatmentCosts.create(input); await reload(); setEdit(null); formElement.reset(); setNotice('Treatment cost সংরক্ষণ হয়েছে।'); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } finally { setBusy(false); }
   }
   async function move(index: number, direction: number) { const next = [...rows]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; try { await doctorTreatmentCosts.reorder(next); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }
   return <section className="doctor-content-editor-card"><header><div><small>Starting + maximum</small><h2>চিকিৎসার খরচ</h2></div><Plus /></header><form className="doctor-content-grid-form" onSubmit={submit}><input name="bn" key={`tbn-${edit?.id ?? 'new'}`} defaultValue={edit?.name.bn || ''} required placeholder="Treatment name বাংলা" /><input name="en" key={`ten-${edit?.id ?? 'new'}`} defaultValue={edit?.name.en || ''} placeholder="Treatment name English" /><input name="min" type="number" min="0" step="1" key={`tmin-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.min ?? ''} required placeholder="Starting cost" /><input name="max" type="number" min="0" step="1" key={`tmax-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.max ?? ''} placeholder="Maximum cost optional" /><input name="noteBn" key={`tnb-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.note_bn || ''} placeholder="নোট বাংলা (optional)" /><input name="noteEn" key={`tne-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.note_en || ''} placeholder="Note English (optional)" /><button disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button>{edit && <button type="button" className="doctor-content-cancel" onClick={() => setEdit(null)}><X /> Cancel</button>}</form><ContentRows rows={rows} title={(row) => row.name.bn || row.name.en || 'Treatment'} subtitle={(row) => `৳${row.cost.min ?? 0}${row.cost.max != null ? ` – ৳${row.cost.max}` : '+'}`} move={move} edit={setEdit} remove={async (row) => { try { await doctorTreatmentCosts.remove(row.id); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }} /></section>;
@@ -295,10 +310,10 @@ function InvestigationCostManager({ rows, reload, onSaved, setError, setNotice }
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const form = new FormData(event.currentTarget); const amount = Number(form.get('amount'));
+    event.preventDefault(); const formElement=event.currentTarget; const form = new FormData(formElement); const amount = Number(form.get('amount'));
     if (!Number.isFinite(amount) || amount < 0) { setError('Investigation cost সঠিকভাবে দিন।'); return; }
     const bn = String(form.get('bn') || '').trim(); const en = String(form.get('en') || '').trim(); if (!bn && !en) { setError('Investigation name দিন।'); return; } const input = { name: { bn, en }, cost: { amount: Number(amount), note_bn: String(form.get('noteBn') || '').trim(), note_en: String(form.get('noteEn') || '').trim() }, sort_order: edit?.sort_order ?? rows.length };
-    setBusy(true); setError(null); try { if (edit) await doctorInvestigationCosts.update(edit.id, input); else await doctorInvestigationCosts.create(input); setEdit(null); event.currentTarget.reset(); setNotice('Investigation cost সংরক্ষণ হয়েছে।'); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } finally { setBusy(false); }
+    setBusy(true); setError(null); try { if (edit) await doctorInvestigationCosts.update(edit.id, input); else await doctorInvestigationCosts.create(input); await reload(); setEdit(null); formElement.reset(); setNotice('Investigation cost সংরক্ষণ হয়েছে।'); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } finally { setBusy(false); }
   }
   async function move(index: number, direction: number) { const next = [...rows]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; try { await doctorInvestigationCosts.reorder(next); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }
   return <section className="doctor-content-editor-card"><header><div><small>Structured price list</small><h2>পরীক্ষা / Investigation খরচ</h2></div><Plus /></header><form className="doctor-content-grid-form" onSubmit={submit}><input name="bn" key={`ibn-${edit?.id ?? 'new'}`} defaultValue={edit?.name.bn || ''} required placeholder="Investigation name বাংলা" /><input name="en" key={`ien-${edit?.id ?? 'new'}`} defaultValue={edit?.name.en || ''} placeholder="Investigation name English" /><input name="amount" type="number" min="0" step="1" key={`iamount-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.amount ?? ''} required placeholder="Cost" /><input name="noteBn" key={`inb-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.note_bn || ''} placeholder="নোট বাংলা (optional)" /><input name="noteEn" key={`ine-${edit?.id ?? 'new'}`} defaultValue={edit?.cost.note_en || ''} placeholder="Note English (optional)" /><button disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <Save />} Save</button>{edit && <button type="button" className="doctor-content-cancel" onClick={() => setEdit(null)}><X /> Cancel</button>}</form><ContentRows rows={rows} title={(row) => row.name.bn || row.name.en || 'Investigation'} subtitle={(row) => `৳${row.cost.amount ?? 0}`} move={move} edit={setEdit} remove={async (row) => { try { await doctorInvestigationCosts.remove(row.id); await reload(); await onSaved?.(); } catch (error) { setError(messageFrom(error)); } }} /></section>;

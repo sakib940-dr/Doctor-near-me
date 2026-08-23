@@ -11,11 +11,6 @@ import type {
 } from '../types';
 
 type ContentTable = 'doctor_services' | 'doctor_treatment_costs' | 'doctor_investigation_costs';
-const CONTENT_COLUMNS: Record<ContentTable,string> = {
-  doctor_services:'id,doctor_id,name,description,icon,is_active,sort_order,created_at,updated_at',
-  doctor_treatment_costs:'id,doctor_id,name,cost,sort_order,created_at,updated_at',
-  doctor_investigation_costs:'id,doctor_id,name,cost,sort_order,created_at,updated_at',
-};
 
 type Reorderable = { id: number; sort_order: number };
 
@@ -44,7 +39,7 @@ export async function saveMyDoctorAbout(bioBn: string, bioEn: string) {
 
 export async function uploadDoctorSliderImage(file: File) {
   if (!file.type.startsWith('image/')) throw new Error('শুধু image file upload করা যাবে।');
-  if (file.size > 5 * 1024 * 1024) throw new Error('Image size সর্বোচ্চ 5 MB হতে হবে।');
+  if (file.size > 10 * 1024 * 1024) throw new Error('Image size সর্বোচ্চ 10 MB হতে হবে।');
   const client = requireSupabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) throw new Error('Authentication required');
@@ -73,16 +68,16 @@ export async function createDoctorSliderImage(input: {
   active?: boolean;
   sortOrder: number;
 }) {
-  const client = requireSupabase();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) throw new Error('Authentication required');
-  const { data, error } = await client.from('doctor_slider_images').insert({
-    doctor_id: user.id,
+  const { data, error } = await requireSupabase().rpc('mutate_my_doctor_slider_image', {
+    p_action: 'create',
+    p_id: null,
+    p_payload: {
     image: input.image,
     caption: input.caption,
     is_active: input.active ?? true,
     sort_order: input.sortOrder,
-  }).select('id,doctor_id,image,caption,is_active,sort_order,created_at,updated_at').single();
+    },
+  });
   if (error) {
     await removeOwnedPublicImage(input.image);
     throw error;
@@ -91,13 +86,13 @@ export async function createDoctorSliderImage(input: {
 }
 
 export async function updateDoctorSliderImage(id: number, input: Partial<Pick<DoctorSliderImage, 'image' | 'caption' | 'is_active' | 'sort_order'>>) {
-  const { data, error } = await requireSupabase().from('doctor_slider_images').update(input).eq('id', id).select('id,doctor_id,image,caption,is_active,sort_order,created_at,updated_at').single();
+  const { data, error } = await requireSupabase().rpc('mutate_my_doctor_slider_image', { p_action: 'update', p_id: id, p_payload: input });
   if (error) throw error;
   return data as DoctorSliderImage;
 }
 
 export async function deleteDoctorSliderImage(row: DoctorSliderImage) {
-  const { error } = await requireSupabase().from('doctor_slider_images').delete().eq('id', row.id);
+  const { error } = await requireSupabase().rpc('mutate_my_doctor_slider_image', { p_action: 'delete', p_id: row.id, p_payload: {} });
   if (error) throw error;
   await removeOwnedPublicImage(row.image);
 }
@@ -120,22 +115,19 @@ export async function reorderDoctorSliderImages(rows: DoctorSliderImage[]) {
 }
 
 async function createContentRow<T>(table: ContentTable, input: Record<string, unknown>) {
-  const client = requireSupabase();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) throw new Error('Authentication required');
-  const { data, error } = await client.from(table).insert({ ...input, doctor_id: user.id }).select(CONTENT_COLUMNS[table]).single();
+  const { data, error } = await requireSupabase().rpc('mutate_my_doctor_content_item', { p_table: table, p_action: 'create', p_id: null, p_payload: input });
   if (error) throw error;
   return data as T;
 }
 
 async function updateContentRow<T>(table: ContentTable, id: number, input: Record<string, unknown>) {
-  const { data, error } = await requireSupabase().from(table).update(input).eq('id', id).select(CONTENT_COLUMNS[table]).single();
+  const { data, error } = await requireSupabase().rpc('mutate_my_doctor_content_item', { p_table: table, p_action: 'update', p_id: id, p_payload: input });
   if (error) throw error;
   return data as T;
 }
 
 async function deleteContentRow(table: ContentTable, id: number) {
-  const { error } = await requireSupabase().from(table).delete().eq('id', id);
+  const { error } = await requireSupabase().rpc('mutate_my_doctor_content_item', { p_table: table, p_action: 'delete', p_id: id, p_payload: {} });
   if (error) throw error;
 }
 

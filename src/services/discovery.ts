@@ -397,7 +397,7 @@ export async function getPublicProviders(input: {
       p_offset: offset,
     });
     if (error) throw error;
-    return ((data ?? []) as ProviderDirectoryRow[]).map((row) => ({
+    return ((data ?? []) as ProviderDirectoryRow[]).filter((row) => row.provider_type === 'hospital' && row.verified === true).map((row) => ({
       ...row,
       latitude: row.latitude == null ? null : Number(row.latitude),
       longitude: row.longitude == null ? null : Number(row.longitude),
@@ -414,7 +414,8 @@ export async function getPublicProviderBySlug(slug: string) {
   return publicCachedRequest(`public:provider-by-slug:${value}`, async () => {
     const { data, error } = await requireSupabase().from('public_provider_directory').select(PUBLIC_PROVIDER_COLUMNS).eq('slug', value).maybeSingle();
     if (error) throw error;
-    return (data ?? null) as unknown as ProviderDirectoryRow | null;
+    const provider = (data ?? null) as unknown as ProviderDirectoryRow | null;
+    return provider?.provider_type === 'hospital' && provider.verified === true ? provider : null;
   }, 60_000);
 }
 
@@ -422,7 +423,8 @@ export async function getPublicProvider(providerId: string) {
   return publicCachedRequest(`public:provider-by-id:${providerId}`, async () => {
     const { data, error } = await requireSupabase().from('public_provider_directory').select(PUBLIC_PROVIDER_COLUMNS).eq('id', providerId).maybeSingle();
     if (error) throw error;
-    return (data ?? null) as unknown as ProviderDirectoryRow | null;
+    const provider = (data ?? null) as unknown as ProviderDirectoryRow | null;
+    return provider?.provider_type === 'hospital' && provider.verified === true ? provider : null;
   }, 60_000);
 }
 
@@ -518,7 +520,7 @@ export async function getPublicProviderPageBase(identifier: string, doctorLimit 
     const { data, error } = await requireSupabase().rpc('get_public_provider_page_base', { p_identifier: value, p_doctor_limit: limit });
     if (error) throw error;
     const raw = (data ?? null) as { route?: PublicProfileRoute; provider?: ProviderDirectoryRow; content?: import('./providerPublicContent').ProviderPublicPageContent | null; doctors?: Array<Record<string, unknown>> } | null;
-    if (!raw?.route || !raw.provider) return null;
+    if (!raw?.route || !raw.provider || raw.provider.provider_type !== 'hospital' || raw.provider.verified !== true) return null;
     const doctors = (raw.doctors ?? []).map(mapDoctorSearchRow);
     return { route: raw.route, provider: raw.provider, content: raw.content ?? null, doctors } as PublicProviderPageBase;
   }, 60_000);

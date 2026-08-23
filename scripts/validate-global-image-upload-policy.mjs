@@ -40,8 +40,16 @@ for (const file of sourceFiles) {
     imageInputCount += 1;
     const after = text.slice((match.index ?? 0) + tag.length, (match.index ?? 0) + tag.length + 3000);
     ok(after.includes('প্রস্তাবিত'), `${path.relative(root, file)} image field missing recommended resolution hint`);
-    ok(after.includes('সর্বোচ্চ 5 MB'), `${path.relative(root, file)} image field missing 5 MB hint`);
-    ok(after.includes('100–200 KB WebP-তে auto-compress হবে'), `${path.relative(root, file)} image field missing auto-compress hint`);
+    ok(
+      after.includes('সর্বোচ্চ 5 MB') || after.includes('সর্বোচ্চ ৫ এমবি') || after.includes('maximum 5 MB'),
+      `${path.relative(root, file)} image field missing 5 MB hint`,
+    );
+    ok(
+      after.includes('100–200 KB WebP-তে auto-compress হবে')
+        || after.includes('১০০–২০০ কেবি WebP-তে স্বয়ংক্রিয়ভাবে সংকুচিত হবে')
+        || after.includes('automatically compressed to a 100–200 KB WebP'),
+      `${path.relative(root, file)} image field missing auto-compress hint`,
+    );
   }
 }
 ok(imageInputCount >= 10, `unexpectedly low image input audit count: ${imageInputCount}`);

@@ -3,6 +3,9 @@
 এই package আগের Step 70–77 সহ সম্পূর্ণ deployable source। নতুন database পরিবর্তনটি
 `supabase/78_public_profile_contact_map_independence.sql`-এ আছে।
 
+> Step 79 deploy করার পরে Provider publication rule বদলেছে: Doctor-owned Chamber শুধু
+> Doctor details-এ থাকে; কেবল verified Hospital account Hospital directory-তে প্রকাশিত হয়।
+
 ## Deploy order
 
 1. Supabase Dashboard → SQL Editor খুলুন।

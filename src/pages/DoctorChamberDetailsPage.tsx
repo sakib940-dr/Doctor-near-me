@@ -237,9 +237,7 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
         longitude: draft.longitude,
       });
       await load(result.provider_id);
-      setNotice(result.verification_reset
-        ? 'চেম্বারের তথ্য সংরক্ষণ হয়েছে। নতুন/পরিবর্তিত নাম বা location-এর জন্য provider verification pending থাকবে; approval-এর পর Near Me/Public Profile-এ প্রকাশ হবে।'
-        : 'চেম্বারের তথ্য সফলভাবে সংরক্ষণ হয়েছে।');
+      setNotice('চেম্বারের তথ্য সফলভাবে সংরক্ষণ হয়েছে। এটি আপনার Doctor details page-এ দেখা যাবে।');
       await onSaved?.();
     } catch (saveError) {
       setError(messageFrom(saveError));
@@ -438,7 +436,7 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
 
         <section className="chamber-data-flow-note">
           <ShieldAlert />
-          <div><strong>Near Me ও Prescription-ready data flow</strong><p>Coordinates `providers.latitude/longitude`-এ save হয়। Existing Near Me একই approved chamber coordinates এবং existing distance RPC ব্যবহার করে। Chamber name/address/phone/schedules একই canonical provider/schedule records-এ থাকায় ভবিষ্যতে Prescription PDF এই data reuse করতে পারবে; Prescription core এখানে পরিবর্তন করা হয়নি।</p></div>
+          <div><strong>Doctor profile ও Prescription-ready data flow</strong><p>Coordinates `providers.latitude/longitude`-এ save হয়। Doctor-owned chamber Hospital directory-তে আলাদা profile হিসেবে দেখানো হয় না; chamber name, address, phone, map ও schedule শুধু সংশ্লিষ্ট Doctor details/appointment flow-তে ব্যবহার হয়।</p></div>
         </section>
       </main>
     </div>
@@ -467,7 +465,7 @@ function ChamberCard({
       <div className="doctor-chamber-card-head">
         <div className="doctor-chamber-card-icon"><Building2 /></div>
         <div><small>{chamber.provider_type === 'hospital' ? 'Hospital' : 'Chamber'}</small><h3>{chamber.name_bn}</h3></div>
-        <span className={`chamber-status ${chamber.provider_status}`}>{providerStatus[chamber.provider_status] || chamber.provider_status}</span>
+        <span className={`chamber-status ${chamber.provider_status}`}>{chamber.owned_by_doctor ? 'ডাক্তার প্রোফাইলে সক্রিয়' : (providerStatus[chamber.provider_status] || chamber.provider_status)}</span>
       </div>
       <div className="doctor-chamber-meta">
         {chamber.address && <p><MapPin /> <span>{chamber.address}</span></p>}

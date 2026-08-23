@@ -124,8 +124,8 @@ export default function PublicProvidersPage() {
       <main className="container public-provider-main">
         <section className="provider-list-hero">
           <span><Building2 /> {tr('চিকিৎসা প্রতিষ্ঠান', 'Healthcare Providers')}</span>
-          <h1>{tr('হাসপাতাল ও চেম্বার', 'Hospitals & Chambers')}</h1>
-          <p>{tr('হাসপাতাল/চেম্বার বেছে নিয়ে সংশ্লিষ্ট ডাক্তার ও অবস্থান দেখুন।', 'Choose a hospital or chamber to view its doctors and location.')}</p>
+          <h1>{tr('হাসপাতাল', 'Hospitals')}</h1>
+          <p>{tr('ভেরিফায়েড হাসপাতাল বেছে নিয়ে সংশ্লিষ্ট ডাক্তার, যোগাযোগ ও অবস্থান দেখুন।', 'Choose a verified hospital to view its doctors, contact details, and location.')}</p>
           <div className="provider-filter-row">
             <label><MapPin /><select value={districtId} onChange={(event) => {
               const nextDistrict = event.target.value;
@@ -147,7 +147,7 @@ export default function PublicProvidersPage() {
         {loading ? <div className="loading-box"><LoaderCircle className="spin" /> {tr('প্রতিষ্ঠান লোড হচ্ছে…', 'Loading providers…')}</div> : rows.length ? <>
           <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} stats={stats[provider.id]} onStatsChange={(providerId, next) => setStats((current) => ({ ...current, [providerId]: next }))} viewerLocation={viewerLocation} key={provider.id} />)}</div>
           {hasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? <><LoaderCircle className="spin" /> {tr('লোড হচ্ছে…', 'Loading…')}</> : tr('আরও দেখুন', 'View more')}</button></div>}
-        </> : <div className="visitor-empty">{tr('কোনো হাসপাতাল/চেম্বার পাওয়া যায়নি।', 'No hospital or chamber was found.')}</div>}
+        </> : <div className="visitor-empty">{tr('কোনো ভেরিফায়েড হাসপাতাল পাওয়া যায়নি।', 'No verified hospital was found.')}</div>}
       </main>
       <VisitorBottomNav />
     </div>

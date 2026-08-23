@@ -31,19 +31,19 @@ const superAdmin = read('src/pages/SuperAdminPage.tsx');
 const styles = read('src/styles.css');
 
 mustInclude(shell, [
-  "{ label: 'Settings', path: '/doctor/settings'",
-  "{ label: 'Public Content Management', path: '/doctor/public-content'",
-  "{ label: 'Verification Application', path: '/doctor/verification'",
-  "{ label: 'Hospital / Provider Invitation', path: '/doctor/invitations'",
-  "{ label: 'Support / Chat with Admin', path: '/doctor/support'",
-  "{ label: 'Feedback / Bug Report', path: '/doctor/feedback'",
-  "{ label: 'FAQ / Help', path: '/doctor/help'",
-  "{ label: 'Appointment Management', path: '/doctor/appointments'",
-  "{ label: 'Prescription', path: '/doctor/prescriptions'",
-  "{ label: 'Analytics', path: '/doctor/analytics'",
-  "{ label: 'My Profile', path: '/doctor/profile'",
-  "{ label: 'Public Profile View', path: '/doctor/public-view'",
+  "'Settings'), path: '/doctor/settings'",
+  "'Public Content Management'), path: '/doctor/public-content'",
+  "'Verification Application'), path: '/doctor/verification'",
+  "'Support / Chat with Admin'), path: '/doctor/support'",
+  "'Feedback / Bug Report'), path: '/doctor/feedback'",
+  "'FAQ / Help'), path: '/doctor/help'",
+  "'Appointment Management'), path: '/doctor/appointments'",
+  "'Prescription'), path: '/doctor/prescriptions'",
+  "'Analytics'), path: '/doctor/analytics'",
+  "'My Profile'), path: '/doctor/profile'",
+  "'Public Profile View'), path: '/doctor/public-view'",
 ], 'Doctor navigation');
+mustNotInclude(shell, ["path: '/doctor/invitations'"], 'Removed Doctor invitation navigation');
 
 // Old scattered Doctor items must not still be visible in the Doctor hamburger array.
 const doctorMenu = shell.slice(shell.indexOf("case 'doctor':"), shell.indexOf("case 'patient':"));
@@ -91,7 +91,7 @@ mustInclude(onboarding, [
   'Medical Type *', 'Select MBBS / BDS', 'Save & Next',
   'submitMyDoctorVerificationApplication',
   "verificationStatus==='approved'||(verificationStatus==='pending'&&Boolean(submittedAt))",
-  'disabled={locked}', 'disabled={disabled||!file}',
+  'disabled={locked}', 'disabled={disabled||busy||!file}',
   'Visiting Card Details', 'Public Visiting-card Address *', 'Use My Current Location',
   '<h2>About Doctor</h2>', '<h2>Service List</h2>', '<h2>Treatment Cost</h2>',
   'Skip & Complete', 'Complete Onboarding', 'useUnsavedWarning',
@@ -129,9 +129,9 @@ mustInclude(superAdmin, ['All Medical Type', 'specialtyId', 'সব জেলা
 mustInclude(appointments, [
   'Today + Upcoming • Latest 5', 'slice(0, 5)', 'doctor-appointment-summary-grid',
   'Last 7 Days', 'All Appointments', 'updateAppointmentStatus',
-  "act(appointment.appointment_id, 'confirmed')", "act(appointment.appointment_id, 'rejected'",
-  "act(appointment.appointment_id, 'completed')", "act(appointment.appointment_id, 'no_show')",
-  "act(appointment.appointment_id, 'cancelled'", '/doctor/prescriptions?appointment=',
+  'act(appointment.appointment_id, "confirmed")', 'act(appointment.appointment_id, "rejected"',
+  'act(appointment.appointment_id, "completed")', 'act(appointment.appointment_id, "no_show")',
+  'act(appointment.appointment_id, "cancelled"', '/doctor/prescriptions?appointment=',
 ], 'Appointment Management');
 
 mustInclude(analytics, [

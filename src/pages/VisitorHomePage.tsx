@@ -641,8 +641,8 @@ export default function VisitorHomePage() {
 
         <section className="marketplace-section marketplace-hospital-section" id="hospitals">
           <div className="container">
-            <SectionHead language={language} eyebrow={areaTitle} title={tr('হাসপাতাল ও চেম্বার', 'Hospitals & Chambers')} href={contextProvidersHref} icon={<Building2 />} />
-            {resultsLoading ? <div className="marketplace-horizontal-rail provider-marketplace-rail"><div className="visitor-doctor-skeleton" /><div className="visitor-doctor-skeleton" /></div> : providers.length ? <div className="marketplace-horizontal-rail provider-marketplace-rail">{providers.map((provider) => <ProviderCard provider={provider} stats={providerStats[provider.id]} onStatsChange={updateProviderStats} viewerLocation={currentLocation} key={provider.id} />)}</div> : <div className="marketplace-empty">{tr('এই এলাকায় হাসপাতাল/চেম্বার পাওয়া যায়নি।', 'No hospital or chamber was found in this area.')}</div>}
+            <SectionHead language={language} eyebrow={areaTitle} title={tr('হাসপাতাল', 'Hospitals')} href={contextProvidersHref} icon={<Building2 />} />
+            {resultsLoading ? <div className="marketplace-horizontal-rail provider-marketplace-rail"><div className="visitor-doctor-skeleton" /><div className="visitor-doctor-skeleton" /></div> : providers.length ? <div className="marketplace-horizontal-rail provider-marketplace-rail">{providers.map((provider) => <ProviderCard provider={provider} stats={providerStats[provider.id]} onStatsChange={updateProviderStats} viewerLocation={currentLocation} key={provider.id} />)}</div> : <div className="marketplace-empty">{tr('এই এলাকায় কোনো ভেরিফায়েড হাসপাতাল পাওয়া যায়নি।', 'No verified hospital was found in this area.')}</div>}
           </div>
         </section>
 

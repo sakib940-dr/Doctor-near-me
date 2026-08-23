@@ -63,6 +63,16 @@ export async function decideVerificationReview(input: { entityType: Verification
   if (error) throw error;
 }
 
+export async function adminUpdateDoctorBmdc(input: { doctorId: string; bmdcRegistrationNo: string; reason: string }) {
+  const { data, error } = await requireSupabase().rpc('admin_update_doctor_bmdc', {
+    p_doctor_id: input.doctorId,
+    p_bmdc_registration_no: input.bmdcRegistrationNo.trim(),
+    p_reason: input.reason.trim(),
+  });
+  if (error) throw error;
+  return data === true;
+}
+
 
 export async function getMyDoctorVerificationProfile() {
   const { data, error } = await requireSupabase().rpc('get_my_doctor_verification_profile');

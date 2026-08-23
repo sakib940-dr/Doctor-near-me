@@ -31,7 +31,7 @@ export default function BookingPage() {
   const day = date ? new Date(`${date}T12:00:00`).getDay() : null;
   const schedules = useMemo(() => chamber?.schedules.filter((schedule) => day === schedule.day_of_week) ?? [], [chamber, day]);
   const selectedSchedule = schedules.find((schedule) => `${schedule.start_time}-${schedule.end_time}` === scheduleKey);
-  const canBookOnline = profile?.doctor.verification_status === 'approved' && profile.doctor.accepting_appointments;
+  const canBookOnline = Boolean(profile?.doctor.accepting_appointments);
 
   if (account && account.role !== 'patient') return <Navigate to="/dashboard" replace />;
 

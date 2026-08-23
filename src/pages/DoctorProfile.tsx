@@ -207,7 +207,7 @@ export default function DoctorProfile() {
   // Visitor contact must always come from chamber/provider data.
   // Do not use auth/login/personal phone numbers.
   // Some doctors have multiple chambers or no primary ordering, so resolve
-  // the first available approved chamber contact.
+  // the first available public chamber contact. Verification is badge-only.
   const contactChamber = profile?.chambers?.find(
     (chamber) => Boolean(chamber.phone || chamber.whatsapp)
   ) ?? primaryChamber;
@@ -218,7 +218,7 @@ export default function DoctorProfile() {
   const callPhone = primaryPhone ? cleanPhone(primaryPhone) : null;
   const whatsappUrl = primaryWhatsapp ? buildWhatsAppAppointmentUrl(primaryWhatsapp, profile?.doctor.name) : null;
   const isVerified = profile?.doctor.verification_status === 'approved';
-  const canOnlineBook = Boolean(isVerified && profile?.doctor.accepting_appointments);
+  const canOnlineBook = Boolean(profile?.doctor.accepting_appointments);
   const rank = rankLabel(profileStats?.ranking_tier, language, isVerified);
   const about = profile ? (language === 'bn' ? profile.doctor.bio_bn || content?.bio_bn || profile.doctor.bio : profile.doctor.bio_en || content?.bio_en || profile.doctor.bio_bn || content?.bio_bn || profile.doctor.bio) : null;
 

@@ -197,8 +197,8 @@ export default function SuperAdminPage() {
   {tab === 'controls' && <section className="super-controls">
     <article className="super-verification-policy-card">
       <ShieldCheck />
-      <h2>Doctor publication policy</h2>
-      <p>Existing verification backend বজায় রেখে pending Doctor public visibility নিয়ন্ত্রণ করুন। Hospital/Provider policy পরিবর্তন হবে না।</p>
+      <h2>Verification badge policy</h2>
+      <p>Verification এখন শুধু BMDC/identity badge-এর জন্য। Active Doctor-এর profile, contact, chamber, map বা appointment publication এটি বন্ধ করে না।</p>
       {verificationPolicy ? <div className="super-policy-body">
         <div className="super-policy-stats">
           <span><b>{verificationPolicy.active_pending_doctors}</b>Active pending</span>
@@ -206,15 +206,15 @@ export default function SuperAdminPage() {
           <span><b>{verificationPolicy.approved_active_doctors}</b>Verified</span>
         </div>
         <label className="super-toggle-row">
-          <div><strong>Unverified doctors temporary hide</strong><small>ON করলে সব active pending Doctor public search/profile/Near Me থেকে hide হবে; account login/dashboard active থাকবে।</small></div>
-          <input type="checkbox" role="switch" checked={verificationPolicy.hide_unverified_doctors} disabled={policyWorking} onChange={(event) => void updateDoctorVerificationPolicy({ hideUnverifiedDoctors: event.target.checked })} />
+          <div><strong>Verification দিয়ে public profile hide</strong><small>Retired: report moderation/account suspension ছাড়া profile hide হবে না।</small></div>
+          <input type="checkbox" role="switch" checked={false} disabled onChange={(event) => void updateDoctorVerificationPolicy({ hideUnverifiedDoctors: event.target.checked })} />
         </label>
         <label className="super-toggle-row">
-          <div><strong>New Doctor: verification before publish</strong><small>ON করার পর নতুন Doctor registration pending থাকলে approval না হওয়া পর্যন্ত public হবে না। আগে registered pending Doctor unaffected থাকবে, unless উপরের hide toggle ON থাকে।</small></div>
-          <input type="checkbox" role="switch" checked={verificationPolicy.new_registration_requires_verification} disabled={policyWorking} onChange={(event) => void updateDoctorVerificationPolicy({ newRegistrationRequiresVerification: event.target.checked })} />
+          <div><strong>New Doctor: verification before publish</strong><small>Retired: onboarding complete করলে public profile ব্যবহার করা যাবে; badge pending/unverified থাকবে।</small></div>
+          <input type="checkbox" role="switch" checked={false} disabled onChange={(event) => void updateDoctorVerificationPolicy({ newRegistrationRequiresVerification: event.target.checked })} />
         </label>
-        {verificationPolicy.new_registration_requires_verification && <p className="super-policy-cutoff">Rule active from: {dateLabel(verificationPolicy.new_registration_verification_enabled_at)}</p>}
-        <p className="super-policy-note">Default/current temporary mode: pending eligible Doctor “Not verified yet” badge সহ public থাকতে পারে। Rejected/expired, suspended/banned/deleted account public নয়।</p>
+        {verificationPolicy.new_registration_requires_verification && <p className="super-policy-cutoff">Migration 78 deploy করলে legacy publication rule স্বয়ংক্রিয়ভাবে বন্ধ হবে।</p>}
+        <p className="super-policy-note">Admin report moderation এবং suspended/banned account এখনো public থেকে বন্ধ থাকবে। সাধারণ verification decision contact/appointment permission নয়।</p>
       </div> : <p className="empty-inline">Verification publication policy load হয়নি। Migration 32 apply আছে কিনা check করুন।</p>}
     </article>
     <article><Activity /><h2>Operational Admin</h2><p>Users, appointment override, full audit activity ও daily operations।</p><Link to="/admin">Admin dashboard <ExternalLink /></Link></article>

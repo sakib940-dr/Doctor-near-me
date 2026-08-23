@@ -406,6 +406,7 @@ export default function AdminDashboardPage() {
 
   const quickActions = [
     { label: 'Doctor Verification', path: '/verification/reviews', icon: ShieldCheck },
+    { label: 'BMDC Correction', path: '/admin/bmdc', icon: ShieldCheck },
     { label: 'Hospital Management', path: '/admin?tab=users', icon: Building2 },
     { label: 'Premium Management', path: '/admin/premium', icon: Crown },
     { label: 'Categories', path: '/admin/cms?tab=specialties', icon: Settings2 },

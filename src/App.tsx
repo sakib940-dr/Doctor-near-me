@@ -11,6 +11,7 @@ import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminBmdcCorrectionPage from './pages/AdminBmdcCorrectionPage';
 import AdminDoctorSupportPage from './pages/AdminDoctorSupportPage';
 import AdminStorageCleanupPage from './pages/AdminStorageCleanupPage';
 import AmbulanceHospitalLinksPage from './pages/AmbulanceHospitalLinksPage';
@@ -114,6 +115,7 @@ export default function App() {
       <Route path="/verification/evidence" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['doctor', 'hospital', 'chamber']}><VerificationEvidencePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/verification/reviews" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['verification_officer', 'admin', 'super_admin']}><VerificationOfficerPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDashboardPage /></RoleAwareDashboardShell></ProtectedRoute>} />
+      <Route path="/admin/bmdc" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminBmdcCorrectionPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/cms" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminCmsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/doctor-support" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminDoctorSupportPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/admin/storage-cleanup" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['admin', 'super_admin']}><AdminStorageCleanupPage /></RoleAwareDashboardShell></ProtectedRoute>} />
@@ -171,6 +173,7 @@ function useRouteDocumentTitle() {
     else if (path === '/onboarding') page = 'Onboarding';
     else if (path === '/dashboard') page = 'Dashboard';
     else if (path === '/notifications') page = 'Notifications';
+    else if (path === '/admin/bmdc') page = 'Admin BMDC Correction';
     else if (path === '/doctors') page = 'ডাক্তার খুঁজুন';
     else if (path === '/doctor/settings') page = 'Doctor Settings';
     else if (path === '/doctor/public-content') page = 'Public Content Management';

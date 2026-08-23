@@ -3,8 +3,8 @@ import { IMAGE_MAX_SIZE_ERROR, validateSelectedImage } from '../src/lib/imageOpt
 const cases = [
   { label: '500 KB', bytes: 500 * 1024, accepted: true },
   { label: '2 MB', bytes: 2 * 1024 * 1024, accepted: true },
-  { label: '3 MB', bytes: 3 * 1024 * 1024, accepted: true },
-  { label: '3.1 MB', bytes: Math.round(3.1 * 1024 * 1024), accepted: false },
+  { label: '5 MB', bytes: 5 * 1024 * 1024, accepted: true },
+  { label: '5.1 MB', bytes: Math.round(5.1 * 1024 * 1024), accepted: false },
 ];
 
 for (const test of cases) {

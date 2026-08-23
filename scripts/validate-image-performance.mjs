@@ -15,14 +15,15 @@ const providerWeb = read('src/services/providerWebsiteContent.ts');
 const admin = read('src/services/adminCms.ts');
 const css = read('src/styles.css');
 
-assert(optimizer.includes("MAX_SOURCE_IMAGE_BYTES = 3 * MB"), 'Global 3 MB source image limit missing');
-assert(optimizer.includes("ছবির সর্বোচ্চ সাইজ 3 MB"), 'Exact 3 MB Bengali error missing');
+assert(optimizer.includes("MAX_SOURCE_IMAGE_BYTES = 5 * MB"), 'Global 5 MB source image limit missing');
+assert(optimizer.includes("MAX_OPTIMIZED_IMAGE_BYTES = 200 * 1024"), 'Optimized 200 KB hard limit missing');
+assert(optimizer.includes("ছবির সর্বোচ্চ সাইজ 5 MB"), 'Exact 5 MB Bengali error missing');
 for (const preset of ['profile','logo','slider','banner','category','gallery','service','verification']) {
   assert(optimizer.includes(`${preset}: {`), `Missing ${preset} image preset`);
 }
-assert(optimizer.includes("canvasToBlob(canvas, 'image/webp'"), 'WebP encoder missing');
+assert(optimizer.includes("canvasToBlob(working, 'image/webp'"), 'WebP encoder missing');
 assert(optimizer.includes('targetBytes: 150_000'), 'Profile target size missing');
-assert(optimizer.includes('targetBytes: 190_000'), 'Slider/banner target size missing');
+assert(optimizer.includes('targetBytes: 180_000'), 'Slider/banner target size missing');
 assert(optimizer.includes('imageSmoothingQuality = \'high\''), 'High-quality resize missing');
 assert(optimizer.includes("fit: 'cover'"), 'Safe crop mode missing');
 assert(optimizer.includes("fit: 'contain'"), 'Aspect-preserving contain mode missing');

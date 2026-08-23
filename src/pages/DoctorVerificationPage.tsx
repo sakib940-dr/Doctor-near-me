@@ -28,7 +28,7 @@ const statusLabels: Record<DoctorVerificationProfile['verification_status'], str
   expired: 'Verification expired',
 };
 
-const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'Verification তথ্য সংরক্ষণ করা যায়নি।';
+const messageFrom = (error: unknown) => error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string' ? error.message : 'Verification তথ্য সংরক্ষণ করা যায়নি।';
 
 export default function DoctorVerificationPage() {
   const { account, user } = useAuth();
@@ -59,6 +59,11 @@ export default function DoctorVerificationPage() {
     setMedicalSession(nextProfile.medical_session || '');
     setMedicalBatch(nextProfile.medical_batch || '');
     setBmdcRegistrationNo(nextProfile.bmdc_registration_no || '');
+  }
+
+  async function loadEvidenceOnly() {
+    if (!user) return;
+    setEvidence(await getMyEntityVerificationEvidence('doctor', user.id));
   }
 
   useEffect(() => {
@@ -107,7 +112,7 @@ export default function DoctorVerificationPage() {
     try {
       await uploadEntityVerificationDocument({ entityType: 'doctor', entityId: user.id, documentType, file });
       setFile(null);
-      await load();
+      await loadEvidenceOnly();
       setNotice('Evidence draft হিসেবে save হয়েছে। Review queue-তে পাঠাতে Apply for Verification চাপুন।');
     } catch (uploadError) {
       setError(messageFrom(uploadError));
@@ -146,7 +151,7 @@ export default function DoctorVerificationPage() {
     setWorking(document.document_id); setError(null); setNotice(null);
     try {
       await deleteEntityVerificationDocument(document.document_id);
-      await load();
+      await loadEvidenceOnly();
       setNotice('Evidence document মুছে ফেলা হয়েছে।');
     } catch (deleteError) {
       setError(messageFrom(deleteError));
@@ -212,7 +217,8 @@ export default function DoctorVerificationPage() {
                     {Object.entries(doctorDocuments).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
                   </select>
                   <label><FilePlus2 /> {file?.name || 'ফাইল নির্বাচন'}<input type="file" required accept="image/jpeg,image/png,image/webp,image/avif,application/pdf" onChange={(event: ChangeEvent<HTMLInputElement>) => setFile(event.target.files?.[0] || null)} /></label>
-                  <small className="image-upload-hint">ছবি হলে প্রস্তাবিত সর্বোচ্চ 2200×2200 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে • PDF অপরিবর্তিত</small>
+                  <small className="image-upload-hint">ছবি হলে প্রস্তাবিত সর্বোচ্চ 2200×2200 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে • PDF অপরিবর্তিত</small>
+                  {error && <small className="form-error" role="alert">{error}</small>}
                   <button disabled={!file || working === 'upload'}>{working === 'upload' ? <LoaderCircle className="spin" /> : 'Upload'}</button>
                 </form>
               ) : <p className="evidence-locked">{submittedPending ? 'Application Pending। Review শেষ না হওয়া পর্যন্ত evidence edit বা re-submit করা যাবে না।' : 'Approved verification evidence locked।'}</p>}

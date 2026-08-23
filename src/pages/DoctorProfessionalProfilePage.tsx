@@ -25,7 +25,7 @@ const statusLabels: Record<MyDoctorProfile['doctor']['verification_status'], str
 };
 const bloodGroups = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const emptyPrivateProfile: DoctorPrivateProfile = { date_of_birth: null, gender: null, blood_group: null, address_line: null, permanent_address: null };
-const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'ডাক্তার প্রোফাইল সংরক্ষণ করা যায়নি।';
+const messageFrom = (error: unknown) => error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string' ? error.message : 'ডাক্তার প্রোফাইল সংরক্ষণ করা যায়নি।';
 
 export default function DoctorProfessionalProfilePage() {
   const { account, user, refreshAccount } = useAuth();
@@ -195,7 +195,7 @@ export default function DoctorProfessionalProfilePage() {
         <aside className="doctor-photo-card">
           <div className="doctor-photo-preview">{avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" width="800" height="800" decoding="async" /> : <Stethoscope />}</div>
           <label><Camera /> ছবি পরিবর্তন<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
-          <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small>
+          <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে</small>
           <label className="accepting-toggle"><input type="checkbox" checked={profile.doctor.accepting_appointments} onChange={(event) => setDoctor('accepting_appointments', event.target.checked)} /><span><strong>Appointment নিচ্ছি</strong><small>বন্ধ করলে নতুন booking request আসবে না</small></span></label>
         </aside>
 

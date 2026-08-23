@@ -191,7 +191,7 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
       setLocalError('শুধু image file upload করা যাবে।');
       return;
     }
-    if (selected.size > 10 * 1024 * 1024) { setLocalError('Slider image সর্বোচ্চ 10 MB হতে পারবে।'); event.target.value = ''; return; }
+    if (selected.size > 5 * 1024 * 1024) { setLocalError('Slider image সর্বোচ্চ 5 MB হতে পারবে।'); event.target.value = ''; return; }
     if (preview) URL.revokeObjectURL(preview);
     setFile(selected);
     setPreview(URL.createObjectURL(selected));
@@ -245,9 +245,9 @@ function SliderManager({ rows, reload, onSaved, setError, setNotice }: EditorCom
   return (
     <section className="doctor-content-editor-card">
       <header><div><small>{rows.length}/4 images</small><h2>Profile Image Slider</h2></div><ImagePlus /></header>
-      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
+      <p className="doctor-editor-help">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 5 MB source image গ্রহণ করা হবে এবং upload-এর আগে WebP-তে অপটিমাইজ হবে। Arrow দিয়ে order নির্ধারণ করুন; mobile-এ public slider swipe করা যাবে।</p>
       <form className="doctor-content-compact-form" onSubmit={submit}>
-        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input key={file?`${file.name}-${file.lastModified}`:'empty-slider'} type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-skip-global-guard="true" onChange={handleFileChange} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 10 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small></label>
+        <label className="doctor-content-file"><ImagePlus /> {edit ? 'Replace image' : 'Image নির্বাচন'}<input key={file?`${file.name}-${file.lastModified}`:'empty-slider'} type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-skip-global-guard="true" onChange={handleFileChange} /><small className="image-upload-hint">প্রস্তাবিত সাইজ: 1600×900 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে</small></label>
         {localError && <div className="doctor-content-inline-error" role="alert">{localError}</div>}
         {preview && <div className="doctor-slider-preview"><img src={preview} alt="Selected slider preview" width="320" /></div>}
         <input value={captionBn} onChange={(event) => setCaptionBn(event.target.value)} placeholder="বাংলা caption (optional)" />

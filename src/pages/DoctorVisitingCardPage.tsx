@@ -216,7 +216,7 @@ export default function DoctorVisitingCardPage({ onSaved }: { onSaved?: () => vo
                   </div>
                   <label><Camera /> {avatarUrl ? 'Replace Photo' : 'Profile Photo'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
                   {avatarUrl && <button type="button" className="secondary-action danger" onClick={() => { setPhoto(null); if (preview) URL.revokeObjectURL(preview); setPreview(null); setRemovePhoto(true); }}><Trash2 /> Delete Photo</button>}
-                  <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • সর্বোচ্চ 3 MB • আপলোডের পর ছবি স্বয়ংক্রিয়ভাবে অপটিমাইজ হবে</small>
+                  <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে</small>
                 </div>
                 <div className="patient-form-grid visiting-card-form-grid">
                   <label className="auth-field"><span>Doctor Name</span><div><input required minLength={2} value={profile.doctor.full_name || ''} onChange={(event) => setDoctor('full_name', event.target.value)} /></div></label>

@@ -11,7 +11,8 @@ export async function getMyEntityVerificationEvidence(entityType: 'doctor' | 'pr
 export async function uploadEntityVerificationDocument(input: { entityType: 'doctor' | 'provider'; entityId: string; documentType: string; file: File }) {
   const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'application/pdf'];
   if (!allowed.includes(input.file.type)) throw new Error('JPG, PNG, WebP, AVIF অথবা PDF document দিন।');
-  if (input.file.size > 10 * 1024 * 1024) throw new Error('Document সর্বোচ্চ ১০ MB হতে পারবে।');
+  if (input.file.type.startsWith('image/') && input.file.size > 5 * 1024 * 1024) throw new Error('ছবির সর্বোচ্চ সাইজ 5 MB।');
+  if (input.file.type === 'application/pdf' && input.file.size > 10 * 1024 * 1024) throw new Error('PDF সর্বোচ্চ ১০ MB হতে পারবে।');
   const prepared = await optimizeVerificationImageIfNeeded(input.file);
   const extension = prepared.name.split('.').pop()?.toLowerCase() || 'bin';
   const folder = input.entityType === 'doctor' ? 'doctors' : 'providers';

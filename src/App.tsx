@@ -9,6 +9,7 @@ import DashboardShell from './components/DashboardShell';
 import AccountStateFallback from './components/AccountStateFallback';
 import type { DashboardRole } from './types';
 import { useAuth } from './contexts/AuthContext';
+import { useVisitorLanguage } from './contexts/VisitorLanguageContext';
 import AdminCmsPage from './pages/AdminCmsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminBmdcCorrectionPage from './pages/AdminBmdcCorrectionPage';
@@ -164,17 +165,19 @@ function RoleAwareDashboardShell({ allowed, children }: { allowed: DashboardRole
 
 function useRouteDocumentTitle() {
   const location = useLocation();
+  const { language } = useVisitorLanguage();
+  const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
 
   useEffect(() => {
     const path = location.pathname;
     let page: string | null = null;
 
-    if (path === '/auth') page = 'Login & Signup';
-    else if (path === '/onboarding') page = 'Onboarding';
-    else if (path === '/dashboard') page = 'Dashboard';
-    else if (path === '/notifications') page = 'Notifications';
+    if (path === '/auth') page = tr('লগইন ও নিবন্ধন', 'Login & Signup');
+    else if (path === '/onboarding') page = tr('প্রোফাইল সেটআপ', 'Onboarding');
+    else if (path === '/dashboard') page = tr('ড্যাশবোর্ড', 'Dashboard');
+    else if (path === '/notifications') page = tr('নোটিফিকেশন', 'Notifications');
     else if (path === '/admin/bmdc') page = 'Admin BMDC Correction';
-    else if (path === '/doctors') page = 'ডাক্তার খুঁজুন';
+    else if (path === '/doctors') page = tr('ডাক্তার খুঁজুন', 'Find Doctors');
     else if (path === '/doctor/settings') page = 'Doctor Settings';
     else if (path === '/doctor/public-content') page = 'Public Content Management';
     else if (path === '/doctor/support') page = 'Doctor Support';
@@ -206,5 +209,5 @@ function useRouteDocumentTitle() {
     else if (path === '/blood') page = 'Blood Bank';
 
     document.title = makePageTitle(page);
-  }, [location.pathname]);
+  }, [language, location.pathname]);
 }

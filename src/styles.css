@@ -8455,3 +8455,20 @@ img { max-width: 100%; height: auto; }
 
 @media(max-width:850px){.auth-main-premium{grid-template-columns:1fr;max-width:610px}.auth-benefits-premium{min-height:auto;padding:24px}.auth-brand-mark{width:48px;height:48px}.auth-benefits-premium h1{font-size:28px}.auth-benefits-premium>p{font-size:12px}.provider-doctor-card-form-grid{grid-template-columns:1fr}.provider-doctor-photo-field>div{width:180px}}
 @media(max-width:620px){.auth-main-premium{padding-block:18px 45px}.auth-benefits-premium{display:none}.auth-card-premium{padding:21px;border-radius:20px}.provider-doctor-card-form,.provider-managed-card-list,.provider-reception-queue,.provider-existing-appointment-queue,.patient-reception-appointments{padding:15px}.provider-doctor-card-fields{grid-template-columns:1fr}.provider-managed-card-list>div>article{grid-template-columns:auto 1fr}.provider-managed-card-list>div>article>button{grid-column:auto}.provider-managed-contact-actions{grid-template-columns:1fr}.reception-booking-dialog{padding:18px}.reception-confirm-actions input{width:100%}}
+.dashboard-language-toggle {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+}
+
+.dashboard-mobile-language-toggle {
+  display: none;
+  flex: 0 0 auto;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-mobile-language-toggle { display: inline-flex; }
+  .dashboard-shell-mobile-header .dashboard-shell-role-label { display: none; }
+}

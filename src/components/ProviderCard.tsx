@@ -6,6 +6,7 @@ import { getImageUrl } from '../lib/storage';
 import type { ProviderDirectoryRow, PublicProfileStats } from '../types';
 import FollowSaveButton from './FollowSaveButton';
 import VerifiedBadge from './VerifiedBadge';
+import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 
 interface Props {
   provider: ProviderDirectoryRow;
@@ -26,6 +27,8 @@ function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number) {
 }
 
 export default function ProviderCard({ provider, stats, onStatsChange, viewerLocation }: Props) {
+  const { language } = useVisitorLanguage();
+  const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
   const [localStats, setLocalStats] = useState<PublicProfileStats | null>(stats ?? null);
   const [imageFailed, setImageFailed] = useState(false);
   const image = getImageUrl(provider.banner_url || provider.logo_url, 'public-images', 'thumbnail');
@@ -46,24 +49,24 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
   return (
     <article className="visitor-provider-card marketplace-card marketplace-provider-card-compact visitor-horizontal-profile-card provider-horizontal-profile-card">
       <div className="provider-logo visitor-horizontal-profile-media">
-        <Link to={publicHref} aria-label={`${provider.name_bn} profile দেখুন`}>
+        <Link to={publicHref} aria-label={tr(`${provider.name_bn} প্রোফাইল দেখুন`, `View ${provider.name_en || provider.name_bn} profile`)}>
           {image && !imageFailed ? <img src={image} alt={provider.name_bn} loading="lazy" decoding="async" onError={() => setImageFailed(true)} /> : <TypeIcon />}
         </Link>
         <div className="provider-card-badges visitor-horizontal-badges">
-          {localStats?.is_premium ? <span className="rank-badge premium"><Crown /> Premium</span> : provider.verified ? <VerifiedBadge label="Verified" /> : null}
+          {localStats?.is_premium ? <span className="rank-badge premium"><Crown /> {tr('প্রিমিয়াম', 'Premium')}</span> : provider.verified ? <VerifiedBadge label={tr('ভেরিফায়েড', 'Verified')} /> : null}
         </div>
       </div>
 
       <Link className="provider-card-primary visitor-horizontal-profile-body" to={publicHref}>
         <div className="provider-card-copy">
-          <span className="provider-type-label">{provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'}</span>
-          <h3>{provider.name_bn}</h3>
-          {provider.name_en && provider.name_en !== provider.name_bn ? <small className="provider-card-english-name">{provider.name_en}</small> : null}
-          <p><MapPin /><span>{provider.address || 'ঠিকানা যোগ করা হয়নি'}{distance != null ? <b> · {distance.toFixed(1)} km দূরে</b> : null}</span></p>
+          <span className="provider-type-label">{provider.provider_type === 'hospital' ? tr('হাসপাতাল', 'Hospital') : tr('চেম্বার', 'Chamber')}</span>
+          <h3>{language === 'bn' ? provider.name_bn : provider.name_en || provider.name_bn}</h3>
+          {language === 'bn' && provider.name_en && provider.name_en !== provider.name_bn ? <small className="provider-card-english-name">{provider.name_en}</small> : null}
+          <p><MapPin /><span>{provider.address || tr('ঠিকানা যোগ করা হয়নি', 'Address not added')}{distance != null ? <b> · {tr(`${distance.toFixed(1)} কিমি দূরে`, `${distance.toFixed(1)} km away`)}</b> : null}</span></p>
           {provider.opening_note ? <p className="provider-card-opening"><Building2 /><span>{provider.opening_note}</span></p> : null}
           <div className="marketplace-doctor-meta-row visitor-card-social-proof">
             {localStats?.average_rating != null ? <span><Star fill="currentColor" /> {localStats.average_rating.toFixed(1)} <small>({localStats.review_count})</small></span> : null}
-            {localStats && localStats.follower_count > 0 ? <span><Heart /> {localStats.follower_count.toLocaleString('bn-BD')}</span> : null}
+            {localStats && localStats.follower_count > 0 ? <span><Heart /> {localStats.follower_count.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US')}</span> : null}
           </div>
         </div>
       </Link>
@@ -73,7 +76,8 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
         targetId={provider.id}
         stats={localStats}
         className="doctor-save-button provider-save-button visitor-horizontal-save-button"
-        entityLabel={provider.provider_type === 'hospital' ? 'হাসপাতাল' : 'চেম্বার'}
+        entityLabel={provider.provider_type === 'hospital' ? tr('হাসপাতাল', 'hospital') : tr('চেম্বার', 'chamber')}
+        language={language}
         onStatsChange={updateStats}
       />
     </article>

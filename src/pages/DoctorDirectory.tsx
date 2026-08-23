@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { getDegreeMaster, getDistricts, getSpecialties, getUpazilas, searchDoctors } from '../services/discovery';
 import { getPublicProfileStatsBatch } from '../services/engagement';
 import type { DegreeMasterItem, District, DoctorSearchRow, PublicProfileStats, Specialty, Upazila } from '../types';
+import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 import { makePageTitle } from '../lib/brand';
 
 const PAGE_SIZE = 20;
@@ -17,6 +18,8 @@ const listParam = (value: string | null) => value ? value.split(',').filter(Bool
 const messageFrom = (error: unknown) => error instanceof Error ? error.message : 'তথ্য লোড করা যায়নি।';
 
 export default function DoctorDirectory({ embedded = false }: { embedded?: boolean }) {
+  const { language } = useVisitorLanguage();
+  const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get('q') ?? '');
   const [districtId, setDistrictId] = useState(params.get('district') ?? '');
@@ -55,7 +58,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   );
 
   useEffect(() => {
-    document.title = makePageTitle('ডাক্তার খুঁজুন');
+    document.title = makePageTitle(tr('ডাক্তার খুঁজুন', 'Find Doctors'));
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
@@ -198,37 +201,37 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       <main>
         <section className="directory-hero">
           <div className="container">
-            <span>ভেরিফায়েড ডাক্তার ডিরেক্টরি</span>
-            <h1>আপনার প্রয়োজনের সঠিক ডাক্তার খুঁজুন</h1>
-            <p>সারা বাংলাদেশের ডাক্তার নাম, ডিগ্রি, স্পেশালিটি, জেলা ও উপজেলা / এলাকা অনুযায়ী অনুসন্ধান করুন</p>
+            <span>{tr('ডাক্তার ডিরেক্টরি', 'Doctor Directory')}</span>
+            <h1>{tr('আপনার প্রয়োজনের সঠিক ডাক্তার খুঁজুন', 'Find the Right Doctor for You')}</h1>
+            <p>{tr('সারা বাংলাদেশের ডাক্তার নাম, ডিগ্রি, বিশেষজ্ঞতা, জেলা ও উপজেলা / এলাকা অনুযায়ী অনুসন্ধান করুন', 'Search doctors across Bangladesh by name, degree, specialty, district, and area')}</p>
             <form className="directory-search" onSubmit={apply}>
               <Search size={21} />
-              <input aria-label="ডাক্তার খুঁজুন" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ডাক্তারের নাম, রোগ বা স্পেশালিটি" />
-              <button type="submit">খুঁজুন</button>
+              <input aria-label={tr('ডাক্তার খুঁজুন', 'Find doctors')} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={tr('ডাক্তারের নাম, রোগ বা বিশেষজ্ঞতা', 'Doctor name, condition, or specialty')} />
+              <button type="submit">{tr('খুঁজুন', 'Search')}</button>
             </form>
           </div>
         </section>
 
         <section className="container directory-layout">
-          <button className="mobile-filter-button" type="button" onClick={() => setFiltersOpen(true)}><Filter size={18} /> ফিল্টার {activeFilterCount > 0 && <b>{activeFilterCount}</b>}</button>
+          <button className="mobile-filter-button" type="button" onClick={() => setFiltersOpen(true)}><Filter size={18} /> {tr('ফিল্টার', 'Filters')} {activeFilterCount > 0 && <b>{activeFilterCount}</b>}</button>
           <aside className={filtersOpen ? 'filter-sidebar open' : 'filter-sidebar'}>
-            <div className="filter-title"><span><SlidersHorizontal size={19} /> ফিল্টার</span><div><button type="button" onClick={clearFilters}><RotateCcw size={15} /> রিসেট</button><button className="filter-close" type="button" aria-label="ফিল্টার বন্ধ করুন" onClick={() => setFiltersOpen(false)}><X size={17} /></button></div></div>
-            <label className="filter-group"><strong>জেলা</strong><select value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}><option value="">সকল জেলা</option>{districts.map((district) => <option value={district.id} key={district.id}>{district.name_bn}</option>)}</select></label>
-            <label className="filter-group"><strong>উপজেলা / এলাকা</strong><select value={upazilaId} disabled={!districtId} onChange={(event) => setUpazilaId(event.target.value)}><option value="">সকল উপজেলা / এলাকা</option>{upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{upazila.name_bn}</option>)}</select></label>
-            <fieldset className="filter-group"><legend>মেডিকেল টাইপ</legend><div className="filter-checks"><label><input type="checkbox" checked={medicalTypes.includes('MBBS')} onChange={() => toggle(medicalTypes, 'MBBS', setMedicalTypes)} /><span>MBBS</span></label><label><input type="checkbox" checked={medicalTypes.includes('BDS')} onChange={() => toggle(medicalTypes, 'BDS', setMedicalTypes)} /><span>BDS</span></label></div></fieldset>
-            <fieldset className="filter-group"><legend>স্পেশালিটি</legend><div className="filter-checks scrollable">{specialties.map((specialty) => <label key={specialty.id}><input type="checkbox" checked={specialtyIds.includes(String(specialty.id))} onChange={() => toggle(specialtyIds, String(specialty.id), setSpecialtyIds)} /><span>{specialty.name_bn}</span></label>)}</div></fieldset>
-            <fieldset className="filter-group"><legend>ডিগ্রি</legend><div className="filter-checks scrollable">{degreeOptions.map((degree) => <label key={degree.id}><input type="checkbox" checked={degrees.includes(degree.short_code)} onChange={() => toggle(degrees, degree.short_code, setDegrees)} /><span>{degree.short_code}</span></label>)}</div></fieldset>
-            <div className="filter-group"><strong>ভিজিট ফি</strong><div className="fee-fields"><input aria-label="সর্বনিম্ন ফি" type="number" min="0" value={minFee} onChange={(event) => setMinFee(event.target.value)} placeholder="সর্বনিম্ন" /><input aria-label="সর্বোচ্চ ফি" type="number" min="0" value={maxFee} onChange={(event) => setMaxFee(event.target.value)} placeholder="সর্বোচ্চ" /></div></div>
-            <label className="today-filter"><input type="checkbox" checked={today} onChange={(event) => setToday(event.target.checked)} /><span>আজ চেম্বার আছে</span></label>
-            <button className="apply-filter" type="button" onClick={() => apply()}>ফিল্টার প্রয়োগ করুন</button>
+            <div className="filter-title"><span><SlidersHorizontal size={19} /> {tr('ফিল্টার', 'Filters')}</span><div><button type="button" onClick={clearFilters}><RotateCcw size={15} /> {tr('রিসেট', 'Reset')}</button><button className="filter-close" type="button" aria-label={tr('ফিল্টার বন্ধ করুন', 'Close filters')} onClick={() => setFiltersOpen(false)}><X size={17} /></button></div></div>
+            <label className="filter-group"><strong>{tr('জেলা', 'District')}</strong><select value={districtId} onChange={(event) => { setDistrictId(event.target.value); setUpazilaId(''); }}><option value="">{tr('সকল জেলা', 'All districts')}</option>{districts.map((district) => <option value={district.id} key={district.id}>{language === 'bn' ? district.name_bn : district.name_en || district.name_bn}</option>)}</select></label>
+            <label className="filter-group"><strong>{tr('উপজেলা / এলাকা', 'Upazila / Area')}</strong><select value={upazilaId} disabled={!districtId} onChange={(event) => setUpazilaId(event.target.value)}><option value="">{tr('সকল উপজেলা / এলাকা', 'All upazilas / areas')}</option>{upazilas.map((upazila) => <option value={upazila.id} key={upazila.id}>{language === 'bn' ? upazila.name_bn : upazila.name_en || upazila.name_bn}</option>)}</select></label>
+            <fieldset className="filter-group"><legend>{tr('মেডিকেল ধরন', 'Medical Type')}</legend><div className="filter-checks"><label><input type="checkbox" checked={medicalTypes.includes('MBBS')} onChange={() => toggle(medicalTypes, 'MBBS', setMedicalTypes)} /><span>MBBS</span></label><label><input type="checkbox" checked={medicalTypes.includes('BDS')} onChange={() => toggle(medicalTypes, 'BDS', setMedicalTypes)} /><span>BDS</span></label></div></fieldset>
+            <fieldset className="filter-group"><legend>{tr('বিশেষজ্ঞতা', 'Specialty')}</legend><div className="filter-checks scrollable">{specialties.map((specialty) => <label key={specialty.id}><input type="checkbox" checked={specialtyIds.includes(String(specialty.id))} onChange={() => toggle(specialtyIds, String(specialty.id), setSpecialtyIds)} /><span>{language === 'bn' ? specialty.name_bn : specialty.name_en || specialty.name_bn}</span></label>)}</div></fieldset>
+            <fieldset className="filter-group"><legend>{tr('ডিগ্রি', 'Degree')}</legend><div className="filter-checks scrollable">{degreeOptions.map((degree) => <label key={degree.id}><input type="checkbox" checked={degrees.includes(degree.short_code)} onChange={() => toggle(degrees, degree.short_code, setDegrees)} /><span>{degree.short_code}</span></label>)}</div></fieldset>
+            <div className="filter-group"><strong>{tr('ভিজিট ফি', 'Consultation Fee')}</strong><div className="fee-fields"><input aria-label={tr('সর্বনিম্ন ফি', 'Minimum fee')} type="number" min="0" value={minFee} onChange={(event) => setMinFee(event.target.value)} placeholder={tr('সর্বনিম্ন', 'Minimum')} /><input aria-label={tr('সর্বোচ্চ ফি', 'Maximum fee')} type="number" min="0" value={maxFee} onChange={(event) => setMaxFee(event.target.value)} placeholder={tr('সর্বোচ্চ', 'Maximum')} /></div></div>
+            <label className="today-filter"><input type="checkbox" checked={today} onChange={(event) => setToday(event.target.checked)} /><span>{tr('আজ চেম্বার আছে', 'Available today')}</span></label>
+            <button className="apply-filter" type="button" onClick={() => apply()}>{tr('ফিল্টার প্রয়োগ করুন', 'Apply Filters')}</button>
           </aside>
 
           <div className="directory-results">
-            <div className="directory-toolbar"><div><strong>{loading ? 'ডাক্তার খোঁজা হচ্ছে…' : `${total} জন ডাক্তার পাওয়া গেছে`}</strong><small>সক্রিয় ও প্রকাশযোগ্য প্রোফাইল</small></div><select aria-label="ফলাফল সাজান" value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">নাম অনুযায়ী</option><option value="newest">নতুন আগে</option><option value="fee_low">কম ফি আগে</option><option value="fee_high">বেশি ফি আগে</option></select></div>
-            {!isSupabaseConfigured && <div className="directory-notice">লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার UI preview করা যাচ্ছে।</div>}
+            <div className="directory-toolbar"><div><strong>{loading ? tr('ডাক্তার খোঁজা হচ্ছে…', 'Searching doctors…') : tr(`${total.toLocaleString('bn-BD')} জন ডাক্তার পাওয়া গেছে`, `${total.toLocaleString('en-US')} doctors found`)}</strong><small>{tr('সক্রিয় ও প্রকাশযোগ্য প্রোফাইল', 'Active published profiles')}</small></div><select aria-label={tr('ফলাফল সাজান', 'Sort results')} value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">{tr('নাম অনুযায়ী', 'By name')}</option><option value="newest">{tr('নতুন আগে', 'Newest first')}</option><option value="fee_low">{tr('কম ফি আগে', 'Lowest fee')}</option><option value="fee_high">{tr('বেশি ফি আগে', 'Highest fee')}</option></select></div>
+            {!isSupabaseConfigured && <div className="directory-notice">{tr('লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার ইউআই প্রিভিউ করা যাচ্ছে।', 'Add Supabase environment variables in Vercel for live results. Filter UI preview is available.')}</div>}
             {error && <div className="error-box" role="alert">{error}</div>}
-            {!hasSearchCriteria ? <div className="directory-search-prompt"><Search /><h3>অনুসন্ধান শুরু করুন</h3><p>ডাক্তারের নাম লিখুন অথবা Degree, Specialty, জেলা/উপজেলা/এলাকা থেকে অন্তত একটি ফিল্টার নির্বাচন করুন। কোনো search না করা পর্যন্ত profile data load হবে না।</p></div> : loading ? <div className="loading-box"><LoaderCircle className="spin" /> ফলাফল লোড হচ্ছে…</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>কোনো ডাক্তার পাওয়া যায়নি</h3><p>ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।</p></div>}
-            {!loading && hasSearchCriteria && totalPages > 1 && <nav className="pagination" aria-label="ফলাফলের পৃষ্ঠা"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>পৃষ্ঠা {page} / {totalPages} · প্রতি পৃষ্ঠায় {PAGE_SIZE} জন</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
+            {!hasSearchCriteria ? <div className="directory-search-prompt"><Search /><h3>{tr('অনুসন্ধান শুরু করুন', 'Start Searching')}</h3><p>{tr('ডাক্তারের নাম লিখুন অথবা ডিগ্রি, বিশেষজ্ঞতা, জেলা/উপজেলা/এলাকা থেকে অন্তত একটি ফিল্টার নির্বাচন করুন। অনুসন্ধান না করা পর্যন্ত প্রোফাইল ডেটা লোড হবে না।', 'Enter a doctor name or select at least one degree, specialty, district, or area filter. Profile data is loaded only after a search.')}</p></div> : loading ? <div className="loading-box"><LoaderCircle className="spin" /> {tr('ফলাফল লোড হচ্ছে…', 'Loading results…')}</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>{tr('কোনো ডাক্তার পাওয়া যায়নি', 'No doctors found')}</h3><p>{tr('ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।', 'Try fewer filters or a different search term.')}</p></div>}
+            {!loading && hasSearchCriteria && totalPages > 1 && <nav className="pagination" aria-label={tr('ফলাফলের পৃষ্ঠা', 'Result pages')}><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>{tr(`পৃষ্ঠা ${page} / ${totalPages} · প্রতি পৃষ্ঠায় ${PAGE_SIZE} জন`, `Page ${page} / ${totalPages} · ${PAGE_SIZE} per page`)}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
           </div>
         </section>
       </main>

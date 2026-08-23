@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { getDistricts, getPublicProviders, getUpazilas } from '../services/discovery';
 import { getPublicProfileStatsBatch } from '../services/engagement';
 import type { District, ProviderDirectoryRow, PublicProfileStats, Upazila } from '../types';
+import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 
 const PAGE_SIZE = 20;
 
@@ -28,6 +29,8 @@ function toStatsMap(items: Awaited<ReturnType<typeof getPublicProfileStatsBatch>
 }
 
 export default function PublicProvidersPage() {
+  const { language } = useVisitorLanguage();
+  const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
   const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState<ProviderDirectoryRow[]>([]);
   const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
@@ -120,9 +123,9 @@ export default function PublicProvidersPage() {
       <PublicHeader mobileBottomNav />
       <main className="container public-provider-main">
         <section className="provider-list-hero">
-          <span><Building2 /> চিকিৎসা প্রতিষ্ঠান</span>
-          <h1>হাসপাতাল ও চেম্বার</h1>
-          <p>অনুমোদিত হাসপাতাল/চেম্বার বেছে নিয়ে সংশ্লিষ্ট ডাক্তার ও লোকেশন দেখুন।</p>
+          <span><Building2 /> {tr('চিকিৎসা প্রতিষ্ঠান', 'Healthcare Providers')}</span>
+          <h1>{tr('হাসপাতাল ও চেম্বার', 'Hospitals & Chambers')}</h1>
+          <p>{tr('হাসপাতাল/চেম্বার বেছে নিয়ে সংশ্লিষ্ট ডাক্তার ও অবস্থান দেখুন।', 'Choose a hospital or chamber to view its doctors and location.')}</p>
           <div className="provider-filter-row">
             <label><MapPin /><select value={districtId} onChange={(event) => {
               const nextDistrict = event.target.value;
@@ -130,21 +133,21 @@ export default function PublicProvidersPage() {
               const next = new URLSearchParams(searchParams);
               if (nextDistrict) next.set('district', nextDistrict); else next.delete('district');
               next.delete('upazila'); setSearchParams(next, { replace: true });
-            }}><option value="">সকল জেলা</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></label>
-            <label><span className="sr-only">উপজেলা / এলাকা</span><select aria-label="উপজেলা / এলাকা" value={upazilaId} onChange={(event) => {
+            }}><option value="">{tr('সকল জেলা', 'All districts')}</option>{districts.map((district) => <option key={district.id} value={district.id}>{language === 'bn' ? district.name_bn : district.name_en || district.name_bn}</option>)}</select></label>
+            <label><span className="sr-only">{tr('উপজেলা / এলাকা', 'Upazila / Area')}</span><select aria-label={tr('উপজেলা / এলাকা', 'Upazila / Area')} value={upazilaId} onChange={(event) => {
               const nextUpazila = event.target.value;
               setUpazilaId(nextUpazila);
               const next = new URLSearchParams(searchParams);
               if (nextUpazila) next.set('upazila', nextUpazila); else next.delete('upazila');
               setSearchParams(next, { replace: true });
-            }} disabled={!districtId}><option value="">সকল উপজেলা / এলাকা</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></label>
+            }} disabled={!districtId}><option value="">{tr('সকল উপজেলা / এলাকা', 'All upazilas / areas')}</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{language === 'bn' ? upazila.name_bn : upazila.name_en || upazila.name_bn}</option>)}</select></label>
           </div>
         </section>
         {error && <div className="error-box">{error}</div>}
-        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রতিষ্ঠান লোড হচ্ছে…</div> : rows.length ? <>
+        {loading ? <div className="loading-box"><LoaderCircle className="spin" /> {tr('প্রতিষ্ঠান লোড হচ্ছে…', 'Loading providers…')}</div> : rows.length ? <>
           <div className="provider-list-vertical">{rows.map((provider) => <ProviderCard provider={provider} stats={stats[provider.id]} onStatsChange={(providerId, next) => setStats((current) => ({ ...current, [providerId]: next }))} viewerLocation={viewerLocation} key={provider.id} />)}</div>
-          {hasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? <><LoaderCircle className="spin" /> লোড হচ্ছে…</> : 'আরও দেখুন'}</button></div>}
-        </> : <div className="visitor-empty">কোনো অনুমোদিত হাসপাতাল/চেম্বার পাওয়া যায়নি।</div>}
+          {hasMore && <div className="public-load-more-wrap"><button className="public-load-more-button" type="button" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? <><LoaderCircle className="spin" /> {tr('লোড হচ্ছে…', 'Loading…')}</> : tr('আরও দেখুন', 'View more')}</button></div>}
+        </> : <div className="visitor-empty">{tr('কোনো হাসপাতাল/চেম্বার পাওয়া যায়নি।', 'No hospital or chamber was found.')}</div>}
       </main>
       <VisitorBottomNav />
     </div>

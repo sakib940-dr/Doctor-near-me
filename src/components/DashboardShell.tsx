@@ -14,6 +14,7 @@ import {
   KeyRound,
   LayoutDashboard,
   Link2,
+  Languages,
   LogOut,
   Mail,
   MapPin,
@@ -37,6 +38,7 @@ import type { DashboardRole } from '../types';
 import { SITE_NAME } from '../lib/brand';
 import NotificationBell from './NotificationBell';
 import AccountStateFallback from './AccountStateFallback';
+import { useVisitorLanguage } from '../contexts/VisitorLanguageContext';
 
 interface DashboardShellProps {
   role: DashboardRole;
@@ -63,17 +65,6 @@ function isRouteActive(pathname: string, search: string, target: string, exact =
   return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
 }
 
-const panelLabels: Record<DashboardRole, string> = {
-  doctor: 'Doctor',
-  patient: 'Patient',
-  admin: 'Admin',
-  super_admin: 'Super Admin',
-  verification_officer: 'Verification',
-  hospital: 'Hospital',
-  chamber: 'Chamber',
-  ambulance: 'Ambulance',
-};
-
 export default function DashboardShell({ role, children }: DashboardShellProps) {
   const { account, loading, accountError, refreshAccount, signOut } = useAuth();
   const location = useLocation();
@@ -82,6 +73,8 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
   const [pendingVerification, setPendingVerification] = useState(0);
   const [pendingAppointments, setPendingAppointments] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { language, setLanguage } = useVisitorLanguage();
+  const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -125,22 +118,22 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     switch (role) {
       case 'doctor':
         return [
-          { label: 'Location & Public Map', path: '/doctor/chambers', icon: MapPin },
-          { label: 'Settings', path: '/doctor/settings', icon: KeyRound },
-          { label: 'Public Content Management', path: '/doctor/public-content', icon: PanelsTopLeft },
-          { label: 'Verification Application', path: '/doctor/verification', icon: ShieldCheck },
-          { label: 'Support / Chat with Admin', path: '/doctor/support', icon: MessageCircle },
-          { label: 'Feedback / Bug Report', path: '/doctor/feedback', icon: Bug },
-          { label: 'FAQ / Help', path: '/doctor/help', icon: CircleHelp },
+          { label: tr('অবস্থান ও পাবলিক ম্যাপ', 'Location & Public Map'), path: '/doctor/chambers', icon: MapPin },
+          { label: tr('সেটিংস', 'Settings'), path: '/doctor/settings', icon: KeyRound },
+          { label: tr('পাবলিক কনটেন্ট ব্যবস্থাপনা', 'Public Content Management'), path: '/doctor/public-content', icon: PanelsTopLeft },
+          { label: tr('ভেরিফিকেশন আবেদন', 'Verification Application'), path: '/doctor/verification', icon: ShieldCheck },
+          { label: tr('অ্যাডমিন সহায়তা', 'Support / Chat with Admin'), path: '/doctor/support', icon: MessageCircle },
+          { label: tr('মতামত / সমস্যা জানান', 'Feedback / Bug Report'), path: '/doctor/feedback', icon: Bug },
+          { label: tr('সাধারণ প্রশ্ন / সহায়তা', 'FAQ / Help'), path: '/doctor/help', icon: CircleHelp },
         ];
       case 'patient':
         return [
-          { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { label: 'Appointments', path: '/appointments', icon: CalendarDays },
-          { label: 'ডাক্তার খুঁজুন', path: '/doctors', icon: Search },
-          { label: 'Blood Bank', path: '/blood', icon: Droplets },
-          { label: 'Profile', path: '/profile', icon: UserCircle },
-          { label: 'Settings', path: '/settings', icon: Settings },
+          { label: tr('ড্যাশবোর্ড', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+          { label: tr('অ্যাপয়েন্টমেন্ট', 'Appointments'), path: '/appointments', icon: CalendarDays },
+          { label: tr('ডাক্তার খুঁজুন', 'Find Doctors'), path: '/doctors', icon: Search },
+          { label: tr('ব্লাড ব্যাংক', 'Blood Bank'), path: '/blood', icon: Droplets },
+          { label: tr('প্রোফাইল', 'Profile'), path: '/profile', icon: UserCircle },
+          { label: tr('সেটিংস', 'Settings'), path: '/settings', icon: Settings },
         ];
       case 'admin':
         return [
@@ -172,24 +165,24 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
         ];
       case 'hospital':
         return [
-          { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
-          { label: 'Premium Member হন', path: '/provider/premium', icon: Crown },
-          { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
-          { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
-          { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },
-          { label: 'Ambulance links', path: '/provider/ambulances', icon: Link2 },
-          { label: 'Verification evidence', path: '/verification/evidence', icon: FileCheck2 },
+          { label: tr('ড্যাশবোর্ড', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+          { label: tr('পরিসংখ্যান', 'Analytics'), path: '/provider/analytics', icon: BarChart3 },
+          { label: tr('প্রিমিয়াম সদস্যতা', 'Premium Membership'), path: '/provider/premium', icon: Crown },
+          { label: tr('প্রোফাইল ও ওয়েবসাইট', 'Profile & Website'), path: '/provider/profile', icon: Building2 },
+          { label: tr('ডাক্তার', 'Doctors'), path: '/provider/doctors', icon: Stethoscope },
+          { label: tr('অ্যাপয়েন্টমেন্ট', 'Appointments'), path: '/provider/appointments', icon: CalendarDays },
+          { label: tr('অ্যাম্বুলেন্স সংযোগ', 'Ambulance Links'), path: '/provider/ambulances', icon: Link2 },
+          { label: tr('ভেরিফিকেশন প্রমাণপত্র', 'Verification Evidence'), path: '/verification/evidence', icon: FileCheck2 },
         ];
       case 'chamber':
         return [
-          { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { label: 'Analytics', path: '/provider/analytics', icon: BarChart3 },
-          { label: 'Premium Member হন', path: '/provider/premium', icon: Crown },
-          { label: 'Profile & Website', path: '/provider/profile', icon: Building2 },
-          { label: 'Doctors', path: '/provider/doctors', icon: Stethoscope },
-          { label: 'Appointments', path: '/provider/appointments', icon: CalendarDays },
-          { label: 'Verification evidence', path: '/verification/evidence', icon: FileCheck2 },
+          { label: tr('ড্যাশবোর্ড', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+          { label: tr('পরিসংখ্যান', 'Analytics'), path: '/provider/analytics', icon: BarChart3 },
+          { label: tr('প্রিমিয়াম সদস্যতা', 'Premium Membership'), path: '/provider/premium', icon: Crown },
+          { label: tr('প্রোফাইল ও ওয়েবসাইট', 'Profile & Website'), path: '/provider/profile', icon: Building2 },
+          { label: tr('ডাক্তার', 'Doctors'), path: '/provider/doctors', icon: Stethoscope },
+          { label: tr('অ্যাপয়েন্টমেন্ট', 'Appointments'), path: '/provider/appointments', icon: CalendarDays },
+          { label: tr('ভেরিফিকেশন প্রমাণপত্র', 'Verification Evidence'), path: '/verification/evidence', icon: FileCheck2 },
         ];
       case 'ambulance':
         return [
@@ -198,14 +191,14 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           { label: 'Hospital links', path: '/ambulance/hospitals', icon: Building2 },
         ];
     }
-  }, [pendingAppointments, pendingVerification, role]);
+  }, [language, pendingAppointments, pendingVerification, role]);
 
   const doctorPrimaryItems = role === 'doctor' ? [
-    { label: 'Appointment Management', path: '/doctor/appointments', icon: CalendarDays },
-    { label: 'Prescription', path: '/doctor/prescriptions', icon: FileCheck2 },
-    { label: 'Analytics', path: '/doctor/analytics', icon: BarChart3 },
-    { label: 'My Profile', path: '/doctor/profile', icon: UserCircle },
-    { label: 'Public Profile View', path: '/doctor/public-view', icon: Eye },
+    { label: tr('অ্যাপয়েন্টমেন্ট ব্যবস্থাপনা', 'Appointment Management'), path: '/doctor/appointments', icon: CalendarDays },
+    { label: tr('প্রেসক্রিপশন', 'Prescription'), path: '/doctor/prescriptions', icon: FileCheck2 },
+    { label: tr('পরিসংখ্যান', 'Analytics'), path: '/doctor/analytics', icon: BarChart3 },
+    { label: tr('আমার প্রোফাইল', 'My Profile'), path: '/doctor/profile', icon: UserCircle },
+    { label: tr('পাবলিক প্রোফাইল দেখুন', 'Public Profile View'), path: '/doctor/public-view', icon: Eye },
   ] : [];
 
   if (loading) return <AccountStateFallback loading />;
@@ -223,7 +216,11 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
     }
   }
 
-  const panelName = panelLabels[role];
+  const panelName = ({
+    doctor: tr('ডাক্তার', 'Doctor'), patient: tr('রোগী', 'Patient'), admin: tr('অ্যাডমিন', 'Admin'),
+    super_admin: tr('সুপার অ্যাডমিন', 'Super Admin'), verification_officer: tr('যাচাইকরণ', 'Verification'),
+    hospital: tr('হাসপাতাল', 'Hospital'), chamber: tr('চেম্বার', 'Chamber'), ambulance: tr('অ্যাম্বুলেন্স', 'Ambulance'),
+  } as Record<DashboardRole, string>)[role];
 
   const navigation = (
     <>
@@ -258,9 +255,15 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
       </nav>
 
       <div className="dashboard-shell-bottom">
+        <div className="public-language-toggle dashboard-language-toggle" role="group" aria-label="Language">
+          <Languages size={15} aria-hidden="true" />
+          <button type="button" className={language === 'bn' ? 'active' : ''} onClick={() => setLanguage('bn')} aria-pressed={language === 'bn'}>বাংলা</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')} aria-pressed={language === 'en'}>EN</button>
+        </div>
         <button type="button" className="dashboard-shell-logout" onClick={() => void logout()} disabled={loggingOut}>
           <LogOut aria-hidden="true" />
-          <span>{loggingOut ? 'Logging out…' : 'Logout'}</span>
+          <span>{loggingOut ? tr('লগআউট হচ্ছে…', 'Logging out…') : tr('লগআউট', 'Logout')}</span>
         </button>
       </div>
     </>
@@ -285,6 +288,7 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
           <strong>{SITE_NAME}</strong>
         </Link>
         <span className="dashboard-shell-role-label">{panelName}</span>
+        <div className="public-language-toggle dashboard-mobile-language-toggle" role="group" aria-label="Language"><button type="button" className={language === 'bn' ? 'active' : ''} onClick={() => setLanguage('bn')}>বাং</button><span>|</span><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>EN</button></div>
         <NotificationBell placement="mobile" />
       </header>
 

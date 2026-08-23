@@ -12,18 +12,18 @@ export default function PublicHeader({ mobileBottomNav = false }: { mobileBottom
   const { language, setLanguage } = useVisitorLanguage();
   const navClass = ({ isActive }: { isActive: boolean }) => isActive ? 'is-active' : undefined;
   const roleLabel = account ? ({
-    patient: language === 'bn' ? 'Patient' : 'Patient',
-    doctor: language === 'bn' ? 'Doctor' : 'Doctor',
-    hospital: language === 'bn' ? 'Hospital' : 'Hospital',
-    chamber: language === 'bn' ? 'Chamber' : 'Chamber',
-    ambulance: language === 'bn' ? 'Ambulance' : 'Ambulance',
-    verification_officer: 'Verification',
-    admin: 'Admin',
-    super_admin: 'Super Admin',
+    patient: language === 'bn' ? 'রোগী' : 'Patient',
+    doctor: language === 'bn' ? 'ডাক্তার' : 'Doctor',
+    hospital: language === 'bn' ? 'হাসপাতাল' : 'Hospital',
+    chamber: language === 'bn' ? 'চেম্বার' : 'Chamber',
+    ambulance: language === 'bn' ? 'অ্যাম্বুলেন্স' : 'Ambulance',
+    verification_officer: language === 'bn' ? 'যাচাইকরণ' : 'Verification',
+    admin: language === 'bn' ? 'অ্যাডমিন' : 'Admin',
+    super_admin: language === 'bn' ? 'সুপার অ্যাডমিন' : 'Super Admin',
   } as const)[account.role] : null;
 
   const labels = language === 'bn'
-    ? { doctors: 'ডাক্তার', providers: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স', blood: 'রক্তদাতা', dashboard: 'Dashboard', login: 'লগইন', home: 'হোম', menuOpen: 'মেনু খুলুন', menuClose: 'মেনু বন্ধ করুন' }
+    ? { doctors: 'ডাক্তার', providers: 'হাসপাতাল', ambulance: 'অ্যাম্বুলেন্স', blood: 'রক্তদাতা', dashboard: 'ড্যাশবোর্ড', login: 'লগইন', home: 'হোম', menuOpen: 'মেনু খুলুন', menuClose: 'মেনু বন্ধ করুন' }
     : { doctors: 'Doctors', providers: 'Hospitals', ambulance: 'Ambulance', blood: 'Blood Bank', dashboard: 'Dashboard', login: 'Login', home: 'Home', menuOpen: 'Open menu', menuClose: 'Close menu' };
 
   return (
@@ -31,7 +31,7 @@ export default function PublicHeader({ mobileBottomNav = false }: { mobileBottom
       <div className="container header-inner">
         <Link className="brand" to="/" aria-label={`${SITE_NAME} ${labels.home}`}>
           <span className="brand-mark"><HeartPulse size={24} /></span>
-          <span><strong>{SITE_NAME}</strong><small>{SITE_TAGLINE}</small></span>
+          <span><strong>{SITE_NAME}</strong><small>{language === 'bn' ? SITE_TAGLINE : 'Your trusted healthcare destination'}</small></span>
         </Link>
         <nav className={open ? 'main-nav is-open' : 'main-nav'} aria-label={language === 'bn' ? 'প্রধান নেভিগেশন' : 'Primary navigation'}>
           <NavLink className={navClass} to="/doctors" onClick={() => setOpen(false)}>{labels.doctors}</NavLink>

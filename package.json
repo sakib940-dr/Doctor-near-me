@@ -23,6 +23,7 @@
     "storage:validate": "node scripts/validate-storage-cleanup.mjs",
     "storage:test": "node scripts/test-storage-cleanup-lifecycle.mjs",
     "doctor:redesign:validate": "node scripts/validate-doctor-module-redesign.mjs",
+    "hospital:console:validate": "node scripts/validate-hospital-console.mjs",
     "blood:validate": "node scripts/validate-blood-distance-eligibility.mjs"
   },
   "dependencies": {

@@ -60,6 +60,17 @@ import VerificationOfficerPage from './pages/VerificationOfficerPage';
 import VisitorHomePage from './pages/VisitorHomePage';
 import NotificationsPage from './pages/NotificationsPage';
 import { makePageTitle } from './lib/brand';
+import HospitalShell from './features/hospital/HospitalShell';
+import HospitalDashboardPage from './features/hospital/pages/HospitalDashboardPage';
+import HospitalAppointmentsPage from './features/hospital/pages/HospitalAppointmentsPage';
+import HospitalDoctorsPage from './features/hospital/pages/HospitalDoctorsPage';
+import HospitalGalleryPage from './features/hospital/pages/HospitalGalleryPage';
+import HospitalStaffPage from './features/hospital/pages/HospitalStaffPage';
+import {
+  HospitalInformationPage, HospitalInvestigationCostsPage, HospitalPublicProfileManagementPage,
+  HospitalReceptionSettingsPage, HospitalServicesPage, HospitalSettingsPage, HospitalSupportPage,
+  HospitalTreatmentCostsPage,
+} from './features/hospital/pages/HospitalContentPages';
 
 export default function App() {
   useRouteDocumentTitle();
@@ -105,6 +116,23 @@ export default function App() {
       <Route path="/doctor/schedules" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorSchedulePage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/appointments" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorAppointmentsPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/doctor/prescriptions" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPrescriptionPage /></DashboardShell></ProtectedRoute>} />
+      <Route path="/hospital-console" element={<ProtectedRoute><HospitalShell><HospitalDashboardPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/appointments" element={<ProtectedRoute><HospitalShell><HospitalAppointmentsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/doctors" element={<ProtectedRoute><HospitalShell><HospitalDoctorsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/analytics" element={<ProtectedRoute><HospitalShell><ProfileAnalyticsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/public-profile" element={<ProtectedRoute><HospitalShell><HospitalPublicProfileManagementPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/information" element={<ProtectedRoute><HospitalShell><HospitalInformationPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/gallery" element={<ProtectedRoute><HospitalShell><HospitalGalleryPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/services" element={<ProtectedRoute><HospitalShell><HospitalServicesPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/treatment-costs" element={<ProtectedRoute><HospitalShell><HospitalTreatmentCostsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/investigation-costs" element={<ProtectedRoute><HospitalShell><HospitalInvestigationCostsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/reception" element={<ProtectedRoute><HospitalShell><HospitalReceptionSettingsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/staff" element={<ProtectedRoute><HospitalShell><HospitalStaffPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/verification" element={<ProtectedRoute><HospitalShell><VerificationEvidencePage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/settings" element={<ProtectedRoute><HospitalShell><HospitalSettingsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/support" element={<ProtectedRoute><HospitalShell><HospitalSupportPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/premium" element={<ProtectedRoute><HospitalShell><PremiumMemberPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/ambulances" element={<ProtectedRoute><HospitalShell><ProviderAmbulanceLinksPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/doctors" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderDoctorsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
       <Route path="/provider/appointments" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderAppointmentsPage /></RoleAwareDashboardShell></ProtectedRoute>} />
@@ -137,6 +165,7 @@ function PatientDashboardRoute() {
   const { account, loading } = useAuth();
   if (loading) return <AccountStateFallback loading />;
   if (account?.role === 'patient') return <Navigate to="/" replace />;
+  if (account?.role === 'hospital') return <Navigate to="/hospital-console" replace />;
   return <DashboardPage />;
 }
 
@@ -152,6 +181,7 @@ function NotificationCenterRoute() {
   if (loading) return <AccountStateFallback loading />;
   if (!user) return <Navigate to="/auth" replace />;
   if (!account) return <AccountStateFallback message={accountError} onRetry={refreshAccount} onSignOut={signOut} />;
+  if (account.role === 'hospital') return <HospitalShell><NotificationsPage /></HospitalShell>;
   return <DashboardShell role={account.role as DashboardRole}><NotificationsPage /></DashboardShell>;
 }
 
@@ -196,6 +226,7 @@ function useRouteDocumentTitle() {
     else if (path === '/doctor/public-profile') page = 'Public Profile Content';
     else if (path === '/doctor/analytics') page = 'Doctor Analytics';
     else if (path.startsWith('/doctor/') || path.startsWith('/doctors/')) page = 'Doctor Profile';
+    else if (path.startsWith('/hospital-console')) page = 'Hospital Console';
     else if (path === '/provider/analytics') page = 'Hospital Analytics';
     else if (path.startsWith('/provider/')) page = 'Hospital';
     else if (path.startsWith('/ambulance/')) page = 'Ambulance';

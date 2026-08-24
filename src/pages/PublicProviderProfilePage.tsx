@@ -20,7 +20,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useVisitorLanguage, type VisitorLanguage } from '../contexts/VisitorLanguageContext';
 import ProfileShareButton from '../components/ProfileShareButton';
 import ProfileReportButton from '../components/ProfileReportButton';
-import ProviderManagedDoctorCard from '../components/ProviderManagedDoctorCard';
+import HospitalDoctorCard from '../features/hospital/components/HospitalDoctorCard';
 import FollowSaveButton from '../components/FollowSaveButton';
 import PublicHeader from '../components/PublicHeader';
 import StructuredReviewSection from '../components/StructuredReviewSection';
@@ -31,11 +31,12 @@ import { captureCurrentCoordinates } from '../lib/geolocation';
 import { getImageUrl } from '../lib/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { buildWhatsAppAppointmentUrl } from '../lib/whatsapp';
-import { getPublicProviderPageBase } from '../services/discovery';
+import { getPublicHospitalPageBase } from '../features/hospital/services/hospitalDoctors';
 import { getProviderPublicStats, recordProviderInteraction } from '../services/engagement';
 import { getProviderDistance, type ProviderOpeningHour, type ProviderPublicPageContent } from '../services/providerPublicContent';
-import { getPublicProviderManagedDoctorCards } from '../services/providerReception';
-import type { ProviderDirectoryRow, ProviderManagedDoctorCard as ProviderManagedDoctorCardRow, PublicProfileStats, PublicRankingTier } from '../types';
+import { getPublicHospitalDoctors } from '../features/hospital/services/hospitalDoctors';
+import type { HospitalDoctorCard as HospitalDoctorCardRow } from '../features/hospital/types';
+import type { ProviderDirectoryRow, PublicProfileStats, PublicRankingTier } from '../types';
 
 const daysBn = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
 const daysEn = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -64,17 +65,17 @@ function openingStatus(hours:ProviderOpeningHour[],language:VisitorLanguage,fall
 export default function PublicProviderProfilePage(){
   const {providerId=''}=useParams();
   const navigate=useNavigate(),location=useLocation();
-  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[publicSlug,setPublicSlug]=useState(''),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[managedDoctors,setManagedDoctors]=useState<ProviderManagedDoctorCardRow[]>([]),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
+  const [provider,setProvider]=useState<ProviderDirectoryRow|null>(null),[publicSlug,setPublicSlug]=useState(''),[content,setContent]=useState<ProviderPublicPageContent|null>(null),[managedDoctors,setManagedDoctors]=useState<HospitalDoctorCardRow[]>([]),[providerStats,setProviderStats]=useState<PublicProfileStats|null>(null);
   const {language}=useVisitorLanguage();
   const [loading,setLoading]=useState(isSupabaseConfigured),[error,setError]=useState<string|null>(null),[activeSlide,setActiveSlide]=useState(0),[contactOpen,setContactOpen]=useState(false),[distance,setDistance]=useState<number|null>(null),[distanceBusy,setDistanceBusy]=useState(false),[distanceError,setDistanceError]=useState<string|null>(null);
   const sliderRef=useRef<HTMLDivElement>(null),trackedView=useRef<string|null>(null);
 
   useEffect(()=>{if(!isSupabaseConfigured||!providerId)return;let alive=true;setLoading(true);setError(null);setProvider(null);setContent(null);setManagedDoctors([]);setProviderStats(null);setPublicSlug('');
-    getPublicProviderPageBase(providerId,10).then(async base=>{
+    getPublicHospitalPageBase(providerId).then(async base=>{
       if(!base?.route||!base.provider)return [null,null,[],null,''] as const;
       const canonicalPath=providerPublicPath(base.provider.provider_type,base.route.slug,base.route.id);
       if(location.pathname!==canonicalPath)navigate(canonicalPath,{replace:true});
-      const [statsResult,managed]=await Promise.all([getProviderPublicStats(base.route.id),getPublicProviderManagedDoctorCards(base.route.id)]);
+      const [statsResult,managed]=await Promise.all([getProviderPublicStats(base.route.id),getPublicHospitalDoctors(base.route.id)]);
       return [base.provider,base.content,managed,statsResult,base.route.slug] as const;
     })
     .then(([p,c,m,s,slug])=>{if(!alive)return;setProvider(p);setContent(c);setManagedDoctors([...m]);setProviderStats(s);setPublicSlug(slug||'');document.title=makePageTitle(p?.name_bn||'Hospital');})
@@ -128,7 +129,7 @@ export default function PublicProviderProfilePage(){
       <details className="provider-profile-accordion-v2"><summary><span><BadgeCheck/>{t.investigation}</span><ChevronDown/></summary><div className="provider-accordion-body-v2 provider-cost-public-v2">{content?.investigation_costs.length?content.investigation_costs.map(c=><article key={c.id}><strong>{localText(c.name,language)}</strong><b>{localText(c.cost,language)||'—'}</b></article>):<p>{t.noInfo}</p>}<small className="provider-cost-disclaimer-v2">{t.costDisclaimer}</small></div></details>
     </section>
 
-    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{managedDoctors.length>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{managedDoctors.length?<div className="provider-doctor-rail-v2">{managedDoctors.slice(0,10).map(card=><ProviderManagedDoctorCard key={card.id} card={card} provider={provider}/>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
+    <section className="provider-doctors-v2"><div className="visitor-section-head"><div><span>{typeLabel}</span><h2>{t.doctors}</h2></div>{managedDoctors.length>10&&<Link to={`/providers/${provider.id}/doctors`}>{t.allDoctors} →</Link>}</div>{managedDoctors.length?<div className="hospital-public-doctor-list">{managedDoctors.slice(0,10).map(doctor=><HospitalDoctorCard key={doctor.id} doctor={doctor} hospital={provider}/>)}</div>:<div className="visitor-empty">{t.noDoctors}</div>}</section>
 
     <section className="provider-contact-map-v2"><div className="provider-section-title-v2"><MapPin/><div><small>{typeLabel}</small><h2>{t.map}</h2></div></div><div className="provider-contact-grid-v2"><div><h3>{language==='bn'?provider.name_bn:(provider.name_en||provider.name_bn)}</h3><p><MapPin/>{provider.address||t.noInfo}</p>{provider.phone&&<a href={`tel:${phone}`} onClick={()=>track('call_click')}><Phone/>{provider.phone}</a>}{whatsappUrl&&<a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={()=>track('whatsapp_click')}><MessageCircle/>WhatsApp</a>}{distance!=null&&<strong><Navigation/>{t.distance} {numberText(distance,language,1)} {language==='bn'?'কিমি':'km'}</strong>}</div><button className="provider-distance-button-v2" type="button" disabled={distanceBusy} onClick={()=>void captureDistance()}>{distanceBusy?<LoaderCircle className="spin"/>:<Navigation/>}{distanceBusy?t.locating:t.showDistance}</button></div>{distanceError&&<p className="provider-distance-error-v2">{distanceError}</p>}{provider.latitude!=null&&provider.longitude!=null&&<div className="provider-map-frame-v2"><iframe title={`${provider.name_bn} map`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={`https://www.google.com/maps?q=${encodeURIComponent(`${provider.latitude},${provider.longitude}`)}&z=15&output=embed`}/></div>}{directionUrl&&<a className="provider-map-direction-v2" href={directionUrl} target="_blank" rel="noreferrer" onClick={()=>track('map_click')}><ExternalLink/>{t.direction}</a>}</section>
 

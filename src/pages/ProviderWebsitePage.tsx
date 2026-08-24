@@ -14,10 +14,12 @@ import FollowSaveButton from "../components/FollowSaveButton";
 import PublicHeader from "../components/PublicHeader";
 import StructuredReviewSection from "../components/StructuredReviewSection";
 import VisitorBottomNav from "../components/VisitorBottomNav";
-import { doctorPublicPath } from "../lib/publicRoutes";
+import HospitalDoctorCard from "../features/hospital/components/HospitalDoctorCard";
+import { getPublicHospitalDoctors } from "../features/hospital/services/hospitalDoctors";
+import type { HospitalDoctorCard as HospitalDoctorCardRow } from "../features/hospital/types";
 import { getImageUrl } from "../lib/storage";
 import { buildWhatsAppAppointmentUrl } from "../lib/whatsapp";
-import { getPublicProviderPageBase } from "../services/discovery";
+import { getPublicHospitalPageBase } from "../features/hospital/services/hospitalDoctors";
 import {
   providerGallery,
   providerReviews,
@@ -30,7 +32,6 @@ import {
   recordProviderInteraction,
 } from "../services/engagement";
 import type {
-  DoctorSearchRow,
   ProviderDirectoryRow,
   PublicProfileStats,
 } from "../types";
@@ -51,7 +52,7 @@ export default function ProviderWebsitePage() {
   const navigate = useNavigate(),
     location = useLocation();
   const [provider, setProvider] = useState<ProviderDirectoryRow | null>(null);
-  const [doctors, setDoctors] = useState<DoctorSearchRow[]>([]);
+  const [doctors, setDoctors] = useState<HospitalDoctorCardRow[]>([]);
   const [providerStats, setProviderStats] = useState<PublicProfileStats | null>(
     null,
   );
@@ -78,7 +79,7 @@ export default function ProviderWebsitePage() {
       try {
         setLoading(true);
         setError(null);
-        const base = await getPublicProviderPageBase(slug, 20);
+        const base = await getPublicHospitalPageBase(slug);
         if (!base) {
           if (alive) setProvider(null);
           return;
@@ -87,14 +88,15 @@ export default function ProviderWebsitePage() {
         const canonical = `/providers/${encodeURIComponent(base.route.slug)}/website`;
         if (location.pathname !== canonical)
           navigate(canonical, { replace: true });
-        const [g, r, stats] = await Promise.all([
+        const [g, r, stats, managedDoctors] = await Promise.all([
           providerGallery.getAll(p.id, true),
           providerReviews.getAll(p.id, true),
           getProviderPublicStats(p.id).catch(() => null),
+          getPublicHospitalDoctors(p.id),
         ]);
         if (!alive) return;
         setProvider(p);
-        setDoctors(base.doctors);
+        setDoctors(managedDoctors);
         setServices(base.content?.services ?? []);
         setGallery(g);
         setSlider(base.content?.slider_images ?? []);
@@ -229,7 +231,7 @@ export default function ProviderWebsitePage() {
                 )}
                 {doctors[0] && (
                   <Link
-                    to={`/doctors/${doctors[0].doctor_id}/book?provider=${provider.id}`}
+                    to="#hospital-doctors"
                     onClick={() =>
                       void recordProviderInteraction(
                         provider.id,
@@ -304,64 +306,11 @@ export default function ProviderWebsitePage() {
               )}
             </div>
           </section>
-          <section className="provider-site-section">
+          <section className="provider-site-section" id="hospital-doctors">
             <h2>{lang === "bn" ? "ডাক্তারবৃন্দ" : "Doctors"}</h2>
             {doctors.length ? (
-              <div className="provider-doctor-grid">
-                {doctors.map((d) => (
-                  <article key={d.doctor_id}>
-                    {d.avatar_url ? (
-                      <img
-                        src={
-                          getImageUrl(d.avatar_url, "avatars", "thumbnail") ||
-                          d.avatar_url
-                        }
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        width="320"
-                        height="320"
-                      />
-                    ) : (
-                      <div className="doctor-placeholder">DR</div>
-                    )}
-                    <h3>{d.doctor_name}</h3>
-                    <p>{d.degree || d.designation || ""}</p>
-                    <Link to={doctorPublicPath(d.profile_slug, d.doctor_id)}>
-                      {tr("প্রোফাইল", "Profile")}
-                    </Link>
-                    {provider.phone && (
-                      <a
-                        href={`tel:${provider.phone}`}
-                        onClick={() =>
-                          void recordProviderInteraction(
-                            provider.id,
-                            "call_click",
-                            "provider_doctor_card",
-                          ).catch(() => undefined)
-                        }
-                      >
-                        {tr("কল", "Call")}
-                      </a>
-                    )}
-                    {whatsappUrl && (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() =>
-                          void recordProviderInteraction(
-                            provider.id,
-                            "whatsapp_click",
-                            "provider_doctor_card",
-                          ).catch(() => undefined)
-                        }
-                      >
-                        WhatsApp
-                      </a>
-                    )}
-                  </article>
-                ))}
+              <div className="hospital-public-doctor-list">
+                {doctors.map((doctor) => <HospitalDoctorCard key={doctor.id} doctor={doctor} hospital={provider} />)}
               </div>
             ) : (
               <p className="provider-empty">

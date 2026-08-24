@@ -181,33 +181,33 @@ export default function DoctorProfessionalProfilePage() {
     }
   }
 
-  return <div className="app-shell doctor-dashboard-page"><main className="doctor-dashboard-main container">
+  return <div className="app-shell doctor-dashboard-page doctor-my-profile-page"><main className="doctor-dashboard-main container">
     <Link className="back-link" to="/doctor/appointments"><ArrowLeft /> Appointment Management-এ ফিরুন</Link>
-    <div className="doctor-page-heading"><span><Stethoscope /></span><div><small>Doctor self-service</small><h1>My Profile</h1><p>Personal Information, Study Information, phone, address এবং existing account-level doctor information পরিচালনা করুন।</p></div></div>
+    <div className="doctor-page-heading"><span><Stethoscope /></span><div><small>Doctor self-service</small><h1>My Profile</h1></div></div>
 
-    {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রোফাইল লোড হচ্ছে…</div> : !profile ? <div className="error-box">ডাক্তার প্রোফাইল পাওয়া যায়নি।</div> : <form className="doctor-profile-form" onSubmit={submit}>
+    {loading ? <div className="loading-box"><LoaderCircle className="spin" /> প্রোফাইল লোড হচ্ছে…</div> : !profile ? <div className="error-box">ডাক্তার প্রোফাইল পাওয়া যায়নি।</div> : <form className="doctor-profile-form" onSubmit={submit}>
       <section className={`verification-banner ${profile.doctor.verification_status}`}>
-        <div>{profile.doctor.verification_status === 'approved' ? <BadgeCheck /> : <ShieldAlert />}<span><strong>{statusLabels[profile.doctor.verification_status]}</strong><small>{profile.doctor.bmdc_verified ? 'BMDC তথ্য যাচাইকৃত' : 'BMDC verification এখনো সম্পন্ন হয়নি'}</small></span></div>
-        <p>Medical Type, Medical College, Session, Batch এবং BMDC Verification Application থেকে managed/locked। Degree, Designation ও অন্যান্য visitor-facing profile fields এখানে edit করা যাবে।</p>
+        <div>{profile.doctor.verification_status === 'approved' ? <BadgeCheck /> : <ShieldAlert />}<span><strong>{statusLabels[profile.doctor.verification_status]}</strong><small>{profile.doctor.bmdc_verified ? 'BMDC যাচাইকৃত' : 'BMDC verification পেন্ডিং'}</small></span></div>
       </section>
 
       <div className="doctor-form-layout">
         <aside className="doctor-photo-card">
-          <div className="doctor-photo-preview">{avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" width="800" height="800" decoding="async" /> : <Stethoscope />}</div>
-          <label><Camera /> ছবি পরিবর্তন<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
-          <small className="image-upload-hint">প্রস্তাবিত সাইজ: 800×800 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে</small>
+          <div className="doctor-photo-preview">{avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" width="800" height="800" decoding="async" /> : <Stethoscope />}
+            <label className="doctor-photo-edit-btn"><Camera /><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
+          </div>
+          <small className="image-upload-hint">800×800px • সর্বোচ্চ 5 MB</small>
           <label className="accepting-toggle"><input type="checkbox" checked={profile.doctor.accepting_appointments} onChange={(event) => setDoctor('accepting_appointments', event.target.checked)} /><span><strong>Appointment নিচ্ছি</strong><small>বন্ধ করলে নতুন booking request আসবে না</small></span></label>
         </aside>
 
         <div className="doctor-form-sections">
           <section>
             <h2>Personal Information</h2>
-            <div className="onboarding-private-note"><ShieldAlert /><span><strong>Private Information</strong><small>এই information আপনার personal profile-এর জন্য। DOB, age, gender, blood group, current address এবং permanent address public doctor profile বা visitor page-এ দেখানো হবে না। Doctor Name public profile-এর display name হিসেবেও ব্যবহৃত হয়; login email/phone public নয়।</small></span></div>
+            <p className="doctor-section-hint">DOB, লিঙ্গ, রক্তের গ্রুপ ও address private — public profile-এ দেখাবে না।</p>
             <div className="patient-form-grid">
               <label className="auth-field"><span>পূর্ণ নাম</span><div><input required minLength={2} value={profile.doctor.full_name || ''} onChange={(event) => setDoctor('full_name', event.target.value)} /></div></label>
               <label className="auth-field"><span>ইমেইল</span><div><input disabled value={profile.doctor.email || ''} /></div></label>
-              <label className="auth-field"><span>Login Phone</span><div><input readOnly inputMode="tel" value={profile.doctor.phone || ''} /></div><small className="field-helper">Signup/login credential; normal profile থেকে editable নয়।</small></label>
-              <label className="auth-field"><span>Date of Birth</span><div><input type="date" value={privateProfile.date_of_birth || ''} onChange={(event) => setPrivate('date_of_birth', event.target.value || null)} /></div></label><label className="auth-field"><span>Age</span><div><input readOnly value={age} placeholder="DOB দিলে automatically calculate হবে" /></div></label>
+              <label className="auth-field"><span>Login Phone</span><div><input readOnly inputMode="tel" value={profile.doctor.phone || ''} /></div></label>
+              <label className="auth-field"><span>Date of Birth</span><div><input type="date" value={privateProfile.date_of_birth || ''} onChange={(event) => setPrivate('date_of_birth', event.target.value || null)} /></div></label><label className="auth-field"><span>Age</span><div><input readOnly value={age} placeholder="—" /></div></label>
               <label className="auth-field"><span>লিঙ্গ</span><div><select value={privateProfile.gender || ''} onChange={(event) => setPrivate('gender', (event.target.value || null) as DoctorPrivateProfile['gender'])}><option value="">নির্বাচন করুন</option><option value="male">পুরুষ</option><option value="female">নারী</option><option value="other">অন্যান্য</option></select></div></label>
               <label className="auth-field"><span>রক্তের গ্রুপ</span><div><select value={privateProfile.blood_group || ''} onChange={(event) => setPrivate('blood_group', event.target.value || null)}>{bloodGroups.map((group) => <option key={group || 'none'} value={group}>{group || 'নির্বাচন করুন'}</option>)}</select></div></label>
             </div>
@@ -221,7 +221,7 @@ export default function DoctorProfessionalProfilePage() {
 
           <section>
             <h2>Search Location</h2>
-            <div className="onboarding-public-note"><MapPin /><span><strong>Search / Directory Location</strong><small>District এবং Upazila visitor search/filter ও doctor discovery-তে ব্যবহার হতে পারে। Detailed Current/Permanent Address private থাকবে।</small></span></div>
+            <p className="doctor-section-hint">Visitor search/filter-এ ব্যবহৃত হয়; বিস্তারিত address private থাকবে।</p>
             <div className="patient-form-grid">
               <label className="auth-field"><span>জেলা</span><div><MapPin /><select value={profile.doctor.district_id ?? ''} onChange={(event) => { setDoctor('district_id', event.target.value ? Number(event.target.value) : null); setDoctor('upazila_id', null); }}><option value="">নির্বাচন করুন</option>{districts.map((district) => <option key={district.id} value={district.id}>{district.name_bn}</option>)}</select></div></label>
               <label className="auth-field"><span>উপজেলা / এলাকা</span><div><MapPin /><select disabled={!profile.doctor.district_id} value={profile.doctor.upazila_id ?? ''} onChange={(event) => setDoctor('upazila_id', event.target.value ? Number(event.target.value) : null)}><option value="">নির্বাচন করুন</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></div></label>
@@ -229,27 +229,26 @@ export default function DoctorProfessionalProfilePage() {
           </section>
 
           <section>
-            <h2>Study Information</h2>
+            <h2>Study Information <span className="doctor-section-lock">Locked</span></h2>
             <div className="doctor-study-info-grid">
-              <div><GraduationCap /><span><small>Medical Type</small><strong>{verificationProfile?.medical_type || profile.doctor.medical_type || 'যোগ করা হয়নি'}</strong></span></div>
-              <div><GraduationCap /><span><small>Medical College</small><strong>{verificationProfile?.medical_college || 'যোগ করা হয়নি'}</strong></span></div>
-              <div><GraduationCap /><span><small>Session</small><strong>{verificationProfile?.medical_session || 'যোগ করা হয়নি'}</strong></span></div>
-              <div><GraduationCap /><span><small>Batch</small><strong>{verificationProfile?.medical_batch || 'যোগ করা হয়নি'}</strong></span></div>
+              <div><GraduationCap /><span><small>Medical Type</small><strong>{verificationProfile?.medical_type || profile.doctor.medical_type || '—'}</strong></span></div>
+              <div><GraduationCap /><span><small>Medical College</small><strong>{verificationProfile?.medical_college || '—'}</strong></span></div>
+              <div><GraduationCap /><span><small>Session</small><strong>{verificationProfile?.medical_session || '—'}</strong></span></div>
+              <div><GraduationCap /><span><small>Batch</small><strong>{verificationProfile?.medical_batch || '—'}</strong></span></div>
             </div>
-            <p className="doctor-profile-section-note">Study Information verification record-এর অংশ। এটি Verification Application থেকে edit করা হয় এবং submitted/approved অবস্থায় locked থাকে।</p>
           </section>
 
           <section>
             <h2>Public Information</h2>
-            <div className="onboarding-public-note"><Stethoscope /><span><strong>Visitor-facing Information</strong><small>এই professional fields public profile/card-এর সাথে সম্পর্কিত। Visiting Card/Public Content Management-এ dedicated public editorsও আছে।</small></span></div>
+            <p className="doctor-section-hint">Visitor-facing card/profile fields; About Doctor — Public Content Management-এ edit করুন।</p>
             <div className="patient-form-grid">
               <label className="auth-field"><span>Professional title</span><div><input value={profile.doctor.professional_title || ''} onChange={(event) => setDoctor('professional_title', event.target.value)} placeholder="যেমন: হৃদরোগ বিশেষজ্ঞ" /></div></label>
               <label className="auth-field"><span>ডিগ্রি</span><div><input value={profile.doctor.degree || ''} onChange={(event) => setDoctor('degree', event.target.value)} placeholder="MBBS, FCPS" /></div></label>
               <label className="auth-field"><span>পদবি / Designation</span><div><input value={profile.doctor.designation || ''} onChange={(event) => setDoctor('designation', event.target.value)} /></div></label>
-              <label className="auth-field"><span>BMDC registration</span><div><input readOnly value={profile.doctor.bmdc_registration_no || ''} /></div><small className="field-helper">Verification Application থেকে managed; My Profile থেকে editable নয়।</small></label>
+              <label className="auth-field"><span>BMDC registration</span><div><input readOnly value={profile.doctor.bmdc_registration_no || ''} /></div></label>
               <label className="auth-field"><span>অভিজ্ঞতা (বছর)</span><div><input type="number" min="0" max="80" value={profile.doctor.experience_years ?? ''} onChange={(event) => setDoctor('experience_years', event.target.value ? Number(event.target.value) : null)} /></div></label>
               <label className="auth-field"><span>ভিজিট ফি (৳)</span><div><input type="number" min="0" step="1" value={profile.doctor.consultation_fee ?? ''} onChange={(event) => setDoctor('consultation_fee', event.target.value ? Number(event.target.value) : null)} /></div></label>
-              <label className="auth-field"><span>ভাষা <small>কমা দিয়ে লিখুন</small></span><div><input value={languages} onChange={(event) => setLanguages(event.target.value)} placeholder="বাংলা, English" /></div></label>
+              <label className="auth-field"><span>ভাষা <small>কমা দিয়ে লিখুন</small></span><div><input value={languages} onChange={(event) => setLanguages(event.target.value)} placeholder="বাংলা, English" /></div></label>
             </div>
             <fieldset className="specialty-picker"><legend>বিশেষত্ব (কমপক্ষে একটি)</legend>{specialties.map((specialty) => <label className={profile.specialty_ids.includes(specialty.id) ? 'selected' : ''} key={specialty.id}><input type="checkbox" checked={profile.specialty_ids.includes(specialty.id)} onChange={() => toggleSpecialty(specialty.id)} /><span>{specialty.name_bn}</span></label>)}</fieldset>
           </section>
@@ -258,9 +257,7 @@ export default function DoctorProfessionalProfilePage() {
             <h2>Appointment & Profile Preferences</h2>
             <label className="doctor-text-field"><span>Profile headline</span><input maxLength={180} value={profile.doctor.profile_headline || ''} onChange={(event) => setDoctor('profile_headline', event.target.value)} /></label>
             <label className="doctor-text-field"><span>Consultation note</span><textarea rows={3} value={profile.doctor.consultation_note || ''} onChange={(event) => setDoctor('consultation_note', event.target.value)} placeholder="রোগী আসার আগে যা জানবেন" /></label>
-            <p className="doctor-profile-section-note">About Doctor content Public Content Management-এর Step 3 থেকে edit হবে, যাতে একই content-এর duplicate editor না থাকে।</p>
           </section>
-
 
           <PrescriptionAdviceTemplatesManager />
 

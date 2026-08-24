@@ -9731,3 +9731,137 @@ img { max-width: 100%; height: auto; }
   .onboarding-page .onboarding-skip-action { margin-left: 0; width: 100%; justify-content: center; }
   .onboarding-page .provider-location-guide button { margin-left: 0; width: 100%; justify-content: center; }
 }
+
+/* =========================================================================
+   Doctor "My Profile" — Compact Premium Redesign (Step 82)
+   Scoped under .doctor-my-profile-page so no other Doctor page is affected.
+   ========================================================================= */
+
+.doctor-my-profile-page .doctor-page-heading {
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #ffffff, var(--brand-50) 140%);
+  box-shadow: var(--shadow-sm);
+}
+.doctor-my-profile-page .doctor-page-heading > span {
+  width: 44px; height: 44px; border-radius: var(--radius-sm);
+  background: linear-gradient(145deg, var(--brand-500), var(--brand-800));
+  box-shadow: 0 8px 18px rgba(11,132,103,.24);
+}
+.doctor-my-profile-page .doctor-page-heading > span svg { width: 20px; height: 20px; }
+.doctor-my-profile-page .doctor-page-heading small {
+  display: inline-block; padding: 2px 9px; color: var(--brand-800);
+  border-radius: var(--radius-pill); background: var(--brand-100);
+  font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em;
+}
+.doctor-my-profile-page .doctor-page-heading h1 { margin: 5px 0 0; color: var(--text-strong); font-size: 19px; }
+
+.doctor-my-profile-page .doctor-profile-form { display: grid; gap: 14px; }
+
+/* ---- Verification banner: single compact line ---- */
+.doctor-my-profile-page .verification-banner {
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+.doctor-my-profile-page .verification-banner p { display: none; }
+.doctor-my-profile-page .verification-banner strong { font-size: 12.5px; }
+.doctor-my-profile-page .verification-banner small { font-size: 10.5px; }
+
+/* ---- Layout ---- */
+.doctor-my-profile-page .doctor-form-layout { grid-template-columns: 240px 1fr; gap: 16px; }
+
+/* ---- Photo card: bigger photo, overlay edit button, no separate label row ---- */
+.doctor-my-profile-page .doctor-photo-card { position: sticky; top: 90px; padding: 20px; }
+.doctor-my-profile-page .doctor-photo-preview {
+  position: relative;
+  width: 168px; height: 168px;
+  border: 4px solid var(--surface-card);
+  outline: 3px solid var(--brand-100);
+  box-shadow: var(--shadow-md);
+}
+.doctor-my-profile-page .doctor-photo-preview > svg { width: 60px; height: 60px; }
+.doctor-my-profile-page .doctor-photo-edit-btn {
+  position: absolute;
+  right: 2px; bottom: 2px;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(145deg, var(--brand-600), var(--brand-800));
+  box-shadow: 0 6px 14px rgba(11,132,103,.35);
+  cursor: pointer;
+  border: 3px solid var(--surface-card);
+  transition: transform var(--transition-fast);
+}
+.doctor-my-profile-page .doctor-photo-edit-btn:hover { transform: scale(1.06); }
+.doctor-my-profile-page .doctor-photo-edit-btn svg { width: 16px; height: 16px; }
+.doctor-my-profile-page .doctor-photo-edit-btn input { display: none; }
+.doctor-my-profile-page .doctor-photo-card > .image-upload-hint {
+  margin-top: 10px; color: var(--text-muted); font-size: 9.5px; text-align: center;
+}
+.doctor-my-profile-page .accepting-toggle {
+  margin-top: 16px; padding: 11px;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-md);
+  background: var(--brand-50);
+}
+.doctor-my-profile-page .accepting-toggle strong { font-size: 11px; color: var(--brand-800); }
+.doctor-my-profile-page .accepting-toggle small { font-size: 9.5px; }
+
+/* ---- Form sections: consistent compact card + one-line hints ---- */
+.doctor-my-profile-page .doctor-form-sections > section { padding: 18px 20px; }
+.doctor-my-profile-page .doctor-form-sections > section > h2 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 4px; color: var(--text-strong); font-size: 14.5px; font-weight: 850;
+}
+.doctor-my-profile-page .doctor-section-hint {
+  margin: 0 0 12px; color: var(--text-muted); font-size: 10.5px; line-height: 1.5;
+}
+.doctor-my-profile-page .doctor-section-lock {
+  padding: 2px 8px; color: var(--pv-amber-ink, #92400e); background: var(--pv-amber-bg, #fef3e2);
+  border-radius: var(--radius-pill); font-size: 9px; font-weight: 850; text-transform: uppercase;
+}
+.doctor-my-profile-page .doctor-profile-address-field { margin-bottom: 12px; }
+
+.doctor-my-profile-page .patient-form-grid { gap: 12px; }
+.doctor-my-profile-page .auth-field > span { font-size: 11.5px; }
+.doctor-my-profile-page .auth-field > div { border-radius: var(--radius-sm); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.doctor-my-profile-page .auth-field > div:focus-within { border-color: var(--brand-600) !important; box-shadow: 0 0 0 4px rgba(11,132,103,.10); }
+
+.doctor-my-profile-page .doctor-study-info-grid { gap: 10px; }
+.doctor-my-profile-page .doctor-study-info-grid > div { padding: 11px; border-radius: var(--radius-md); }
+.doctor-my-profile-page .doctor-study-info-grid small { font-size: 10px; }
+.doctor-my-profile-page .doctor-study-info-grid strong { font-size: 12.5px; }
+
+.doctor-my-profile-page .specialty-picker {
+  display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; padding: 0; border: 0;
+}
+.doctor-my-profile-page .specialty-picker legend { width: 100%; margin-bottom: 6px; font-size: 11.5px; font-weight: 800; color: var(--text-body); }
+.doctor-my-profile-page .specialty-picker label {
+  padding: 6px 12px; border-radius: var(--radius-pill); font-size: 10.5px; font-weight: 750;
+}
+
+.doctor-my-profile-page .doctor-text-field { margin-top: 12px; }
+.doctor-my-profile-page .doctor-text-field > span { font-size: 11.5px; margin-bottom: 6px; }
+
+.doctor-my-profile-page .doctor-save {
+  border-radius: var(--radius-sm) !important;
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-800)) !important;
+  box-shadow: 0 12px 24px rgba(11,132,103,.24) !important;
+  transition: transform var(--transition-fast) !important;
+}
+.doctor-my-profile-page .doctor-save:hover:not(:disabled) { transform: translateY(-1px); }
+
+@media (max-width: 900px) {
+  .doctor-my-profile-page .doctor-form-layout { grid-template-columns: 1fr; }
+  .doctor-my-profile-page .doctor-photo-card { position: static; display: flex; flex-direction: row; align-items: center; text-align: left; gap: 14px; }
+  .doctor-my-profile-page .doctor-photo-card > .image-upload-hint { display: none; }
+  .doctor-my-profile-page .accepting-toggle { margin-top: 0; margin-left: auto; max-width: 220px; }
+}
+@media (max-width: 560px) {
+  .doctor-my-profile-page .doctor-photo-card { flex-direction: column; text-align: center; }
+  .doctor-my-profile-page .accepting-toggle { margin-left: 0; max-width: none; width: 100%; }
+  .doctor-my-profile-page .patient-form-grid { grid-template-columns: 1fr; }
+}

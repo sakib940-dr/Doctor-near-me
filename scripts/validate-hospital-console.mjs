@@ -24,7 +24,7 @@ for (const path of ['src/pages/PublicProviderProfilePage.tsx','src/pages/Provide
 }
 
 const app = read('src/App.tsx');
-for (const route of ['/hospital-console','/hospital-console/appointments','/hospital-console/doctors','/hospital-console/analytics','/hospital-console/profile-preview','/hospital-console/onboarding','/hospital-console/admin-support','/hospital-console/security']) {
+for (const route of ['/hospital-doctors/:cardId','/hospital-console','/hospital-console/appointments','/hospital-console/doctors','/hospital-console/analytics','/hospital-console/profile-preview','/hospital-console/onboarding','/hospital-console/admin-support','/hospital-console/security']) {
   if (!app.includes(`path="${route}"`)) fail(`missing route ${route}`);
 }
 
@@ -45,6 +45,11 @@ for (const contract of ['image/webp','hospital_doctor_photo_insert','hospital_do
   if (!photoReliability.includes(contract)) fail(`Step 83 contract missing ${contract}`);
 }
 if (/\b(?:alter table|insert into|update|delete from)\s+public\.(?:doctors|appointments|patients)\b/i.test(photoReliability)) fail('Step 83 mutates a protected non-Hospital table');
+const publicDoctorProfile = read('supabase/84_hospital_doctor_public_profile_discovery.sql');
+for (const contract of ['get_public_hospital_doctor_profile','search_public_hospital_doctors','public_provider_directory','provider_managed_doctor_cards']) {
+  if (!publicDoctorProfile.includes(contract)) fail(`Step 84 contract missing ${contract}`);
+}
+if (/\b(?:alter table|insert into|update|delete from)\s+public\.(?:doctors|appointments|patients)\b/i.test(publicDoctorProfile)) fail('Step 84 mutates a protected non-Hospital table');
 
 const shell = read('src/features/hospital/HospitalShell.tsx');
 const primaryBlock = shell.match(/const primary = \[([\s\S]*?)\];/)?.[1] ?? '';
@@ -77,6 +82,16 @@ if (!hospitalGallery.includes("'slider',{memorySafeDecode:true}")) fail('Hospita
 const hospitalDoctorService = read('src/features/hospital/services/hospitalDoctors.ts');
 if (!hospitalDoctorService.includes('folder: `${providerId}/hospital-doctors`')) fail('Hospital doctor photo is not stored under its Hospital-owned path');
 if (!hospitalDoctorService.includes('memorySafeDecode: true')) fail('Hospital doctor photo does not use the mobile-safe decode path');
+if (!hospitalDoctorService.includes('get_public_hospital_doctor_profile') || !hospitalDoctorService.includes('search_public_hospital_doctors')) fail('Hospital Doctor public profile/discovery service is missing');
+const hospitalDoctorCard = read('src/features/hospital/components/HospitalDoctorCard.tsx');
+if (!hospitalDoctorCard.includes('to={`/hospital-doctors/${doctor.id}`}')) fail('Hospital Doctor card does not open the public details route');
+if (hospitalDoctorCard.includes('HospitalDoctorProfileModal')) fail('Hospital Doctor card still opens the legacy modal');
+const hospitalDoctorPublicPage = read('src/features/hospital/pages/HospitalDoctorPublicPage.tsx');
+for (const contract of ['createProviderReceptionAppointment','StructuredReviewSection','ProfileReportButton','hospital.latitude','hospital.longitude']) {
+  if (!hospitalDoctorPublicPage.includes(contract)) fail(`Hospital Doctor public details missing ${contract}`);
+}
+const doctorDirectory = read('src/pages/DoctorDirectory.tsx');
+if (!doctorDirectory.includes('searchPublicHospitalDoctors') || !doctorDirectory.includes('HospitalDoctorSearchCard')) fail('Visitor Doctor search does not include Hospital-managed doctors');
 const publicProviderPage = read('src/pages/PublicProviderProfilePage.tsx');
 if (!publicProviderPage.includes("provider?.provider_type!=='hospital'||sliderImages.length<2")) fail('Hospital public gallery autoplay is missing');
 if (!publicProviderPage.includes("hospital-slider-v2")) fail('Hospital public gallery is not isolated as a full-width slider');

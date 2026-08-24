@@ -2,6 +2,9 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, LoaderCircle, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import DoctorResultCard from '../components/DoctorResultCard';
+import HospitalDoctorSearchCard from '../features/hospital/components/HospitalDoctorSearchCard';
+import { searchPublicHospitalDoctors } from '../features/hospital/services/hospitalDoctors';
+import type { HospitalDoctorSearchRow } from '../features/hospital/types';
 import PublicHeader from '../components/PublicHeader';
 import VisitorBottomNav from '../components/VisitorBottomNav';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -36,6 +39,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [degreeOptions, setDegreeOptions] = useState<DegreeMasterItem[]>([]);
   const [rows, setRows] = useState<DoctorSearchRow[]>([]);
+  const [hospitalRows, setHospitalRows] = useState<HospitalDoctorSearchRow[]>([]);
   const [stats, setStats] = useState<Record<string, PublicProfileStats>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +47,9 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
 
   const page = Math.max(1, numberParam(params.get('page')) ?? 1);
   const total = rows[0]?.total_count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hospitalTotal = Number(hospitalRows[0]?.total_count ?? 0);
+  const combinedTotal = total + hospitalTotal;
+  const totalPages = Math.max(1, Math.ceil(Math.max(total,hospitalTotal) / PAGE_SIZE));
   const hasSearchCriteria = Boolean(
     (params.get('q') ?? '').trim()
       || params.get('district')
@@ -108,6 +114,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     if (!isSupabaseConfigured) return;
     if (!hasSearchCriteria) {
       setRows([]);
+      setHospitalRows([]);
       setStats({});
       setLoading(false);
       setError(null);
@@ -125,7 +132,7 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
     let active = true;
     setLoading(true);
     setError(null);
-    searchDoctors({
+    const searchInput = {
       query: params.get('q') ?? '',
       districtId: numberParam(params.get('district')),
       upazilaId: numberParam(params.get('upazila')),
@@ -138,11 +145,14 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
       sort: (params.get('sort') as 'name' | 'newest' | 'fee_low' | 'fee_high') ?? 'name',
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
-    }).then((result) => { if (active) setRows(result); })
+    };
+    Promise.all([searchDoctors(searchInput),searchPublicHospitalDoctors(searchInput).catch(()=>[] as HospitalDoctorSearchRow[])])
+      .then(([result,hospitalResult]) => { if (active) { setRows(result); setHospitalRows(hospitalResult); } })
       .catch((searchError: unknown) => { if (active) setError(messageFrom(searchError)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [params, page, degreeOptions, hasSearchCriteria]);
+
 
   useEffect(() => {
     if (!isSupabaseConfigured || !rows.length) { setStats({}); return; }
@@ -227,10 +237,10 @@ export default function DoctorDirectory({ embedded = false }: { embedded?: boole
           </aside>
 
           <div className="directory-results">
-            <div className="directory-toolbar"><div><strong>{loading ? tr('ডাক্তার খোঁজা হচ্ছে…', 'Searching doctors…') : tr(`${total.toLocaleString('bn-BD')} জন ডাক্তার পাওয়া গেছে`, `${total.toLocaleString('en-US')} doctors found`)}</strong><small>{tr('সক্রিয় ও প্রকাশযোগ্য প্রোফাইল', 'Active published profiles')}</small></div><select aria-label={tr('ফলাফল সাজান', 'Sort results')} value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">{tr('নাম অনুযায়ী', 'By name')}</option><option value="newest">{tr('নতুন আগে', 'Newest first')}</option><option value="fee_low">{tr('কম ফি আগে', 'Lowest fee')}</option><option value="fee_high">{tr('বেশি ফি আগে', 'Highest fee')}</option></select></div>
+            <div className="directory-toolbar"><div><strong>{loading ? tr('ডাক্তার খোঁজা হচ্ছে…', 'Searching doctors…') : tr(`${combinedTotal.toLocaleString('bn-BD')} জন ডাক্তার পাওয়া গেছে`, `${combinedTotal.toLocaleString('en-US')} doctors found`)}</strong><small>{tr('Doctor ও Hospital-managed public profile', 'Doctor and Hospital-managed public profiles')}</small></div><select aria-label={tr('ফলাফল সাজান', 'Sort results')} value={sort} onChange={(event) => { setSort(event.target.value); const next = new URLSearchParams(params); if (event.target.value === 'name') next.delete('sort'); else next.set('sort', event.target.value); next.delete('page'); setParams(next); }}><option value="name">{tr('নাম অনুযায়ী', 'By name')}</option><option value="newest">{tr('নতুন আগে', 'Newest first')}</option><option value="fee_low">{tr('কম ফি আগে', 'Lowest fee')}</option><option value="fee_high">{tr('বেশি ফি আগে', 'Highest fee')}</option></select></div>
             {!isSupabaseConfigured && <div className="directory-notice">{tr('লাইভ ফলাফলের জন্য Vercel-এ Supabase environment variables যোগ করুন। ফিল্টার ইউআই প্রিভিউ করা যাচ্ছে।', 'Add Supabase environment variables in Vercel for live results. Filter UI preview is available.')}</div>}
             {error && <div className="error-box" role="alert">{error}</div>}
-            {!hasSearchCriteria ? <div className="directory-search-prompt"><Search /><h3>{tr('অনুসন্ধান শুরু করুন', 'Start Searching')}</h3><p>{tr('ডাক্তারের নাম লিখুন অথবা ডিগ্রি, বিশেষজ্ঞতা, জেলা/উপজেলা/এলাকা থেকে অন্তত একটি ফিল্টার নির্বাচন করুন। অনুসন্ধান না করা পর্যন্ত প্রোফাইল ডেটা লোড হবে না।', 'Enter a doctor name or select at least one degree, specialty, district, or area filter. Profile data is loaded only after a search.')}</p></div> : loading ? <div className="loading-box"><LoaderCircle className="spin" /> {tr('ফলাফল লোড হচ্ছে…', 'Loading results…')}</div> : rows.length ? <div className="directory-grid">{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>{tr('কোনো ডাক্তার পাওয়া যায়নি', 'No doctors found')}</h3><p>{tr('ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।', 'Try fewer filters or a different search term.')}</p></div>}
+            {!hasSearchCriteria ? <div className="directory-search-prompt"><Search /><h3>{tr('অনুসন্ধান শুরু করুন', 'Start Searching')}</h3><p>{tr('ডাক্তারের নাম লিখুন অথবা ডিগ্রি, বিশেষজ্ঞতা, জেলা/উপজেলা/এলাকা থেকে অন্তত একটি ফিল্টার নির্বাচন করুন। অনুসন্ধান না করা পর্যন্ত প্রোফাইল ডেটা লোড হবে না।', 'Enter a doctor name or select at least one degree, specialty, district, or area filter. Profile data is loaded only after a search.')}</p></div> : loading ? <div className="loading-box"><LoaderCircle className="spin" /> {tr('ফলাফল লোড হচ্ছে…', 'Loading results…')}</div> : rows.length||hospitalRows.length ? <><div className="directory-grid">{hospitalRows.map((doctor)=><HospitalDoctorSearchCard doctor={doctor} key={`hospital-${doctor.id}`}/>)}{rows.map((doctor) => <DoctorResultCard doctor={doctor} stats={stats[doctor.doctor_id]} onStatsChange={(doctorId, next) => setStats((current) => ({ ...current, [doctorId]: next }))} key={doctor.doctor_id} />)}</div></> : isSupabaseConfigured && <div className="empty-state"><span>🔎</span><h3>{tr('কোনো ডাক্তার পাওয়া যায়নি', 'No doctors found')}</h3><p>{tr('ফিল্টার কমিয়ে বা অন্য শব্দ দিয়ে চেষ্টা করুন।', 'Try fewer filters or a different search term.')}</p></div>}
             {!loading && hasSearchCriteria && totalPages > 1 && <nav className="pagination" aria-label={tr('ফলাফলের পৃষ্ঠা', 'Result pages')}><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft /></button><span>{tr(`পৃষ্ঠা ${page} / ${totalPages} · প্রতি পৃষ্ঠায় ${PAGE_SIZE} জন`, `Page ${page} / ${totalPages} · ${PAGE_SIZE} per page`)}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight /></button></nav>}
           </div>
         </section>

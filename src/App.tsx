@@ -68,6 +68,7 @@ import HospitalGalleryPage from './features/hospital/pages/HospitalGalleryPage';
 import HospitalStaffPage from './features/hospital/pages/HospitalStaffPage';
 import HospitalAdminSupportPage from './features/hospital/pages/HospitalAdminSupportPage';
 import HospitalOnboardingPage from './features/hospital/pages/HospitalOnboardingPage';
+import HospitalDoctorPublicPage from './features/hospital/pages/HospitalDoctorPublicPage';
 import { HospitalAppointmentSettingsPage, HospitalProfilePreviewPage, HospitalSecurityPage } from './features/hospital/pages/HospitalUtilityPages';
 import {
   HospitalInformationPage, HospitalInvestigationCostsPage, HospitalPublicProfileManagementPage,
@@ -89,6 +90,7 @@ export default function App() {
       <Route path="/providers/:slug/website" element={<ProviderWebsitePage />} />
       <Route path="/providers/:providerId/doctors" element={<ProviderDoctorsPublicPage />} />
       <Route path="/hospital/:providerId" element={<PublicProviderProfilePage />} />
+      <Route path="/hospital-doctors/:cardId" element={<HospitalDoctorPublicPage />} />
       <Route path="/chamber/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
       <Route path="/auth" element={<AuthPage />} />

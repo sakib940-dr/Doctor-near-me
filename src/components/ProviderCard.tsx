@@ -1,4 +1,4 @@
-import { Building2, Crown, Heart, Hospital, MapPin, Star } from 'lucide-react';
+import { Building2, Crown, Heart, Hospital, MapPin, Navigation, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { providerPublicPath } from '../lib/publicRoutes';
@@ -26,6 +26,8 @@ function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number) {
   return earthKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+function storedViewerLocation(){try{const raw=localStorage.getItem('docbd-current-location');if(!raw)return null;const value=JSON.parse(raw) as {latitude?:number;longitude?:number;capturedAt?:number};if(typeof value.latitude!=='number'||typeof value.longitude!=='number')return null;if(value.capturedAt&&Date.now()-value.capturedAt>30*60*1000)return null;return{latitude:value.latitude,longitude:value.longitude}}catch{return null}}
+
 export default function ProviderCard({ provider, stats, onStatsChange, viewerLocation }: Props) {
   const { language } = useVisitorLanguage();
   const tr = (bn: string, en: string) => language === 'bn' ? bn : en;
@@ -34,8 +36,9 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
   const image = getImageUrl(provider.banner_url || provider.logo_url, 'public-images', 'thumbnail');
   const TypeIcon = provider.provider_type === 'hospital' ? Hospital : Building2;
   const publicHref = providerPublicPath(provider.provider_type, provider.slug, provider.id);
-  const distance = viewerLocation && provider.latitude != null && provider.longitude != null
-    ? distanceKm(viewerLocation.latitude, viewerLocation.longitude, Number(provider.latitude), Number(provider.longitude))
+  const location=viewerLocation??storedViewerLocation();
+  const distance = location && provider.latitude != null && provider.longitude != null
+    ? distanceKm(location.latitude, location.longitude, Number(provider.latitude), Number(provider.longitude))
     : null;
 
   useEffect(() => setLocalStats(stats ?? null), [stats]);
@@ -62,11 +65,12 @@ export default function ProviderCard({ provider, stats, onStatsChange, viewerLoc
           <span className="provider-type-label">{provider.provider_type === 'hospital' ? tr('হাসপাতাল', 'Hospital') : tr('চেম্বার', 'Chamber')}</span>
           <h3>{language === 'bn' ? provider.name_bn : provider.name_en || provider.name_bn}</h3>
           {language === 'bn' && provider.name_en && provider.name_en !== provider.name_bn ? <small className="provider-card-english-name">{provider.name_en}</small> : null}
-          <p><MapPin /><span>{provider.address || tr('ঠিকানা যোগ করা হয়নি', 'Address not added')}{distance != null ? <b> · {tr(`${distance.toFixed(1)} কিমি দূরে`, `${distance.toFixed(1)} km away`)}</b> : null}</span></p>
+          <p><MapPin /><span>{provider.address || tr('ঠিকানা যোগ করা হয়নি', 'Address not added')}</span></p>
           {provider.opening_note ? <p className="provider-card-opening"><Building2 /><span>{provider.opening_note}</span></p> : null}
           <div className="marketplace-doctor-meta-row visitor-card-social-proof">
             {localStats?.average_rating != null ? <span><Star fill="currentColor" /> {localStats.average_rating.toFixed(1)} <small>({localStats.review_count})</small></span> : null}
-            {localStats && localStats.follower_count > 0 ? <span><Heart /> {localStats.follower_count.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US')}</span> : null}
+            {localStats ? <span title={tr('মোট সংরক্ষণ','Total saves')}><Heart /> {localStats.follower_count.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US')}</span> : null}
+            {distance!=null?<span className="visitor-card-distance"><Navigation/>{tr(`${distance.toFixed(1)} কিমি দূরে`,`${distance.toFixed(1)} km away`)}</span>:null}
           </div>
         </div>
       </Link>

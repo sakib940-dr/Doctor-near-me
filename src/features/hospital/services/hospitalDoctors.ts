@@ -1,6 +1,6 @@
 import { requireSupabase } from '../../../lib/supabase';
 import { removeOptimizedImageVariants, uploadOptimizedImage } from '../../../services/imageUpload';
-import type { HospitalDoctorCard } from '../types';
+import type { HospitalDoctorCard, HospitalDoctorSearchRow, PublicHospitalDoctorProfile } from '../types';
 import type { ProviderDirectoryRow } from '../../../types';
 import type { ProviderPublicPageContent } from '../../../services/providerPublicContent';
 
@@ -26,6 +26,35 @@ export async function getPublicHospitalDoctors(providerId: string) {
   const { data, error } = await requireSupabase().rpc('get_public_hospital_doctor_cards', { p_provider_id: providerId });
   if (error) throw error;
   return (data ?? []) as HospitalDoctorCard[];
+}
+
+export async function getPublicHospitalDoctorProfile(cardId: string) {
+  const { data, error } = await requireSupabase().rpc('get_public_hospital_doctor_profile', { p_card_id: cardId });
+  if (error) throw error;
+  return (data ?? null) as PublicHospitalDoctorProfile | null;
+}
+
+export async function searchPublicHospitalDoctors(input: {
+  query?: string; districtId?: number | null; upazilaId?: number | null; specialtyIds?: number[]; degrees?: string[];
+  medicalTypes?: string[]; minFee?: number | null; maxFee?: number | null; availableToday?: boolean;
+  sort?: string; limit?: number; offset?: number;
+}) {
+  const { data, error } = await requireSupabase().rpc('search_public_hospital_doctors', {
+    p_query: input.query?.trim() || null,
+    p_district_id: input.districtId ?? null,
+    p_upazila_id: input.upazilaId ?? null,
+    p_specialty_ids: input.specialtyIds?.length ? input.specialtyIds : null,
+    p_degrees: input.degrees?.length ? input.degrees : null,
+    p_medical_types: input.medicalTypes?.length ? input.medicalTypes : null,
+    p_min_fee: input.minFee ?? null,
+    p_max_fee: input.maxFee ?? null,
+    p_available_today: input.availableToday ?? false,
+    p_sort: input.sort ?? 'name',
+    p_limit: Math.min(Math.max(input.limit ?? 20, 1), 20),
+    p_offset: Math.max(input.offset ?? 0, 0),
+  });
+  if (error) throw error;
+  return (data ?? []) as HospitalDoctorSearchRow[];
 }
 
 export async function saveMyHospitalDoctor(input: Omit<HospitalDoctorCard, 'id' | 'created_at' | 'updated_at' | 'archived_at'> & { id: string | null }) {

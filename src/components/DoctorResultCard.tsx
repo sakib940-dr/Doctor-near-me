@@ -1,4 +1,4 @@
-import { BadgeCheck, Building2, Crown, GraduationCap, Heart, MapPin, Sparkles, Star, Stethoscope } from 'lucide-react';
+import { BadgeCheck, Building2, Crown, GraduationCap, Heart, MapPin, Navigation, Sparkles, Star, Stethoscope } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { doctorPublicPath } from '../lib/publicRoutes';
@@ -95,10 +95,11 @@ export default function DoctorResultCard({ doctor, stats, onStatsChange, viewerL
           {doctor.bmdc_registration_no && <p className="visitor-doctor-bmdc"><BadgeCheck /><span>{tr('বিএমডিসি', 'BMDC')}: {doctor.bmdc_registration_no}</span></p>}
           {institutionLabel && <p className="visitor-doctor-work"><Building2 /><span>{institutionLabel}</span></p>}
           {secondaryInstitution && <p className="visitor-doctor-college"><GraduationCap /><span>{secondaryInstitution}</span></p>}
-          <p className="visitor-doctor-location"><MapPin /><span>{locationLabel || tr('অবস্থানের তথ্য নেই', 'Location not available')}{distanceText && <b> · {distanceText}</b>}</span></p>
+          <p className="visitor-doctor-location"><MapPin /><span>{locationLabel || tr('অবস্থানের তথ্য নেই', 'Location not available')}</span></p>
           <div className="marketplace-doctor-meta-row visitor-card-social-proof">
             {localStats?.average_rating != null ? <span><Star fill="currentColor" /> {localStats.average_rating.toFixed(1)} <small>({localStats.review_count})</small></span> : null}
-            {localStats && localStats.follower_count > 0 ? <span><Heart /> {localStats.follower_count.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US')}</span> : null}
+            {localStats ? <span title={tr('মোট সংরক্ষণ','Total saves')}><Heart /> {localStats.follower_count.toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US')}</span> : null}
+            {distanceText?<span className="visitor-card-distance"><Navigation/>{distanceText}</span>:null}
           </div>
         </div>
       </Link> : <div className="visitor-doctor-main marketplace-doctor-body visitor-horizontal-profile-body">

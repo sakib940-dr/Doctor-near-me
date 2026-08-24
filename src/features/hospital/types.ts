@@ -26,6 +26,25 @@ export interface HospitalDoctorCard {
   updated_at?: string;
 }
 
+export interface HospitalDoctorSearchRow extends HospitalDoctorCard {
+  hospital_name: string;
+  hospital_logo: string | null;
+  hospital_phone: string | null;
+  hospital_whatsapp: string | null;
+  hospital_address: string | null;
+  hospital_latitude: number | null;
+  hospital_longitude: number | null;
+  hospital_map_url: string | null;
+  district_id: number | null;
+  upazila_id: number | null;
+  total_count: number;
+}
+
+export interface PublicHospitalDoctorProfile {
+  doctor: HospitalDoctorCard;
+  hospital: import('../../types').ProviderDirectoryRow;
+}
+
 export interface HospitalReceptionAppointment {
   appointment_id: string;
   provider_id: string;

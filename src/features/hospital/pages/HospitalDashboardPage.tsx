@@ -3,11 +3,13 @@ import { BarChart3, Building2, CalendarDays, GalleryHorizontal, Image, Settings,
 import { Link } from 'react-router-dom';
 import { getMyProviderReceptionAppointments } from '../../../services/providerReception';
 import { HospitalPageHeader } from '../HospitalShell';
+import { bi, useHospitalLanguage } from '../i18n';
 import { getMyHospitalDoctors } from '../services/hospitalDoctors';
 import { getMyHospitalStaff } from '../services/hospitalStaff';
 import { useHospital } from '../useHospital';
 
 export default function HospitalDashboardPage() {
+  const { text } = useHospitalLanguage();
   const { provider, loading, error } = useHospital();
   const [counts, setCounts] = useState({ doctors: 0, pending: 0, staff: 0 });
   useEffect(() => {
@@ -23,26 +25,26 @@ export default function HospitalDashboardPage() {
     })).catch(() => undefined);
   }, [provider]);
 
-  if (loading) return <div className="hospital-empty">Hospital dashboard loading…</div>;
-  if (error || !provider) return <div className="hospital-error">{error || 'Create your Hospital profile first.'}</div>;
+  if (loading) return <div className="hospital-empty">{text(bi('হাসপাতাল ড্যাশবোর্ড লোড হচ্ছে…', 'Hospital dashboard loading…'))}</div>;
+  if (error || !provider) return <div className="hospital-error">{error || text(bi('আগে হাসপাতাল প্রোফাইল তৈরি করুন।', 'Create your Hospital profile first.'))}</div>;
 
   const actions = [
-    { icon: Stethoscope, title: 'Manage Doctors', detail: 'Add, edit, archive and control visibility', path: '/hospital-console/doctors' },
-    { icon: CalendarDays, title: 'Reception Appointments', detail: 'Review requests and assign serials', path: '/hospital-console/appointments' },
-    { icon: GalleryHorizontal, title: 'Top Gallery', detail: 'Manage up to four premium images', path: '/hospital-console/gallery' },
-    { icon: Building2, title: 'Hospital Information', detail: 'Contact, location and public information', path: '/hospital-console/information' },
-    { icon: BarChart3, title: 'Profile Analytics', detail: 'Views, calls, followers and appointments', path: '/hospital-console/analytics' },
-    { icon: Settings, title: 'Reception Settings', detail: 'Default phone and WhatsApp contact', path: '/hospital-console/reception' },
+    { icon: Stethoscope, title: bi('ডাক্তার ম্যানেজ করুন', 'Manage Doctors'), detail: bi('ডাক্তার যোগ, সম্পাদনা ও দৃশ্যমানতা নিয়ন্ত্রণ', 'Add, edit and control visibility'), path: '/hospital-console/doctors' },
+    { icon: CalendarDays, title: bi('রিসেপশন অ্যাপয়েন্টমেন্ট', 'Reception Appointments'), detail: bi('অনুরোধ দেখুন ও সিরিয়াল দিন', 'Review requests and assign serials'), path: '/hospital-console/appointments' },
+    { icon: GalleryHorizontal, title: bi('টপ গ্যালারি', 'Top Gallery'), detail: bi('সর্বোচ্চ চারটি প্রিমিয়াম ছবি পরিচালনা করুন', 'Manage up to four premium images'), path: '/hospital-console/gallery' },
+    { icon: Building2, title: bi('হাসপাতালের তথ্য', 'Hospital Information'), detail: bi('যোগাযোগ, লোকেশন ও পাবলিক তথ্য', 'Contact, location and public information'), path: '/hospital-console/information' },
+    { icon: BarChart3, title: bi('প্রোফাইল অ্যানালিটিক্স', 'Profile Analytics'), detail: bi('ভিউ, কল ও অ্যাপয়েন্টমেন্ট দেখুন', 'Track views, calls and appointments'), path: '/hospital-console/analytics' },
+    { icon: Settings, title: bi('রিসেপশন সেটিংস', 'Reception Settings'), detail: bi('ডিফল্ট ফোন ও WhatsApp যোগাযোগ', 'Default phone and WhatsApp contact'), path: '/hospital-console/reception' },
   ];
 
   return <>
-    <HospitalPageHeader eyebrow="Independent Hospital System" title={provider.name_bn} description="Doctors, reception appointments and public Hospital content—managed without any Doctor account dependency." action={<Link to={`/hospital/${provider.id}`} target="_blank">View public profile</Link>} />
+    <HospitalPageHeader eyebrow={bi('স্বতন্ত্র হাসপাতাল সিস্টেম', 'Independent Hospital System')} title={provider.name_bn} description={bi('ডাক্তার, রিসেপশন অ্যাপয়েন্টমেন্ট ও পাবলিক কনটেন্ট—সবকিছু হাসপাতাল থেকেই পরিচালনা করুন।', 'Manage doctors, reception appointments and public content directly from your Hospital.')} action={<Link to={`/hospital/${provider.id}`} target="_blank">{text(bi('পাবলিক প্রোফাইল দেখুন', 'View public profile'))}</Link>} />
     <section className="hospital-grid hospital-stat-grid">
-      <article className="hospital-stat"><span><Stethoscope /></span><strong>{counts.doctors}</strong><small>Hospital doctors</small></article>
-      <article className="hospital-stat"><span><CalendarDays /></span><strong>{counts.pending}</strong><small>Pending requests</small></article>
-      <article className="hospital-stat"><span><Users /></span><strong>{counts.staff}</strong><small>Active staff</small></article>
-      <article className="hospital-stat"><span><Image /></span><strong>{provider.gallery_paths?.length || 0}</strong><small>Profile images</small></article>
+      <article className="hospital-stat"><span><Stethoscope /></span><strong>{counts.doctors}</strong><small>{text(bi('হাসপাতালের ডাক্তার', 'Hospital doctors'))}</small></article>
+      <article className="hospital-stat"><span><CalendarDays /></span><strong>{counts.pending}</strong><small>{text(bi('অপেক্ষমাণ অনুরোধ', 'Pending requests'))}</small></article>
+      <article className="hospital-stat"><span><Users /></span><strong>{counts.staff}</strong><small>{text(bi('সক্রিয় স্টাফ', 'Active staff'))}</small></article>
+      <article className="hospital-stat"><span><Image /></span><strong>{provider.gallery_paths?.length || 0}</strong><small>{text(bi('প্রোফাইল ছবি', 'Profile images'))}</small></article>
     </section>
-    <section className="hospital-grid hospital-action-grid">{actions.map(({ icon: Icon, title, detail, path }) => <Link className="hospital-action-card" to={path} key={path}><span><Icon /></span><div><strong>{title}</strong><small>{detail}</small></div></Link>)}</section>
+    <section className="hospital-grid hospital-action-grid">{actions.map(({ icon: Icon, title, detail, path }) => <Link className="hospital-action-card" to={path} key={path}><span><Icon /></span><div><strong>{text(title)}</strong><small>{text(detail)}</small></div></Link>)}</section>
   </>;
 }

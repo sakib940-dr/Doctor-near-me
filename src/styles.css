@@ -7372,7 +7372,9 @@ html, body, #root { max-width: 100%; }
 body { overflow-x: clip; }
 img { max-width: 100%; height: auto; }
 .image-upload-hint { display:block; margin-top:5px; color:#6f817b; font-size:11px; line-height:1.45; font-weight:600; }
+.combined-coordinate-field{display:grid;gap:7px;min-width:0}.combined-coordinate-field>span{color:#38544b;font-size:12px;font-weight:800}.combined-coordinate-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.combined-coordinate-row>div{display:flex;align-items:center;gap:7px;min-width:0;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:#fbfdfc}.combined-coordinate-row>div svg{width:17px;flex:0 0 auto;color:#658078}.combined-coordinate-row input{width:100%;min-width:0;min-height:44px;border:0!important;outline:0;background:transparent}.combined-coordinate-row button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:9px 13px;border:0;border-radius:10px;background:#087f6d;color:#fff;font-weight:800;white-space:nowrap}.combined-coordinate-row button svg{width:17px}.combined-coordinate-field>small{color:#758781;font-size:10px;line-height:1.45}@media(max-width:520px){.combined-coordinate-row{grid-template-columns:minmax(0,1fr) 48px}.combined-coordinate-row button{width:48px;padding:0}.combined-coordinate-row button span{display:none}}
 
+.patient-form-grid>.combined-coordinate-field{grid-column:1/-1}
 /* Intrinsic boxes prevent layout jumps while images decode. */
 .visitor-horizontal-profile-media,
 .doctor-profile-slider figure,

@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
+import CombinedCoordinateInput from '../components/CombinedCoordinateInput';
 import { useAuth } from '../contexts/AuthContext';
 import { captureCurrentCoordinates, validateCoordinates } from '../lib/geolocation';
 import { getDistricts, getUpazilas, resolveLocationContext } from '../services/discovery';
@@ -382,21 +383,7 @@ export default function DoctorChamberDetailsPage({ onSaved }: { onSaved?: () => 
                 <span>Upazila / Area</span>
                 <div><MapPin /><select disabled={!draft.districtId} value={draft.upazilaId ?? ''} onChange={(event) => setDraftValue('upazilaId', event.target.value ? Number(event.target.value) : null)}><option value="">নির্বাচন করুন</option>{upazilas.map((upazila) => <option key={upazila.id} value={upazila.id}>{upazila.name_bn}</option>)}</select></div>
               </label>
-              <label className="auth-field">
-                <span>Latitude</span>
-                <div><input required type="number" step="any" min={-90} max={90} value={draft.latitude ?? ''} onChange={(event) => setDraftValue('latitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="23.8103" /></div>
-              </label>
-              <label className="auth-field">
-                <span>Longitude</span>
-                <div><input required type="number" step="any" min={-180} max={180} value={draft.longitude ?? ''} onChange={(event) => setDraftValue('longitude', event.target.value === '' ? null : Number(event.target.value))} placeholder="90.4125" /></div>
-              </label>
-            </div>
-
-            <div className="chamber-location-actions">
-              <button className="current-location-button" type="button" disabled={capturing} onClick={() => void captureLocation()}>
-                {capturing ? <LoaderCircle className="spin" /> : <Crosshair />} {capturing ? 'Location নেওয়া হচ্ছে…' : 'Current Location'}
-              </button>
-              <small>GPS unavailable/denied হলে Latitude/Longitude manually লিখতে পারবেন। Range: Latitude -90…90, Longitude -180…180.</small>
+              <CombinedCoordinateInput required latitude={draft.latitude} longitude={draft.longitude} onChange={(latitude,longitude) => setDraft((current) => current ? ({...current,latitude,longitude}) : current)} onCurrentLocation={() => void captureLocation()} loading={capturing} label="Map location (Latitude, Longitude)" gpsLabel="Current GPS" helper="একই ঘরে লিখুন: 23.8103, 90.4125 — অথবা GPS button ব্যবহার করুন।" />
             </div>
 
             <button className="auth-submit chamber-save-button" type="submit" disabled={saving}>

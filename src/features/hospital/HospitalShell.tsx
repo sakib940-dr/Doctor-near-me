@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import {
-  Activity, BarChart3, Bell, Building2, CalendarCog, CalendarDays, ChevronRight,
+  Activity, BarChart3, Bell, Building2, CalendarDays, ChevronRight,
   ClipboardList, Eye, FlaskConical, Home, KeyRound, LogOut,
-  Menu, MessageCircle, PanelsTopLeft, Stethoscope, Users, X,
+  Menu, MessageCircle, PanelsTopLeft, Stethoscope, X,
 } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AccountStateFallback from '../../components/AccountStateFallback';
@@ -27,12 +27,6 @@ const menuGroups = [
     { label: bi('সেবাসমূহ', 'Services'), path: '/hospital-console/services', icon: ClipboardList },
     { label: bi('চিকিৎসা খরচ', 'Treatment Cost'), path: '/hospital-console/treatment-costs', icon: Activity },
     { label: bi('পরীক্ষার খরচ', 'Investigation Cost'), path: '/hospital-console/investigation-costs', icon: FlaskConical },
-  ]},
-  { title: bi('রিসেপশন ম্যানেজমেন্ট', 'Reception Management'), items: [
-    { label: bi('অ্যাপয়েন্টমেন্ট সেটিংস', 'Appointment settings'), path: '/hospital-console/appointment-settings', icon: CalendarCog },
-  ]},
-  { title: bi('স্টাফ ম্যানেজমেন্ট', 'Staff Management'), items: [
-    { label: bi('স্টাফ', 'Staff'), path: '/hospital-console/staff', icon: Users },
   ]},
   { title: bi('যোগাযোগ', 'Communication'), items: [
     { label: bi('অ্যাডমিন সাপোর্ট মেসেজিং', 'Admin Support Messaging'), path: '/hospital-console/admin-support', icon: MessageCircle },

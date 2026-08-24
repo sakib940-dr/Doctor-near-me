@@ -55,6 +55,8 @@ if (shell.includes("path: '/hospital-console/information'")) fail('Hospital Info
 if (shell.includes("path: '/hospital-console/gallery'")) fail('Gallery Management remains duplicated in the hamburger menu');
 if (shell.includes("path: '/hospital-console/support'")) fail('Help / Support remains duplicated in the hamburger menu');
 if (shell.includes("path: '/hospital-console/settings'")) fail('Account Settings remains duplicated in the hamburger menu');
+if (shell.includes("path: '/hospital-console/appointment-settings'")) fail('Appointment Settings remains in the hamburger menu');
+if (shell.includes("path: '/hospital-console/staff'")) fail('Staff remains in the hamburger menu');
 for (const duplicate of ['Premium Membership','Ambulance Links','Verification']) {
   if (shell.includes(`label: bi('${duplicate}`)) fail(`obsolete duplicate menu item remains: ${duplicate}`);
 }
@@ -78,6 +80,10 @@ if (!hospitalDoctorService.includes('memorySafeDecode: true')) fail('Hospital do
 const publicProviderPage = read('src/pages/PublicProviderProfilePage.tsx');
 if (!publicProviderPage.includes("provider?.provider_type!=='hospital'||sliderImages.length<2")) fail('Hospital public gallery autoplay is missing');
 if (!publicProviderPage.includes("hospital-slider-v2")) fail('Hospital public gallery is not isolated as a full-width slider');
+if (!hospitalContent.includes('plainServices={tab===\'services\'}')) fail('Hospital Services still exposes image/icon controls');
+if (!providerProfile.includes('hidePublicProfileLink = false')) fail('Hospital profile isolation props are missing');
+if (!providerProfile.includes('Delete logo') || !providerProfile.includes('Delete banner')) fail('Hospital/Chamber logo and banner delete controls are missing');
+if (!providerProfile.includes('<CombinedCoordinateInput')) fail('Hospital/Chamber location is not a single combined coordinate field');
 if (!hospitalContent.includes('costMode="treatment"')) fail('Treatment Cost page is not limited to treatment costs');
 if (!hospitalContent.includes('costMode="investigation"')) fail('Investigation Cost page is not limited to investigation costs');
 const websiteContentTabs = read('src/components/ProviderWebsiteContentTabs.tsx');

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import ProviderWebsiteContentTabs from "../components/ProviderWebsiteContentTabs";
+import CombinedCoordinateInput from "../components/CombinedCoordinateInput";
 import { useAuth } from "../contexts/AuthContext";
 import { useVisitorLanguage } from "../contexts/VisitorLanguageContext";
 import {
@@ -86,6 +87,8 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
     rejected: tr("প্রত্যাখ্যাত", "Rejected"), suspended: tr("স্থগিত", "Suspended"),
   };
   const roleType = account?.role === "chamber" ? "chamber" : "hospital";
+  const entityBn = roleType === "chamber" ? "চেম্বার" : "হাসপাতাল";
+  const entityEn = roleType === "chamber" ? "Chamber" : "Hospital";
   const [providers, setProviders] = useState<ProviderDashboardItem[]>([]);
   const [profile, setProfile] = useState<ProviderDashboardItem>(
     emptyProvider(roleType),
@@ -267,7 +270,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
       const saved = rows.find((item) => item.id === result.provider_id);
       if (saved) selectProvider(saved);
       await refreshAccount();
-      setNotice(tr("প্রতিষ্ঠানের প্রোফাইল সফলভাবে সংরক্ষণ হয়েছে।", "Provider profile saved successfully."));
+      setNotice(tr(`${entityBn} প্রোফাইল সফলভাবে সংরক্ষণ হয়েছে।`, `${entityEn} profile saved successfully.`));
     } catch (saveError) {
       for (const path of newlyUploaded)
         await cleanupProviderMedia(path).catch(() => undefined);
@@ -291,13 +294,13 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
             <small>
               {profile.provider_type === "hospital" ? tr("হাসপাতাল", "Hospital") : tr("চেম্বার", "Chamber")} {tr("স্ব-পরিচালনা", "Self-service")}
             </small>
-            <h1>{tr("প্রতিষ্ঠানের প্রোফাইল", "Provider Profile")}</h1>
+            <h1>{tr(`${entityBn} প্রোফাইল`, `${entityEn} Profile`)}</h1>
             <p>{tr("পাবলিক প্রোফাইল, যোগাযোগ, বিভাগ, সেবা এবং ছবির সংগ্রহ পরিচালনা করুন।", "Manage the public profile, contact details, departments, services, and gallery.")}</p>
           </div>
         </div>
         {providers.length > 1 && (
           <label className="provider-selector">
-            {tr("প্রতিষ্ঠান", "Provider")}
+            {tr(entityBn, entityEn)}
             <select
               value={profile.id}
               onChange={(event) => {
@@ -328,7 +331,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                   <strong>
                     {profile.id
                       ? statusLabels[profile.status]
-                      : tr("নতুন প্রতিষ্ঠান", "New Provider")}
+                      : tr(`নতুন ${entityBn}`, `New ${entityEn}`)}
                   </strong>
                   <small>
                     {profile.verified
@@ -402,6 +405,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                     {tr("প্রস্তাবিত মাপ: ৮০০×৮০০ পিক্সেল • সর্বোচ্চ ৫ এমবি • আপলোডের আগে ১০০–২০০ কেবি WebP-তে স্বয়ংক্রিয়ভাবে সংকুচিত হবে", "Recommended: 800×800 px • maximum 5 MB • automatically compressed to a 100–200 KB WebP before upload")}
                   </small>
                 </label>
+                {(profile.logo_url || logoFile) && <button className="provider-media-delete" type="button" onClick={() => { setLogoFile(null); set("logo_url", null); }}><Trash2 /> {tr("লোগো মুছুন", "Delete logo")}</button>}
                 <label>
                   <ImagePlus /> {tr("ব্যানার", "Banner")}
                   <input
@@ -415,6 +419,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                     {tr("প্রস্তাবিত মাপ: ১৬০০×৯০০ পিক্সেল • সর্বোচ্চ ৫ এমবি • আপলোডের আগে ১০০–২০০ কেবি WebP-তে স্বয়ংক্রিয়ভাবে সংকুচিত হবে", "Recommended: 1600×900 px • maximum 5 MB • automatically compressed to a 100–200 KB WebP before upload")}
                   </small>
                 </label>
+                {(profile.banner_url || bannerFile) && <button className="provider-media-delete" type="button" onClick={() => { setBannerFile(null); set("banner_url", null); }}><Trash2 /> {tr("ব্যানার মুছুন", "Delete banner")}</button>}
               </div>
             </section>
             <section className="provider-form-section">
@@ -547,20 +552,8 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                 <Crosshair />
                 <div>
                   <strong>{tr("সঠিক অবস্থান নির্ধারণ করুন", "Set the Correct Location")}</strong>
-                  <p>{tr("সম্ভব হলে প্রতিষ্ঠান বা হাসপাতালে উপস্থিত থেকে ডিভাইসের অবস্থান ব্যবহারের অনুমতি দিন এবং ‘বর্তমান অবস্থান’ নির্বাচন করুন। অক্ষাংশ, দ্রাঘিমাংশ ও শনাক্ত জেলা/এলাকা যাচাই করে সংরক্ষণ করুন। জিপিএস না থাকলে স্থানাঙ্ক নিজে লিখতে পারবেন।", "If possible, use Current Location while physically present at the provider. Verify the latitude, longitude, and detected district/area before saving. You can enter coordinates manually if GPS is unavailable or denied.")}</p>
+                  <p>{tr(`সম্ভব হলে ${entityBn}-এ উপস্থিত থেকে বর্তমান GPS অবস্থান নিন। একটি ঘরে "latitude, longitude" লিখেও map location সেট করা যাবে।`, `If possible, capture the current GPS location while at the ${entityEn}. You can also set the map using one "latitude, longitude" field.`)}</p>
                 </div>
-                <button
-                  type="button"
-                  disabled={capturingLocation}
-                  onClick={() => void captureProviderLocation()}
-                >
-                  {capturingLocation ? (
-                    <LoaderCircle className="spin" />
-                  ) : (
-                    <Crosshair />
-                  )}
-                  {capturingLocation ? tr("অবস্থান নেওয়া হচ্ছে…", "Getting location…") : tr("বর্তমান অবস্থান", "Current Location")}
-                </button>
               </div>
               <label className="provider-text-field">
                 <span>{tr("বিস্তারিত ঠিকানা", "Detailed Address")}</span>
@@ -621,46 +614,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                     </select>
                   </div>
                 </label>
-                <label className="auth-field">
-                  <span>{tr("অক্ষাংশ", "Latitude")}</span>
-                  <div>
-                    <input
-                      type="number"
-                      step="any"
-                      min={-90}
-                      max={90}
-                      value={profile.latitude ?? ""}
-                      onChange={(event) =>
-                        set(
-                          "latitude",
-                          event.target.value
-                            ? Number(event.target.value)
-                            : null,
-                        )
-                      }
-                    />
-                  </div>
-                </label>
-                <label className="auth-field">
-                  <span>{tr("দ্রাঘিমাংশ", "Longitude")}</span>
-                  <div>
-                    <input
-                      type="number"
-                      step="any"
-                      min={-180}
-                      max={180}
-                      value={profile.longitude ?? ""}
-                      onChange={(event) =>
-                        set(
-                          "longitude",
-                          event.target.value
-                            ? Number(event.target.value)
-                            : null,
-                        )
-                      }
-                    />
-                  </div>
-                </label>
+                <CombinedCoordinateInput latitude={profile.latitude} longitude={profile.longitude} onChange={(latitude,longitude) => setProfile((current) => ({...current,latitude,longitude}))} onCurrentLocation={() => void captureProviderLocation()} loading={capturingLocation} label={tr('ম্যাপ লোকেশন (Latitude, Longitude)','Map location (Latitude, Longitude)')} gpsLabel={tr('বর্তমান GPS','Current GPS')} loadingLabel={tr('অবস্থান নেওয়া হচ্ছে…','Getting location…')} helper={tr('একই ঘরে লিখুন: 23.8103, 90.4125 — অথবা GPS button ব্যবহার করুন।','Enter in one field: 23.8103, 90.4125 — or use the GPS button.')} />
               </div>
               <label className="auth-field">
                 <span>Google Maps URL</span>
@@ -719,7 +673,7 @@ export default function ProviderProfilePage({ hideWebsiteContent = false, hidePu
                       src={
                         getImageUrl(path, "public-images", "thumbnail") || ""
                       }
-                      alt={tr("প্রতিষ্ঠানের ছবি", "Provider gallery")}
+                      alt={tr(`${entityBn} ছবি`, `${entityEn} gallery`)}
                       loading="lazy"
                       decoding="async"
                       width="480"

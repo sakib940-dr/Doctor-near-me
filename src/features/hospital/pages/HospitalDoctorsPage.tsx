@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { Archive, Camera, Eye, EyeOff, LoaderCircle, Pencil, Plus, RotateCcw, Save, Stethoscope, X } from 'lucide-react';
+import { Camera, Eye, EyeOff, LoaderCircle, Pencil, Plus, Save, Stethoscope, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getImageUrl } from '../../../lib/storage';
 import { validateSelectedImage } from '../../../lib/imageOptimization';
@@ -68,7 +68,7 @@ export default function HospitalDoctorsPage() {
       setForm(empty); setFile(null); setNotice(form.id ? text(bi('ডাক্তারের তথ্য আপডেট হয়েছে।', 'Doctor information updated.')) : text(bi('হাসপাতালের ডিরেক্টরিতে ডাক্তার যোগ হয়েছে।', 'Doctor added to the Hospital directory.'))); await load();
     } catch (reason) {
       if (uploaded) await cleanupHospitalDoctorPhoto(uploaded).catch(() => undefined);
-      setError(message(reason));
+      setError(file ? text(bi('ডাক্তারের ছবি upload করা যায়নি। আবার চেষ্টা করুন।', 'Photo upload failed. Please try again.')) : message(reason));
     } finally { setSaving(false); }
   }
 
@@ -77,10 +77,10 @@ export default function HospitalDoctorsPage() {
     try { await setHospitalDoctorVisibility(provider.id,row.id,!(row.is_active??true)); await load(); }
     catch (reason) { setError(message(reason)); }
   }
-  async function archive(row: HospitalDoctorCard, restore = false) {
+  async function archive(row: HospitalDoctorCard) {
     if (!provider) return;
-    if (!restore && !window.confirm(text(bi('এই ডাক্তারকে পাবলিক ডিরেক্টরি থেকে সরাবেন? অ্যাপয়েন্টমেন্ট ইতিহাস সংরক্ষিত থাকবে।', 'Remove this Doctor from the public directory? Appointment history will remain available.')))) return;
-    try { await archiveHospitalDoctor(provider.id,row.id,restore); await load(); }
+    if (!window.confirm(text(bi('এই ডাক্তারকে ডিরেক্টরি থেকে মুছবেন? নিরাপত্তার জন্য পুরোনো অ্যাপয়েন্টমেন্ট ইতিহাস সংরক্ষিত থাকবে।', 'Delete this Doctor from the directory? Appointment history will be preserved for safety.')))) return;
+    try { await archiveHospitalDoctor(provider.id,row.id,false); await load(); }
     catch (reason) { setError(message(reason)); }
   }
 
@@ -94,7 +94,7 @@ export default function HospitalDoctorsPage() {
       <form className="hospital-panel hospital-form" onSubmit={submit}>
         <div className="hospital-panel-title"><div><h2>{form.id ? text(bi('ডাক্তার সম্পাদনা', 'Edit Doctor')) : text(bi('ডাক্তার যোগ করুন', 'Add Doctor'))}</h2><p>{text(bi(`${provider.name_bn} এই তথ্য পরিচালনা ও প্রকাশ করবে।`, `Information is managed and published by ${provider.name_bn}.`))}</p></div>{form.id && <button className="hospital-secondary-button" type="button" onClick={() => { setForm(empty); setFile(null); }} aria-label={text(bi('ফর্ম বন্ধ করুন', 'Close form'))}><X /></button>}</div>
         <div className="hospital-form-grid">
-          <label>{text(bi('ডাক্তারের ছবি', 'Doctor photo'))}<div className="hospital-doctor-photo-fallback">{preview ? <img src={preview} alt={text(bi('ডাক্তারের ছবির প্রিভিউ', 'Doctor preview'))} /> : <Stethoscope />}</div><span className="hospital-secondary-button"><Camera /> {text(bi('ছবি বেছে নিন', 'Choose photo'))}<input hidden type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => { const selected=event.target.files?.[0]||null; try { setFile(validateSelectedImage(selected)); } catch (reason) { setError(message(reason)); } }} /></span><small>{text(bi('সর্বোচ্চ ৫ MB। আপলোডের আগে ছবি অপ্টিমাইজ হবে।', 'Maximum 5 MB. The image is optimized before upload.'))}</small></label>
+          <label>{text(bi('ডাক্তারের ছবি', 'Doctor photo'))}<div className="hospital-doctor-photo-fallback">{preview ? <img src={preview} alt={text(bi('ডাক্তারের ছবির প্রিভিউ', 'Doctor preview'))} /> : <Stethoscope />}</div><span className="hospital-secondary-button"><Camera /> {text(bi('ছবি বেছে নিন', 'Choose photo'))}<input hidden type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => { const selected=event.target.files?.[0]||null; try { setFile(validateSelectedImage(selected)); } catch (reason) { setError(message(reason)); } }} /></span><small>{text(bi('প্রস্তাবিত 800×1000। সর্বোচ্চ 5 MB; 100–200 KB WebP-তে auto-compress হবে।', 'Recommended 800×1000. Maximum 5 MB; automatically compressed to a 100–200 KB WebP.'))}</small></label>
           <div className="hospital-form-grid">
             <label>{text(bi('ডাক্তারের নাম *', 'Doctor name *'))}<input required minLength={2} maxLength={150} value={form.name} onChange={(event) => setForm({...form,name:event.target.value})} /></label>
             <label>{text(bi('ডিগ্রি', 'Degree'))}<input maxLength={250} value={form.degree} onChange={(event) => setForm({...form,degree:event.target.value})} /></label>
@@ -117,11 +117,11 @@ export default function HospitalDoctorsPage() {
       </form>
 
       <section className="hospital-panel" style={{marginTop:18}}><div className="hospital-panel-title"><div><h2>{text(bi('হাসপাতালের ডাক্তার ডিরেক্টরি', 'Hospital Doctor Directory'))}</h2><p>{rows.filter((row) => !row.archived_at).length} {text(bi('টি বর্তমান ডাক্তার প্রোফাইল', 'current Doctor profiles'))}</p></div></div>
-        {loading ? <div className="hospital-empty"><LoaderCircle className="spin" /> {text(bi('লোড হচ্ছে…', 'Loading…'))}</div> : <div className="hospital-doctor-list">{rows.map((row) => <article className="hospital-doctor-manage-card" key={row.id}>
+        {loading ? <div className="hospital-empty"><LoaderCircle className="spin" /> {text(bi('লোড হচ্ছে…', 'Loading…'))}</div> : <div className="hospital-doctor-list">{rows.filter((row) => !row.archived_at).map((row) => <article className="hospital-doctor-manage-card" key={row.id}>
           {getImageUrl(row.photo_path,'public-images','thumbnail') ? <img src={getImageUrl(row.photo_path,'public-images','thumbnail')!} alt={row.doctor_name} /> : <div className="hospital-doctor-photo-fallback"><Stethoscope /></div>}
-          <div><span className={`hospital-status-pill ${row.archived_at?'archived':row.is_active?'':'hidden'}`}>{row.archived_at?text(bi('আর্কাইভ', 'Archived')):row.is_active?text(bi('পাবলিক', 'Public')):text(bi('লুকানো', 'Hidden'))}</span><h3>{row.doctor_name}</h3><p>{[row.degree,row.specialty].filter(Boolean).join(' • ') || text(bi('পেশাগত তথ্য অপেক্ষমাণ', 'Professional information pending'))}</p><small>{row.visiting_schedule || text(bi('ভিজিটিং সময় যোগ করা হয়নি', 'Visiting schedule not added'))}</small></div>
-          <div className="hospital-doctor-card-actions">{row.archived_at ? <button type="button" title={text(bi('পুনরুদ্ধার', 'Restore'))} onClick={() => void archive(row,true)}><RotateCcw /></button> : <><button type="button" title={text(bi('সম্পাদনা', 'Edit'))} onClick={() => edit(row)}><Pencil /></button><button type="button" title={row.is_active?text(bi('লুকান', 'Hide')):text(bi('দেখান', 'Show'))} onClick={() => void visibility(row)}>{row.is_active?<EyeOff/>:<Eye/>}</button><button className="danger" type="button" title={text(bi('আর্কাইভ', 'Archive'))} onClick={() => void archive(row)}><Archive /></button></>}</div>
-        </article>)}{!rows.length && <div className="hospital-empty">{text(bi('এখনও কোনো ডাক্তার যোগ করা হয়নি।', 'No Doctor added yet.'))}</div>}</div>}
+          <div><span className={`hospital-status-pill ${row.is_active?'':'hidden'}`}>{row.is_active?text(bi('পাবলিক', 'Public')):text(bi('লুকানো', 'Hidden'))}</span><h3>{row.doctor_name}</h3><p>{[row.degree,row.specialty].filter(Boolean).join(' • ') || text(bi('পেশাগত তথ্য অপেক্ষমাণ', 'Professional information pending'))}</p><small>{row.visiting_schedule || text(bi('ভিজিটিং সময় যোগ করা হয়নি', 'Visiting schedule not added'))}</small></div>
+          <div className="hospital-doctor-card-actions"><button type="button" title={text(bi('সম্পাদনা', 'Edit'))} onClick={() => edit(row)}><Pencil /></button><button type="button" title={row.is_active?text(bi('লুকান', 'Hide')):text(bi('দেখান', 'Show'))} onClick={() => void visibility(row)}>{row.is_active?<EyeOff/>:<Eye/>}</button><button className="danger" type="button" title={text(bi('মুছুন', 'Delete'))} onClick={() => void archive(row)}><Trash2 /></button></div>
+        </article>)}{!rows.filter((row) => !row.archived_at).length && <div className="hospital-empty">{text(bi('এখনও কোনো ডাক্তার যোগ করা হয়নি।', 'No Doctor added yet.'))}</div>}</div>}
       </section>
     </>}
   </>;

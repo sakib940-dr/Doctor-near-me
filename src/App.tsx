@@ -66,6 +66,9 @@ import HospitalAppointmentsPage from './features/hospital/pages/HospitalAppointm
 import HospitalDoctorsPage from './features/hospital/pages/HospitalDoctorsPage';
 import HospitalGalleryPage from './features/hospital/pages/HospitalGalleryPage';
 import HospitalStaffPage from './features/hospital/pages/HospitalStaffPage';
+import HospitalAdminSupportPage from './features/hospital/pages/HospitalAdminSupportPage';
+import HospitalOnboardingPage from './features/hospital/pages/HospitalOnboardingPage';
+import { HospitalAppointmentSettingsPage, HospitalProfilePreviewPage, HospitalSecurityPage } from './features/hospital/pages/HospitalUtilityPages';
 import {
   HospitalInformationPage, HospitalInvestigationCostsPage, HospitalPublicProfileManagementPage,
   HospitalReceptionSettingsPage, HospitalServicesPage, HospitalSettingsPage, HospitalSupportPage,
@@ -118,6 +121,7 @@ export default function App() {
       <Route path="/doctor/prescriptions" element={<ProtectedRoute><DashboardShell role="doctor"><DoctorPrescriptionPage /></DashboardShell></ProtectedRoute>} />
       <Route path="/hospital-console" element={<ProtectedRoute><HospitalShell><HospitalDashboardPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/appointments" element={<ProtectedRoute><HospitalShell><HospitalAppointmentsPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/appointment-settings" element={<ProtectedRoute><HospitalShell><HospitalAppointmentSettingsPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/doctors" element={<ProtectedRoute><HospitalShell><HospitalDoctorsPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/analytics" element={<ProtectedRoute><HospitalShell><ProfileAnalyticsPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/public-profile" element={<ProtectedRoute><HospitalShell><HospitalPublicProfileManagementPage /></HospitalShell></ProtectedRoute>} />
@@ -131,6 +135,10 @@ export default function App() {
       <Route path="/hospital-console/verification" element={<ProtectedRoute><HospitalShell><VerificationEvidencePage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/settings" element={<ProtectedRoute><HospitalShell><HospitalSettingsPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/support" element={<ProtectedRoute><HospitalShell><HospitalSupportPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/admin-support" element={<ProtectedRoute><HospitalShell><HospitalAdminSupportPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/security" element={<ProtectedRoute><HospitalShell><HospitalSecurityPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/onboarding" element={<ProtectedRoute><HospitalShell><HospitalOnboardingPage /></HospitalShell></ProtectedRoute>} />
+      <Route path="/hospital-console/profile-preview" element={<ProtectedRoute><HospitalShell><HospitalProfilePreviewPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/premium" element={<ProtectedRoute><HospitalShell><PremiumMemberPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/hospital-console/ambulances" element={<ProtectedRoute><HospitalShell><ProviderAmbulanceLinksPage /></HospitalShell></ProtectedRoute>} />
       <Route path="/provider/profile" element={<ProtectedRoute><RoleAwareDashboardShell allowed={['hospital', 'chamber']}><ProviderProfilePage /></RoleAwareDashboardShell></ProtectedRoute>} />

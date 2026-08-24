@@ -20,7 +20,7 @@ export default function HospitalDoctorCard({doctor,hospital}:{doctor:HospitalDoc
   return <>
     <button className="hospital-public-doctor-card" type="button" onClick={()=>setOpen(true)}>
       {photo?<img src={photo} alt={doctor.doctor_name} loading="lazy"/>:<span className="hospital-doctor-photo-fallback"><Stethoscope/></span>}
-      <span><h3>{doctor.doctor_name}</h3>{doctor.degree&&<p>{doctor.degree}</p>}{doctor.specialty&&<p><BriefcaseMedical size={15}/> {doctor.specialty}</p>}{doctor.experience_years!=null&&<p>{doctor.experience_years} {text(bi('বছরের অভিজ্ঞতা','years experience'))}</p>}<small><Clock3 size={14}/> {doctor.visiting_schedule||text(bi('ভিজিটিং সময়ের জন্য রিসেপশনে যোগাযোগ করুন','Contact reception for visiting time'))}</small></span>
+      <span><h3>{doctor.doctor_name}</h3>{doctor.degree&&<p>{doctor.degree}</p>}{doctor.specialty&&<p><BriefcaseMedical size={15}/> {doctor.specialty}</p>}{doctor.experience_years!=null&&<p>{doctor.experience_years} {text(bi('বছরের অভিজ্ঞতা','years experience'))}</p>}{doctor.room_information&&<p><DoorOpen size={14}/> {doctor.room_information}</p>}<small><Clock3 size={14}/> {doctor.visiting_schedule||text(bi('ভিজিটিং সময়ের জন্য রিসেপশনে যোগাযোগ করুন','Contact reception for visiting time'))}</small></span>
     </button>
     {open&&<HospitalDoctorProfileModal doctor={doctor} hospital={hospital} onClose={()=>setOpen(false)}/>} 
   </>;

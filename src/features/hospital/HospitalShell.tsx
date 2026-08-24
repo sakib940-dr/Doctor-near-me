@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import {
-  Activity, Ambulance, BarChart3, Bell, Building2, CalendarDays, ChevronRight, CircleHelp,
-  ClipboardList, Crown, FlaskConical, GalleryHorizontal, Home, Info, LogOut,
-  Menu, MessageCircle, PanelsTopLeft, Settings, ShieldCheck, Stethoscope, Users, X,
+  Activity, BarChart3, Bell, Building2, CalendarCog, CalendarDays, ChevronRight,
+  ClipboardList, Eye, FlaskConical, GalleryHorizontal, HelpCircle, Home, Info, KeyRound, LogOut,
+  Menu, MessageCircle, PanelsTopLeft, Stethoscope, UserRoundCog, Users, X,
 } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AccountStateFallback from '../../components/AccountStateFallback';
@@ -16,23 +16,36 @@ const primary = [
   { label: bi('অ্যাপয়েন্টমেন্ট', 'Appointments'), path: '/hospital-console/appointments', icon: CalendarDays },
   { label: bi('ডাক্তার', 'Doctors'), path: '/hospital-console/doctors', icon: Stethoscope },
   { label: bi('অ্যানালিটিক্স', 'Analytics'), path: '/hospital-console/analytics', icon: BarChart3 },
+  { label: bi('প্রোফাইল', 'Profile'), path: '/hospital-console/profile-preview', icon: Eye },
 ];
 
-const menu = [
-  { label: bi('পাবলিক প্রোফাইল', 'Public Profile'), path: '/hospital-console/public-profile', icon: PanelsTopLeft },
-  { label: bi('হাসপাতালের তথ্য', 'Hospital Information'), path: '/hospital-console/information', icon: Info },
-  { label: bi('গ্যালারি ম্যানেজমেন্ট', 'Gallery Management'), path: '/hospital-console/gallery', icon: GalleryHorizontal },
-  { label: bi('সেবা ম্যানেজমেন্ট', 'Services Management'), path: '/hospital-console/services', icon: ClipboardList },
-  { label: bi('চিকিৎসা খরচ', 'Treatment Costs'), path: '/hospital-console/treatment-costs', icon: Activity },
-  { label: bi('পরীক্ষার খরচ', 'Investigation Costs'), path: '/hospital-console/investigation-costs', icon: FlaskConical },
-  { label: bi('ডাক্তার ম্যানেজমেন্ট', 'Doctor Management'), path: '/hospital-console/doctors', icon: Stethoscope },
-  { label: bi('রিসেপশন সেটিংস', 'Reception Settings'), path: '/hospital-console/reception', icon: MessageCircle },
-  { label: bi('স্টাফ ম্যানেজমেন্ট', 'Staff Management'), path: '/hospital-console/staff', icon: Users },
-  { label: bi('ভেরিফিকেশন', 'Verification'), path: '/hospital-console/verification', icon: ShieldCheck },
-  { label: bi('প্রিমিয়াম মেম্বারশিপ', 'Premium Membership'), path: '/hospital-console/premium', icon: Crown },
-  { label: bi('অ্যাম্বুলেন্স সংযোগ', 'Ambulance Links'), path: '/hospital-console/ambulances', icon: Ambulance },
-  { label: bi('সেটিংস', 'Settings'), path: '/hospital-console/settings', icon: Settings },
-  { label: bi('সহায়তা', 'Support'), path: '/hospital-console/support', icon: CircleHelp },
+const menuGroups = [
+  { title: bi('হাসপাতাল প্রোফাইল', 'Hospital Profile'), items: [
+    { label: bi('হাসপাতাল প্রোফাইল', 'Hospital profile'), path: '/hospital-console/public-profile', icon: PanelsTopLeft },
+    { label: bi('হাসপাতালের তথ্য', 'Hospital information'), path: '/hospital-console/information', icon: Info },
+    { label: bi('গ্যালারি ম্যানেজমেন্ট', 'Gallery management'), path: '/hospital-console/gallery', icon: GalleryHorizontal },
+  ]},
+  { title: bi('হাসপাতাল কনটেন্ট ম্যানেজমেন্ট', 'Hospital Content Management'), items: [
+    { label: bi('সেবাসমূহ', 'Services'), path: '/hospital-console/services', icon: ClipboardList },
+    { label: bi('চিকিৎসা খরচ', 'Treatment Cost'), path: '/hospital-console/treatment-costs', icon: Activity },
+    { label: bi('পরীক্ষার খরচ', 'Investigation Cost'), path: '/hospital-console/investigation-costs', icon: FlaskConical },
+  ]},
+  { title: bi('রিসেপশন ম্যানেজমেন্ট', 'Reception Management'), items: [
+    { label: bi('রিসেপশন সেটিংস', 'Reception Settings'), path: '/hospital-console/reception', icon: MessageCircle },
+    { label: bi('ডাক্তার কার্ড ম্যানেজমেন্ট', 'Doctor card management'), path: '/hospital-console/doctors', icon: Stethoscope },
+    { label: bi('অ্যাপয়েন্টমেন্ট সেটিংস', 'Appointment settings'), path: '/hospital-console/appointment-settings', icon: CalendarCog },
+  ]},
+  { title: bi('স্টাফ ম্যানেজমেন্ট', 'Staff Management'), items: [
+    { label: bi('স্টাফ', 'Staff'), path: '/hospital-console/staff', icon: Users },
+  ]},
+  { title: bi('যোগাযোগ', 'Communication'), items: [
+    { label: bi('অ্যাডমিন সাপোর্ট মেসেজিং', 'Admin Support Messaging'), path: '/hospital-console/admin-support', icon: MessageCircle },
+    { label: bi('সহায়তা / সাপোর্ট', 'Help / Support'), path: '/hospital-console/support', icon: HelpCircle },
+  ]},
+  { title: bi('সেটিংস', 'Settings'), items: [
+    { label: bi('অ্যাকাউন্ট সেটিংস', 'Account settings'), path: '/hospital-console/settings', icon: UserRoundCog },
+    { label: bi('সিকিউরিটি সেটিংস', 'Security settings'), path: '/hospital-console/security', icon: KeyRound },
+  ]},
 ];
 
 function activePath(current: string, target: string, exact = false) {
@@ -73,7 +86,7 @@ export default function HospitalShell({ children }: { children: ReactNode }) {
     {open && <div className="hospital-menu-backdrop" onClick={() => setOpen(false)} role="presentation">
       <aside className="hospital-menu-drawer" role="dialog" aria-modal="true" aria-label={text(bi('হাসপাতাল ম্যানেজমেন্ট মেনু', 'Hospital management menu'))} onClick={(event) => event.stopPropagation()}>
         <header><div><Building2 /><span><strong>{account.full_name || text(bi('হাসপাতাল', 'Hospital'))}</strong><small>{text(bi('ম্যানেজমেন্ট মেনু', 'Management menu'))}</small></span></div><button type="button" onClick={() => setOpen(false)} aria-label={text(bi('মেনু বন্ধ করুন', 'Close menu'))}><X /></button></header>
-        <nav>{menu.map(({ label, path, icon: Icon }) => <Link key={path} to={path} className={activePath(location.pathname, path) ? 'active' : ''} onClick={() => setOpen(false)}><Icon /><span>{text(label)}</span><ChevronRight /></Link>)}</nav>
+        <nav className="hospital-menu-groups">{menuGroups.map((group) => <section key={group.title.en}><h2>{text(group.title)}</h2>{group.items.map(({ label, path, icon: Icon }) => <Link key={path} to={path} className={activePath(location.pathname, path) ? 'active' : ''} onClick={() => setOpen(false)}><Icon /><span>{text(label)}</span><ChevronRight /></Link>)}</section>)}</nav>
         <button className="hospital-menu-logout" type="button" onClick={() => void logout()}><LogOut /> {text(bi('সাইন আউট', 'Sign out'))}</button>
       </aside>
     </div>}

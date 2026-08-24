@@ -80,10 +80,23 @@ export default function DoctorPublicContentManagementPage() {
           : step === 5 ? <DoctorPublicProfileContentPage section="treatment" embedded onSaved={() => refreshStatus(false)} />
             : <DoctorPublicProfileContentPage section="investigation" embedded onSaved={() => refreshStatus(false)} />;
 
-  return <div className="doctor-content-wizard-page">
+  const activeIndex = step - 1;
+
+  return <div className="doctor-content-wizard-page doctor-content-wizard-page-v2">
     <section className="doctor-content-wizard-header">
-      <div className="doctor-content-wizard-title"><span><PanelsTopLeft /></span><div><small>Public Content Management</small><h1>Public Profile Setup</h1><p>প্রতিটি ধাপ আলাদাভাবে save হয়। Refresh বা logout করলেও database-এ saved data অক্ষত থাকবে।</p></div></div>
-      <div className="doctor-content-progress"><strong>{completed}/6</strong><span>steps saved</span><div><i style={{ width: `${(completed / 6) * 100}%` }} /></div></div>
+      <div className="doctor-content-wizard-title">
+        <span><PanelsTopLeft /></span>
+        <div>
+          <small>Public Content Management</small>
+          <h1>Public Profile Setup</h1>
+          <p>প্রতিটি ধাপ আলাদাভাবে save হয়। যেকোনো ধাপে সরাসরি ক্লিক করে যেতে পারবেন।</p>
+        </div>
+      </div>
+      <div className="doctor-content-progress">
+        <strong>{completed}/6</strong>
+        <span>steps saved</span>
+        <div><i style={{ width: `${(completed / 6) * 100}%` }} /></div>
+      </div>
     </section>
 
     <nav className="doctor-content-stepper" aria-label="Public content setup steps">
@@ -92,17 +105,17 @@ export default function DoctorPublicContentManagementPage() {
         const saved = statuses[index];
         return <button type="button" key={item.title} className={`${number === step ? 'active' : ''} ${saved ? 'saved' : 'incomplete'}`} onClick={() => void move(number)}>
           <span className="doctor-content-step-number">{saved ? <CheckCircle2 /> : <CircleDashed />}</span>
-          <span><small>Step {number}</small><strong>{item.short}</strong><em>{saved ? 'Saved' : 'Incomplete'}</em></span>
+          <strong>{item.short}</strong>
         </button>;
       })}
     </nav>
 
     {loading ? <div className="loading-box"><LoaderCircle className="spin" /> Setup status লোড হচ্ছে…</div> : <>
       {error && <div className="error-box" role="alert">{error}</div>}
-      <section className="doctor-content-wizard-current"><small>Step {step} of 6</small><h2>{steps[step - 1].title}</h2><span className={statuses[step - 1] ? 'saved' : 'incomplete'}>{statuses[step - 1] ? 'Saved' : 'Incomplete'}</span></section>
       <div className="doctor-content-wizard-body">{body}</div>
       <div className="doctor-content-wizard-navigation">
         <button type="button" disabled={step === 1} onClick={() => void move(step - 1)}><ChevronLeft /> Previous</button>
+        <span>{steps[activeIndex].short} • {statuses[activeIndex] ? 'Saved' : 'Incomplete'}</span>
         <button type="button" className="primary" disabled={step === 6} onClick={() => void move(step + 1)}>Next <ChevronRight /></button>
       </div>
     </>}

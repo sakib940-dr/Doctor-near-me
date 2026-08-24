@@ -80,6 +80,8 @@ if (!hospitalDoctorService.includes('memorySafeDecode: true')) fail('Hospital do
 const publicProviderPage = read('src/pages/PublicProviderProfilePage.tsx');
 if (!publicProviderPage.includes("provider?.provider_type!=='hospital'||sliderImages.length<2")) fail('Hospital public gallery autoplay is missing');
 if (!publicProviderPage.includes("hospital-slider-v2")) fail('Hospital public gallery is not isolated as a full-width slider');
+if (!publicProviderPage.includes('[doctorLimit,setDoctorLimit]=useState(20)')) fail('Hospital public Doctor list does not start with 20 cards');
+if (!publicProviderPage.includes('setDoctorLimit(limit=>limit+20)')) fail('Hospital public Doctor list does not load 20 more cards');
 if (!hospitalContent.includes('plainServices={tab===\'services\'}')) fail('Hospital Services still exposes image/icon controls');
 if (!providerProfile.includes('hidePublicProfileLink = false')) fail('Hospital profile isolation props are missing');
 if (!providerProfile.includes('Delete logo') || !providerProfile.includes('Delete banner')) fail('Hospital/Chamber logo and banner delete controls are missing');

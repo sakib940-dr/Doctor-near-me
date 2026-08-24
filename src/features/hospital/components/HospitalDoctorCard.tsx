@@ -19,8 +19,8 @@ export default function HospitalDoctorCard({doctor,hospital}:{doctor:HospitalDoc
   const photo=getImageUrl(doctor.photo_path,'public-images','thumbnail');
   return <>
     <button className="hospital-public-doctor-card" type="button" onClick={()=>setOpen(true)}>
-      {photo?<img src={photo} alt={doctor.doctor_name} loading="lazy"/>:<span className="hospital-doctor-photo-fallback"><Stethoscope/></span>}
-      <span><h3>{doctor.doctor_name}</h3>{doctor.degree&&<p>{doctor.degree}</p>}{doctor.specialty&&<p><BriefcaseMedical size={15}/> {doctor.specialty}</p>}{doctor.experience_years!=null&&<p>{doctor.experience_years} {text(bi('বছরের অভিজ্ঞতা','years experience'))}</p>}{doctor.room_information&&<p><DoorOpen size={14}/> {doctor.room_information}</p>}<small><Clock3 size={14}/> {doctor.visiting_schedule||text(bi('ভিজিটিং সময়ের জন্য রিসেপশনে যোগাযোগ করুন','Contact reception for visiting time'))}</small></span>
+      {photo?<img className="hospital-public-doctor-photo" src={photo} alt={doctor.doctor_name} loading="lazy"/>:<span className="hospital-doctor-photo-fallback hospital-public-doctor-photo"><Stethoscope/></span>}
+      <span className="hospital-public-doctor-copy"><h3>{doctor.doctor_name}</h3>{doctor.degree&&<strong>{doctor.degree}</strong>}{doctor.specialty&&<p><BriefcaseMedical size={15}/> {doctor.specialty}</p>}{doctor.experience_years!=null&&<p><BriefcaseMedical size={14}/> {doctor.experience_years} {text(bi('বছরের অভিজ্ঞতা','years experience'))}</p>}{doctor.room_information&&<p><DoorOpen size={14}/> {doctor.room_information}</p>}<small><Clock3 size={14}/> {doctor.visiting_schedule||text(bi('ভিজিটিং সময়ের জন্য রিসেপশনে যোগাযোগ করুন','Contact reception for visiting time'))}</small></span>
     </button>
     {open&&<HospitalDoctorProfileModal doctor={doctor} hospital={hospital} onClose={()=>setOpen(false)}/>} 
   </>;

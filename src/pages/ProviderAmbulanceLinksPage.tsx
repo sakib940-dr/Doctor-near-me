@@ -30,5 +30,80 @@ export default function ProviderAmbulanceLinksPage() {
     finally { setWorking(null); }
   }
 
-  return <div className="app-shell provider-dashboard-page"><main className="provider-dashboard-main container"><Link className="back-link" to="/dashboard"><ArrowLeft /> Dashboard-এ ফিরুন</Link><div className="provider-page-heading"><span><Ambulance /></span><div><small>Hospital affiliation</small><h1>Ambulance link requests</h1><p>Request review করুন। Approved link-ই কেবল public directory-তে দেখাবে।</p></div></div>{hospitals.length > 1 && <label className="provider-selector">Hospital<select value={hospitalId} onChange={(event) => setHospitalId(event.target.value)}>{hospitals.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}</select></label>}{error && <div className="error-box">{error}</div>}{loading ? <div className="loading-box"><LoaderCircle className="spin" /> Request লোড হচ্ছে…</div> : !hospitals.length ? <div className="empty-state"><span>🏥</span><h3>Hospital profile পাওয়া যায়নি</h3></div> : rows.length ? <div className="provider-ambulance-requests">{rows.map((row) => <article key={row.ambulance_id}><span><Ambulance /></span><div><h2>{row.operator_name}</h2><p>{vehicleLabels[row.vehicle_type]} • {row.vehicle_registration_no}</p><a href={`tel:${row.phone}`}><Phone /> {row.phone}</a></div><b className={`link-${row.link_status}`}>{row.link_status}</b><div>{row.link_status === 'pending' && <><button className="positive" disabled={working === row.ambulance_id} onClick={() => void respond(row, 'approved')}><Check /> Approve</button><button className={confirm?.id === row.ambulance_id ? 'danger confirming' : 'danger'} disabled={working === row.ambulance_id} onClick={() => void respond(row, 'rejected')}><X /> {confirm?.id === row.ambulance_id ? 'নিশ্চিত করুন' : 'Reject'}</button></>}{row.link_status === 'approved' && <button className={confirm?.id === row.ambulance_id ? 'danger confirming' : 'danger'} disabled={working === row.ambulance_id} onClick={() => void respond(row, 'removed')}><X /> {confirm?.id === row.ambulance_id ? 'নিশ্চিত করুন' : 'Link সরান'}</button>}{confirm?.id === row.ambulance_id && <button onClick={() => setConfirm(null)}>ফিরে যান</button>}</div></article>)}</div> : <div className="empty-state"><span>🚑</span><h3>কোনো link request নেই</h3></div>}</main></div>;
+  const pendingCount = rows.filter((row) => row.link_status === 'pending').length;
+  const approvedCount = rows.filter((row) => row.link_status === 'approved').length;
+
+  return (
+    <div className="app-shell provider-dashboard-page">
+      <main className="provider-dashboard-main container">
+        <Link className="back-link" to="/dashboard"><ArrowLeft /> Dashboard-এ ফিরুন</Link>
+        <div className="provider-page-heading">
+          <span><Ambulance /></span>
+          <div>
+            <small>Hospital affiliation</small>
+            <h1>Ambulance link requests</h1>
+            <p>Request review করুন। Approved link-ই কেবল public directory-তে দেখাবে।</p>
+          </div>
+        </div>
+        {hospitals.length > 1 && (
+          <label className="provider-selector">
+            Hospital
+            <select value={hospitalId} onChange={(event) => setHospitalId(event.target.value)}>
+              {hospitals.map((item) => <option key={item.id} value={item.id}>{item.name_bn}</option>)}
+            </select>
+          </label>
+        )}
+        {!loading && hospitals.length > 0 && (
+          <div className="provider-stat-row">
+            <div className="provider-stat-card amber">
+              <span><Ambulance /></span>
+              <div><strong>{pendingCount}</strong><small>Pending Requests</small></div>
+            </div>
+            <div className="provider-stat-card">
+              <span><Check /></span>
+              <div><strong>{approvedCount}</strong><small>Approved Links</small></div>
+            </div>
+            <div className="provider-stat-card">
+              <span><Phone /></span>
+              <div><strong>{rows.length}</strong><small>Total on Record</small></div>
+            </div>
+          </div>
+        )}
+        {error && <div className="error-box">{error}</div>}
+        {loading ? (
+          <div className="loading-box"><LoaderCircle className="spin" /> Request লোড হচ্ছে…</div>
+        ) : !hospitals.length ? (
+          <div className="empty-state"><span>🏥</span><h3>Hospital profile পাওয়া যায়নি</h3></div>
+        ) : rows.length ? (
+          <div className="provider-ambulance-requests">
+            {rows.map((row) => (
+              <article key={row.ambulance_id}>
+                <span><Ambulance /></span>
+                <div>
+                  <h2>{row.operator_name}</h2>
+                  <p>{vehicleLabels[row.vehicle_type]} • {row.vehicle_registration_no}</p>
+                  <a href={`tel:${row.phone}`}><Phone /> {row.phone}</a>
+                </div>
+                <b className={`link-${row.link_status}`}>{row.link_status}</b>
+                <div>
+                  {row.link_status === 'pending' && (
+                    <>
+                      <button className="positive" disabled={working === row.ambulance_id} onClick={() => void respond(row, 'approved')}><Check /> Approve</button>
+                      <button className={confirm?.id === row.ambulance_id ? 'danger confirming' : 'danger'} disabled={working === row.ambulance_id} onClick={() => void respond(row, 'rejected')}><X /> {confirm?.id === row.ambulance_id ? 'নিশ্চিত করুন' : 'Reject'}</button>
+                    </>
+                  )}
+                  {row.link_status === 'approved' && (
+                    <button className={confirm?.id === row.ambulance_id ? 'danger confirming' : 'danger'} disabled={working === row.ambulance_id} onClick={() => void respond(row, 'removed')}><X /> {confirm?.id === row.ambulance_id ? 'নিশ্চিত করুন' : 'Link সরান'}</button>
+                  )}
+                  {confirm?.id === row.ambulance_id && <button onClick={() => setConfirm(null)}>ফিরে যান</button>}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state"><span>🚑</span><h3>কোনো link request নেই</h3></div>
+        )}
+      </main>
+    </div>
+  );
 }

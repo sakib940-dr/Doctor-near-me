@@ -205,6 +205,31 @@ export default function ProviderAppointmentsPage() {
             </button>
           ))}
         </div>
+        {!loading && (
+          <div className="provider-stat-row">
+            <div className="provider-stat-card amber">
+              <span><Clock3 /></span>
+              <div>
+                <strong>{receptionRows.filter((item) => item.status === "pending").length}</strong>
+                <small>{tr("রিসেপশন অপেক্ষমাণ", "Reception Pending")}</small>
+              </div>
+            </div>
+            <div className="provider-stat-card">
+              <span><CalendarCheck /></span>
+              <div>
+                <strong>{receptionRows.length}</strong>
+                <small>{tr("রিসেপশন অনুরোধ", "Reception Requests")}</small>
+              </div>
+            </div>
+            <div className="provider-stat-card">
+              <span><CalendarDays /></span>
+              <div>
+                <strong>{rows.length}</strong>
+                <small>{tr("ডাক্তারের অ্যাপয়েন্টমেন্ট", "Doctor Appointments")}</small>
+              </div>
+            </div>
+          </div>
+        )}
         {error && <div className="error-box">{error}</div>}
         {loading ? (
           <div className="loading-box">

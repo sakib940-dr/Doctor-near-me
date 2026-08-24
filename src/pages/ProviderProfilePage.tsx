@@ -4,6 +4,7 @@ import {
   Building2,
   Camera,
   Crosshair,
+  Eye,
   ImagePlus,
   LoaderCircle,
   MapPin,
@@ -337,6 +338,16 @@ export default function ProviderProfilePage() {
                 </span>
               </div>
               <p>{tr("ফোন, হোয়াটসঅ্যাপ, সেবা ও অবস্থান আপনি যেকোনো সময় পরিবর্তন করতে পারবেন।", "You can update phone, WhatsApp, services, and location at any time.")}</p>
+              {profile.id && (
+                <Link
+                  className="inline-primary"
+                  to={`/${profile.provider_type === "chamber" ? "chamber" : "hospital"}/${profile.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Eye /> {tr("পাবলিক প্রোফাইল দেখুন", "View Public Profile")}
+                </Link>
+              )}
             </section>
             <section className="provider-media-card">
               <div className="provider-banner-preview">

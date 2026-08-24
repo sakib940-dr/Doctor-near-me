@@ -250,6 +250,29 @@ export default function ProviderDoctorsPage() {
         )}
         {provider && (
           <>
+            <div className="provider-stat-row">
+              <div className="provider-stat-card">
+                <span><Stethoscope /></span>
+                <div>
+                  <strong>{cards.length.toLocaleString(language === "bn" ? "bn-BD" : "en-US")}</strong>
+                  <small>{tr("মোট কার্ড", "Total Cards")}</small>
+                </div>
+              </div>
+              <div className="provider-stat-card">
+                <span><CheckCircle2 /></span>
+                <div>
+                  <strong>{cards.filter((card) => card.is_active).length.toLocaleString(language === "bn" ? "bn-BD" : "en-US")}</strong>
+                  <small>{tr("সক্রিয় / পাবলিক", "Active / Public")}</small>
+                </div>
+              </div>
+              <div className="provider-stat-card amber">
+                <span><X /></span>
+                <div>
+                  <strong>{cards.filter((card) => !card.is_active).length.toLocaleString(language === "bn" ? "bn-BD" : "en-US")}</strong>
+                  <small>{tr("লুকানো", "Hidden")}</small>
+                </div>
+              </div>
+            </div>
             <form className="provider-doctor-card-form" onSubmit={submit}>
               <header>
                 <div>

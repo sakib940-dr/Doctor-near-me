@@ -195,7 +195,7 @@ export default function DoctorProfessionalProfilePage() {
           <div className="doctor-photo-preview">{avatarUrl ? <img src={avatarUrl} alt="ডাক্তার প্রোফাইল" width="800" height="800" decoding="async" /> : <Stethoscope />}
             <label className="doctor-photo-edit-btn"><Camera /><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={choosePhoto} /></label>
           </div>
-          <small className="image-upload-hint">800×800px • সর্বোচ্চ 5 MB</small>
+          <small className="image-upload-hint">প্রস্তাবিত 800×800 px • সর্বোচ্চ 5 MB • upload-এর আগে 100–200 KB WebP-তে auto-compress হবে</small>
           <label className="accepting-toggle"><input type="checkbox" checked={profile.doctor.accepting_appointments} onChange={(event) => setDoctor('accepting_appointments', event.target.checked)} /><span><strong>Appointment নিচ্ছি</strong><small>বন্ধ করলে নতুন booking request আসবে না</small></span></label>
         </aside>
 

@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
-import { optimizeImageSet, type ImageOptimizationPreset } from '../lib/imageOptimization';
+import { friendlyImageUploadError, getStableUploadFile, optimizeImageSet, type ImageOptimizationPreset } from '../lib/imageOptimization';
 
 function isAlreadyExistsError(error: unknown) {
   const value = error as { statusCode?: string | number; message?: string; error?: string } | null;
@@ -26,29 +26,28 @@ export async function uploadOptimizedImage(input: {
   cacheControl?: string;
   memorySafeDecode?: boolean;
 }) {
-  const optimized = await optimizeImageSet(input.file, input.preset, { memorySafeDecode: input.memorySafeDecode });
-  const cleanFolder = input.folder.replace(/^\/+|\/+$/g, '');
-  const prefix = `${input.ownerPrefix.replace(/\/+$/g, '')}/${cleanFolder}/${optimized.fingerprint}-opt`;
-  const masterPath = `${prefix}.webp`;
-  const thumbnailPath = `${prefix}-thumb.webp`;
-  const cacheControl = input.cacheControl ?? '31536000';
+  try {
+    const optimized = await optimizeImageSet(input.file, input.preset, { memorySafeDecode: input.memorySafeDecode });
+    const cleanFolder = input.folder.replace(/^\/+|\/+$/g, '');
+    const prefix = `${input.ownerPrefix.replace(/\/+$/g, '')}/${cleanFolder}/${optimized.fingerprint}-opt`;
+    const masterPath = `${prefix}.webp`;
+    const thumbnailPath = `${prefix}-thumb.webp`;
+    const cacheControl = input.cacheControl ?? '31536000';
 
-  await uploadOnce(input.bucket, masterPath, optimized.master.file, cacheControl);
-  if (optimized.thumbnail) {
-    await uploadOnce(input.bucket, thumbnailPath, optimized.thumbnail.file, cacheControl);
+    await uploadOnce(input.bucket, masterPath, optimized.master.file, cacheControl);
+    if (optimized.thumbnail) await uploadOnce(input.bucket, thumbnailPath, optimized.thumbnail.file, cacheControl);
+    return {path:masterPath,thumbnailPath:optimized.thumbnail?thumbnailPath:null,originalBytes:optimized.master.originalBytes,optimizedBytes:optimized.master.optimizedBytes};
+  } catch(error) {
+    const friendly=new Error(friendlyImageUploadError(error));
+    (friendly as Error&{cause?:unknown}).cause=error;
+    throw friendly;
   }
-
-  return {
-    path: masterPath,
-    thumbnailPath: optimized.thumbnail ? thumbnailPath : null,
-    originalBytes: optimized.master.originalBytes,
-    optimizedBytes: optimized.master.optimizedBytes,
-  };
 }
 
 export async function optimizeVerificationImageIfNeeded(file: File) {
-  if (!file.type.startsWith('image/')) return file;
-  const optimized = await optimizeImageSet(file, 'verification');
+  const stableFile=await getStableUploadFile(file);
+  if (!stableFile.type.startsWith('image/')) return stableFile;
+  const optimized = await optimizeImageSet(stableFile, 'verification', {memorySafeDecode:true});
   return optimized.master.file;
 }
 

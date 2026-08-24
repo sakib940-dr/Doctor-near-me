@@ -1,4 +1,5 @@
 import { requireSupabase } from '../lib/supabase';
+import { friendlyImageUploadError } from '../lib/imageOptimization';
 import { optimizeVerificationImageIfNeeded } from './imageUpload';
 import type { AmbulanceDocument, AmbulanceDocumentType, AmbulanceVehicleType, ApprovedHospitalRow, HospitalAmbulanceLinkRequest, MyAmbulanceService } from '../types';
 
@@ -77,7 +78,7 @@ export async function uploadAmbulanceDocument(input: { ambulanceId: string; docu
   const path = `ambulances/${input.ambulanceId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
   const client = requireSupabase();
   const { error: uploadError } = await client.storage.from('verification-documents').upload(path, prepared, { contentType: prepared.type, upsert: false });
-  if (uploadError) throw uploadError;
+  if (uploadError) throw new Error(input.file.type.startsWith('image/') ? friendlyImageUploadError(uploadError) : uploadError.message);
   const { error } = await client.rpc('add_my_ambulance_document', { p_ambulance_id: input.ambulanceId, p_document_type: input.documentType, p_storage_path: path });
   if (error) {
     await client.storage.from('verification-documents').remove([path]);

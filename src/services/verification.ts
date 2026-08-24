@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase';
 import { optimizeVerificationImageIfNeeded } from './imageUpload';
+import { friendlyImageUploadError } from '../lib/imageOptimization';
 import type { DoctorVerificationProfile, MedicalType, OwnerVerificationEvidence, VerificationEntityType, VerificationQueueRow, VerificationReviewDetail } from '../types';
 
 export async function getMyEntityVerificationEvidence(entityType: 'doctor' | 'provider', entityId: string) {
@@ -19,7 +20,7 @@ export async function uploadEntityVerificationDocument(input: { entityType: 'doc
   const path = `${folder}/${input.entityId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
   const client = requireSupabase();
   const { error: uploadError } = await client.storage.from('verification-documents').upload(path, prepared, { contentType: prepared.type, upsert: false });
-  if (uploadError) throw uploadError;
+  if (uploadError) throw new Error(input.file.type.startsWith('image/') ? friendlyImageUploadError(uploadError) : uploadError.message);
   const { error } = await client.rpc('add_my_entity_verification_document', { p_entity_type: input.entityType, p_entity_id: input.entityId, p_document_type: input.documentType, p_storage_path: path });
   if (error) { await client.storage.from('verification-documents').remove([path]); throw error; }
 }

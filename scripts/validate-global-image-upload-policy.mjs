@@ -17,7 +17,10 @@ ok(optimizer.includes("IMAGE_MAX_SIZE_ERROR = 'ছবির সর্বোচ�
 ok(optimizer.includes('installGlobalImageUploadGuard'), 'global file-input guard missing');
 ok(main.includes('installGlobalImageUploadGuard();'), 'global file-input guard not installed');
 ok(optimizer.includes("throw new Error('এই browser-এ image optimization সম্পন্ন করা যায়নি"), 'optimizer may fall back to original file instead of failing safely');
-ok(uploadService.includes('optimizeImageSet(input.file, input.preset)'), 'shared optimized upload path missing');
+ok(/optimizeImageSet\(input\.file,\s*input\.preset(?:,|\))/.test(uploadService), 'shared optimized upload path missing');
+ok(optimizer.includes('primeUploadFile(file)'), 'mobile file reference is not staged at selection time');
+ok(optimizer.includes('getStableUploadFile(file)'), 'optimized upload does not consume the staged mobile file');
+ok(optimizer.includes('MOBILE_FILE_READ_ERROR'), 'mobile file read errors are not normalized');
 ok(migration.includes("where id in ('avatars', 'public-images')"), 'storage hard-limit must target public image buckets');
 ok(migration.includes('file_size_limit = 5242880'), 'storage source hard-limit is not 5 MB');
 

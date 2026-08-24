@@ -70,6 +70,51 @@ export const IMAGE_PRESETS: Record<ImageOptimizationPreset, PresetConfig> = {
 };
 
 const supportedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+const MOBILE_FILE_READ_ERROR = 'ছবিটি ফোন থেকে পড়া যাচ্ছে না। Gallery/Photos থেকে ছবিটি আবার নির্বাচন করে সঙ্গে সঙ্গে Save করুন।';
+const stableFiles = new WeakMap<File, Promise<File>>();
+const stableFilesBySignature = new Map<string, Promise<File>>();
+
+function fileSignature(file:File){return `${file.name}\u0000${file.size}\u0000${file.lastModified}`;}
+function isFileReadError(error:unknown){
+  const value=error as {name?:string;message?:string}|null;
+  const text=`${value?.name||''} ${value?.message||''}`.toLowerCase();
+  return ['notreadableerror','could not be read','permission','file read','not readable','failed to fetch'].some((part)=>text.includes(part));
+}
+
+/** Start reading while Android still grants access to its temporary content URI. */
+export function primeUploadFile(file:File){
+  const existing=stableFiles.get(file)||stableFilesBySignature.get(fileSignature(file));
+  if(existing){stableFiles.set(file,existing);return existing;}
+  const promise=(async()=>{
+    try{
+      const buffer=await file.arrayBuffer();
+      if(buffer.byteLength!==file.size)throw new Error('FILE_READ_INCOMPLETE');
+      return new File([buffer],file.name,{type:file.type,lastModified:file.lastModified});
+    }catch(error){
+      if(isFileReadError(error)||(error instanceof Error&&error.message==='FILE_READ_INCOMPLETE'))throw new Error(MOBILE_FILE_READ_ERROR);
+      throw error;
+    }
+  })();
+  stableFiles.set(file,promise);
+  stableFilesBySignature.set(fileSignature(file),promise);
+  while(stableFilesBySignature.size>40){const oldest=stableFilesBySignature.keys().next().value as string|undefined;if(!oldest)break;stableFilesBySignature.delete(oldest);}
+  return promise;
+}
+
+export async function getStableUploadFile(file:File){
+  try{return await primeUploadFile(file);}
+  catch(error){if(isFileReadError(error))throw new Error(MOBILE_FILE_READ_ERROR);throw error;}
+}
+
+export function friendlyImageUploadError(error:unknown){
+  if(isFileReadError(error))return MOBILE_FILE_READ_ERROR;
+  const value=error as {message?:string;statusCode?:string|number}|null;
+  const message=String(value?.message||'');
+  if(message.includes(MOBILE_FILE_READ_ERROR))return MOBILE_FILE_READ_ERROR;
+  if(Number(value?.statusCode)===413||/payload|too large|maximum.*size/i.test(message))return IMAGE_MAX_SIZE_ERROR;
+  if(/row-level security|policy|unauthorized|jwt|permission denied/i.test(message))return 'ছবি upload করার অনুমতি পাওয়া যায়নি। আবার login করে চেষ্টা করুন।';
+  return message||'ছবি upload করা যায়নি। আবার চেষ্টা করুন।';
+}
 
 export interface OptimizedImageResult {
   file: File;
@@ -136,10 +181,14 @@ export function installGlobalImageUploadGuard() {
   document.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.type !== 'file' || !target.files?.length) return;
+    const selected=Array.from(target.files);
     // Some mixed image/PDF fields validate locally so PDF selection remains supported.
-    if (target.dataset.skipGlobalGuard === 'true') return;
-    const hasImage = Array.from(target.files).some((file) => file.type.startsWith('image/'));
-    if (hasImage) guardImageFileInput(target);
+    const hasImage = selected.some((file) => file.type.startsWith('image/'));
+    if(target.dataset.skipGlobalGuard!=='true'&&hasImage&&!guardImageFileInput(target))return;
+    selected.forEach((file)=>{void primeUploadFile(file).catch((error)=>{
+      target.dataset.uploadError=friendlyImageUploadError(error);
+      target.setCustomValidity(target.dataset.uploadError);
+    });});
   }, true);
 }
 
@@ -383,8 +432,10 @@ async function fingerprint(file: Blob) {
 }
 
 export async function optimizeImageSet(file: File, preset: ImageOptimizationPreset, options?: { memorySafeDecode?: boolean }): Promise<OptimizedImageSet> {
+  assertOptimizableImage(file);
+  const stableFile=await getStableUploadFile(file);
   const config = IMAGE_PRESETS[preset];
-  const master = await optimizeWithConfig(file, config, options?.memorySafeDecode);
+  const master = await optimizeWithConfig(stableFile, config, options?.memorySafeDecode);
   const thumbnail = config.thumbnail ? await optimizeWithConfig(master.file, config.thumbnail, options?.memorySafeDecode) : null;
   return { master, thumbnail, fingerprint: await fingerprint(master.file) };
 }

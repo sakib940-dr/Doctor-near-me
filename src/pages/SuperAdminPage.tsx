@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Activity, Ban, CalendarDays, Copy, Crown, Edit3, ExternalLink, FileCheck2, LoaderCircle, MapPin, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCog, Users, X } from 'lucide-react';
+import { Activity, BarChart3, Ban, CalendarDays, Copy, Crown, Edit3, ExternalLink, FileCheck2, LoaderCircle, MapPin, MessageCircle, Plus, RefreshCw, Search, Settings, ShieldCheck, Trash2, UserCog, Users, Zap, X } from 'lucide-react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getDistricts, getSpecialties, getUpazilas } from '../services/discovery';
 import { cancelPrivilegedAccountInvite, changeSuperAdminUserRole, createPrivilegedAccountInvite, deleteSuperAdminUser, getPrivilegedAccountInvites, getSuperAdminDoctorVerificationPolicy, getSuperAdminUserDetail, getSuperAdminUserDirectory, setSuperAdminDoctorVerificationPolicy, setSuperAdminUserStatus, updateSuperAdminUserProfile } from '../services/superAdmin';
 import type { District, PrivilegedAccountInvite, SuperAdminDoctorVerificationPolicy, SuperAdminUserDetail, Specialty, SuperAdminUserRow, Upazila, UserRole } from '../types';
 
+type MainTab = 'analytics' | 'verification' | 'admin' | 'premium' | 'inbox';
 type Tab = 'users' | 'invites' | 'controls';
 type Action = { kind: 'role'; value: Exclude<UserRole, 'super_admin'> } | { kind: 'status'; value: 'active' | 'suspended' | 'banned' } | { kind: 'delete'; value: 'delete' };
 const roleLabels: Record<UserRole, string> = { patient: 'Patient', doctor: 'Doctor', chamber: 'Chamber', hospital: 'Hospital', ambulance: 'Ambulance', verification_officer: 'Verification Officer', admin: 'Admin', super_admin: 'Super Admin' };
@@ -24,6 +25,7 @@ export default function SuperAdminPage() {
   const { account } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab') as Tab | null;
+  const [mainTab, setMainTab] = useState<MainTab>('analytics');
   const [tab, setTab] = useState<Tab>(requestedTab && ['users', 'invites', 'controls'].includes(requestedTab) ? requestedTab : 'users');
   const [users, setUsers] = useState<SuperAdminUserRow[]>([]);
   const [usersHasMore, setUsersHasMore] = useState(false);
@@ -234,7 +236,16 @@ export default function SuperAdminPage() {
   </div></section></div>}
 
   {detail && action && <div className="verification-overlay super-action-layer" role="dialog" aria-modal="true"><section className="super-action-dialog"><header><div><small>Irreversible/audited control</small><h2>{action.kind === 'role' ? `Role → ${roleLabels[action.value]}` : action.kind === 'status' ? `Status → ${action.value}` : 'Permanent account deletion'}</h2></div><button onClick={closeAction}><X /></button></header><p>{detail.profile.full_name} • {detail.profile.email}</p><Field label="কারণ"><textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>{action.kind === 'delete' && <Field label={`ঠিক লিখুন: DELETE ${String(detail.profile.email || detail.profile.id).toLowerCase()}`}><input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} /></Field>}{confirmed && <div className="super-danger-warning"><Ban /> এই action audit হবে{action.kind === 'delete' ? ' এবং data আর ফেরত পাওয়া যাবে না।' : ' এবং সাথে সাথে কার্যকর হবে।'}</div>}<footer><button onClick={closeAction}>বাতিল</button><button className={action.kind === 'delete' ? 'delete' : 'super-primary'} disabled={working} onClick={() => void applyAction()}>{working ? <LoaderCircle className="spin" /> : confirmed ? 'হ্যাঁ, নিশ্চিতভাবে প্রয়োগ করুন' : 'পরবর্তী confirmation'}</button></footer></section></div>}
-  </main></div>;
+  
+  
+  <nav className="super-bottom-nav">
+    <button className={mainTab === 'analytics' ? 'active' : ''} onClick={() => setMainTab('analytics')}><BarChart3 /> Analytics</button>
+    <button className={mainTab === 'verification' ? 'active' : ''} onClick={() => setMainTab('verification')}><ShieldCheck /> Verification</button>
+    <button className={mainTab === 'admin' ? 'active' : ''} onClick={() => setMainTab('admin')}><Settings /> Admin</button>
+    <button className={mainTab === 'premium' ? 'active' : ''} onClick={() => setMainTab('premium')}><Zap /> Premium</button>
+    <button className={mainTab === 'inbox' ? 'active' : ''} onClick={() => setMainTab('inbox')}><MessageCircle /> Inbox</button>
+  </nav>
+</main></div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="super-field"><span>{label}</span>{children}</label>; }

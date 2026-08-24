@@ -962,6 +962,7 @@ export interface SuperAdminUserRow {
   address_line: string | null;
   profile_completed: boolean;
   medical_type?: MedicalType | null;
+  avatar_url?: string | null;
   last_location_at: string | null;
   last_sign_in_at: string | null;
   created_at: string;

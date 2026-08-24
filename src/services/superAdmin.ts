@@ -5,26 +5,29 @@ export async function getSuperAdminUserDirectory(filters: {
   role?: UserRole | null; status?: string | null; districtId?: number | null;
   upazilaId?: number | null; specialtyId?: number | null; search?: string | null; medicalType?: 'MBBS' | 'BDS' | null; limit?: number; offset?: number;
 }) {
-  const { data, error } = await requireSupabase().rpc('super_admin_user_directory_v3', {
+  const params = {
     p_role: filters.role || null, p_status: filters.status || null,
     p_district_id: filters.districtId ?? null, p_upazila_id: filters.upazilaId ?? null,
     p_medical_type: filters.medicalType || null, p_specialty_id: filters.specialtyId ?? null, p_search: filters.search?.trim() || null,
     p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
     p_offset: Math.max(filters.offset ?? 0, 0),
+  };
+  const { data, error } = await requireSupabase().rpc('super_admin_user_directory_v4', params);
+  if (!error) return (data ?? []) as SuperAdminUserRow[];
+
+  const v3 = await requireSupabase().rpc('super_admin_user_directory_v3', params);
+  if (!v3.error) return (v3.data ?? []) as SuperAdminUserRow[];
+
+  if (filters.medicalType || filters.specialtyId) throw error;
+  const legacy = await requireSupabase().rpc('super_admin_user_directory_v2', {
+    p_role: filters.role || null, p_status: filters.status || null,
+    p_district_id: filters.districtId ?? null, p_upazila_id: filters.upazilaId ?? null,
+    p_search: filters.search?.trim() || null,
+    p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
+    p_offset: Math.max(filters.offset ?? 0, 0),
   });
-  if (error) {
-    if (filters.medicalType || filters.specialtyId) throw error;
-    const legacy = await requireSupabase().rpc('super_admin_user_directory_v2', {
-      p_role: filters.role || null, p_status: filters.status || null,
-      p_district_id: filters.districtId ?? null, p_upazila_id: filters.upazilaId ?? null,
-      p_search: filters.search?.trim() || null,
-      p_limit: Math.min(Math.max(filters.limit ?? 30, 1), 50),
-      p_offset: Math.max(filters.offset ?? 0, 0),
-    });
-    if (legacy.error) throw error;
-    return (legacy.data ?? []) as SuperAdminUserRow[];
-  }
-  return (data ?? []) as SuperAdminUserRow[];
+  if (legacy.error) throw error;
+  return (legacy.data ?? []) as SuperAdminUserRow[];
 }
 
 export async function getSuperAdminUserDetail(userId: string) {

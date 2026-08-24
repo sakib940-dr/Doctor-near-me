@@ -53,7 +53,7 @@ export default function HospitalDoctorsPage() {
     setSaving(true); setError(null); setNotice(null);
     let uploaded: string | null = null;
     try {
-      if (file) uploaded = await uploadHospitalDoctorPhoto(file, account.user_id);
+      if (file) uploaded = await uploadHospitalDoctorPhoto(file, provider.id);
       await saveMyHospitalDoctor({
         id:form.id,provider_id:provider.id,doctor_name:form.name,photo_path:uploaded||form.photo||null,
         degree:form.degree.trim()||null,designation:form.designation.trim()||null,specialty:form.specialty.trim()||null,
@@ -67,8 +67,11 @@ export default function HospitalDoctorsPage() {
       if (uploaded && form.photo && uploaded !== form.photo) await cleanupHospitalDoctorPhoto(form.photo).catch(() => undefined);
       setForm(empty); setFile(null); setNotice(form.id ? text(bi('ডাক্তারের তথ্য আপডেট হয়েছে।', 'Doctor information updated.')) : text(bi('হাসপাতালের ডিরেক্টরিতে ডাক্তার যোগ হয়েছে।', 'Doctor added to the Hospital directory.'))); await load();
     } catch (reason) {
+      console.error('Hospital doctor save failed',reason);
       if (uploaded) await cleanupHospitalDoctorPhoto(uploaded).catch(() => undefined);
-      setError(file ? text(bi('ডাক্তারের ছবি upload করা যায়নি। আবার চেষ্টা করুন।', 'Photo upload failed. Please try again.')) : message(reason));
+      setError(uploaded
+        ? text(bi('ছবি upload হয়েছে, কিন্তু ডাক্তারের তথ্য সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', 'Photo uploaded, but the Doctor information could not be saved. Please try again.'))
+        : file ? text(bi('ডাক্তারের ছবি upload করা যায়নি। আবার চেষ্টা করুন।', 'Photo upload failed. Please try again.')) : message(reason));
     } finally { setSaving(false); }
   }
 

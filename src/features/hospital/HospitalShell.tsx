@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import {
   Activity, BarChart3, Bell, Building2, CalendarCog, CalendarDays, ChevronRight,
-  ClipboardList, Eye, FlaskConical, GalleryHorizontal, HelpCircle, Home, Info, KeyRound, LogOut,
-  Menu, MessageCircle, PanelsTopLeft, Stethoscope, UserRoundCog, Users, X,
+  ClipboardList, Eye, FlaskConical, Home, KeyRound, LogOut,
+  Menu, MessageCircle, PanelsTopLeft, Stethoscope, Users, X,
 } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AccountStateFallback from '../../components/AccountStateFallback';
@@ -16,14 +16,12 @@ const primary = [
   { label: bi('অ্যাপয়েন্টমেন্ট', 'Appointments'), path: '/hospital-console/appointments', icon: CalendarDays },
   { label: bi('ডাক্তার', 'Doctors'), path: '/hospital-console/doctors', icon: Stethoscope },
   { label: bi('অ্যানালিটিক্স', 'Analytics'), path: '/hospital-console/analytics', icon: BarChart3 },
-  { label: bi('প্রোফাইল', 'Profile'), path: '/hospital-console/profile-preview', icon: Eye },
+  { label: bi('পাবলিক প্রোফাইল', 'Public Profile View'), path: '/hospital-console/profile-preview', icon: Eye },
 ];
 
 const menuGroups = [
   { title: bi('হাসপাতাল প্রোফাইল', 'Hospital Profile'), items: [
     { label: bi('হাসপাতাল প্রোফাইল', 'Hospital profile'), path: '/hospital-console/public-profile', icon: PanelsTopLeft },
-    { label: bi('হাসপাতালের তথ্য', 'Hospital information'), path: '/hospital-console/information', icon: Info },
-    { label: bi('গ্যালারি ম্যানেজমেন্ট', 'Gallery management'), path: '/hospital-console/gallery', icon: GalleryHorizontal },
   ]},
   { title: bi('হাসপাতাল কনটেন্ট ম্যানেজমেন্ট', 'Hospital Content Management'), items: [
     { label: bi('সেবাসমূহ', 'Services'), path: '/hospital-console/services', icon: ClipboardList },
@@ -31,8 +29,6 @@ const menuGroups = [
     { label: bi('পরীক্ষার খরচ', 'Investigation Cost'), path: '/hospital-console/investigation-costs', icon: FlaskConical },
   ]},
   { title: bi('রিসেপশন ম্যানেজমেন্ট', 'Reception Management'), items: [
-    { label: bi('রিসেপশন সেটিংস', 'Reception Settings'), path: '/hospital-console/reception', icon: MessageCircle },
-    { label: bi('ডাক্তার কার্ড ম্যানেজমেন্ট', 'Doctor card management'), path: '/hospital-console/doctors', icon: Stethoscope },
     { label: bi('অ্যাপয়েন্টমেন্ট সেটিংস', 'Appointment settings'), path: '/hospital-console/appointment-settings', icon: CalendarCog },
   ]},
   { title: bi('স্টাফ ম্যানেজমেন্ট', 'Staff Management'), items: [
@@ -40,10 +36,8 @@ const menuGroups = [
   ]},
   { title: bi('যোগাযোগ', 'Communication'), items: [
     { label: bi('অ্যাডমিন সাপোর্ট মেসেজিং', 'Admin Support Messaging'), path: '/hospital-console/admin-support', icon: MessageCircle },
-    { label: bi('সহায়তা / সাপোর্ট', 'Help / Support'), path: '/hospital-console/support', icon: HelpCircle },
   ]},
   { title: bi('সেটিংস', 'Settings'), items: [
-    { label: bi('অ্যাকাউন্ট সেটিংস', 'Account settings'), path: '/hospital-console/settings', icon: UserRoundCog },
     { label: bi('সিকিউরিটি সেটিংস', 'Security settings'), path: '/hospital-console/security', icon: KeyRound },
   ]},
 ];

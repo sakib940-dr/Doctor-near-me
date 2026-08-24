@@ -77,7 +77,7 @@ function emptyProvider(type: "hospital" | "chamber"): ProviderDashboardItem {
   };
 }
 
-export default function ProviderProfilePage() {
+export default function ProviderProfilePage({ hideWebsiteContent = false, hidePublicProfileLink = false }: { hideWebsiteContent?: boolean; hidePublicProfileLink?: boolean }) {
   const { account, user, refreshAccount } = useAuth();
   const { language } = useVisitorLanguage();
   const tr = (bn: string, en: string) => (language === "bn" ? bn : en);
@@ -338,7 +338,7 @@ export default function ProviderProfilePage() {
                 </span>
               </div>
               <p>{tr("ফোন, হোয়াটসঅ্যাপ, সেবা ও অবস্থান আপনি যেকোনো সময় পরিবর্তন করতে পারবেন।", "You can update phone, WhatsApp, services, and location at any time.")}</p>
-              {profile.id && (
+              {profile.id && !hidePublicProfileLink && (
                 <Link
                   className="inline-primary"
                   to={`/${profile.provider_type === "chamber" ? "chamber" : "hospital"}/${profile.id}`}
@@ -793,7 +793,7 @@ export default function ProviderProfilePage() {
             </button>
           </form>
         )}
-        {!loading && profile.id && (
+        {!hideWebsiteContent && !loading && profile.id && (
           <ProviderWebsiteContentTabs providerId={profile.id} />
         )}
       </main>

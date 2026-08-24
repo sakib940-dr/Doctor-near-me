@@ -24,8 +24,9 @@ export async function uploadOptimizedImage(input: {
   folder: string;
   preset: ImageOptimizationPreset;
   cacheControl?: string;
+  memorySafeDecode?: boolean;
 }) {
-  const optimized = await optimizeImageSet(input.file, input.preset);
+  const optimized = await optimizeImageSet(input.file, input.preset, { memorySafeDecode: input.memorySafeDecode });
   const cleanFolder = input.folder.replace(/^\/+|\/+$/g, '');
   const prefix = `${input.ownerPrefix.replace(/\/+$/g, '')}/${cleanFolder}/${optimized.fingerprint}-opt`;
   const masterPath = `${prefix}.webp`;

@@ -75,3 +75,16 @@
 @media(max-width:760px){.hospital-support-layout .mobile-hidden{display:none}.hospital-onboarding-step{grid-template-columns:28px 40px minmax(0,1fr) 16px}.hospital-onboarding-step em{display:none}.hospital-profile-preview-frame{height:calc(100vh - 190px);min-height:520px}.hospital-support-reply{grid-template-columns:1fr}.hospital-support-reply button{min-height:45px}}
 @media(min-width:761px){.hospital-support-layout{grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr)}.hospital-support-back{display:none}.hospital-onboarding-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.hospital-settings-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .hospital-upload-hint{display:none!important}
+
+/* Keep the legacy profile gallery controls inside the Hospital mobile viewport. */
+.hospital-console-shell .provider-profile-form,.hospital-console-shell .provider-form-section,.hospital-console-shell .provider-gallery{min-width:0;max-width:100%}
+.hospital-console-shell .provider-gallery{grid-template-columns:repeat(4,minmax(0,1fr))}
+.hospital-console-shell .gallery-upload{width:100%;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}
+.hospital-console-shell .gallery-upload .gallery-help{width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:760px){
+  .hospital-console-shell .provider-form-section{overflow:hidden;padding:16px}
+  .hospital-console-shell .provider-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .hospital-console-shell .gallery-upload{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:center;gap:6px;padding:10px 11px}
+  .hospital-console-shell .gallery-upload>svg{grid-column:1}
+  .hospital-console-shell .gallery-upload .gallery-help{grid-column:1/-1;margin-top:3px;line-height:1.45}
+}

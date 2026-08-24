@@ -47,7 +47,7 @@ function costs(table:'provider_treatment_costs'|'provider_investigation_costs'){
 export const providerTreatmentCosts=costs('provider_treatment_costs');
 export const providerInvestigationCosts=costs('provider_investigation_costs');
 
-export async function uploadProviderWebsiteImage(providerId:string,file:File,kind:'service'|'gallery'|'slider'){
+export async function uploadProviderWebsiteImage(providerId:string,file:File,kind:'service'|'gallery'|'slider',options?:{memorySafeDecode?:boolean}){
   const {data:{user}}=await requireSupabase().auth.getUser();
   if(!user) throw new Error('Authentication required');
   const preset=kind==='slider'?'slider':kind==='service'?'service':'gallery';
@@ -57,6 +57,7 @@ export async function uploadProviderWebsiteImage(providerId:string,file:File,kin
     ownerPrefix:user.id,
     folder:`${providerId}/website/${kind}`,
     preset,
+    memorySafeDecode:options?.memorySafeDecode,
   });
   return result.path;
 }
@@ -67,8 +68,8 @@ export async function removeOwnedProviderWebsiteImage(path:string|null|undefined
   if(!user||!path.startsWith(`${user.id}/`))return; await removeOptimizedImageVariants('public-images',path);
 }
 
-export async function replaceProviderSliderImage(providerId:string,row:ProviderSliderImage,file:File){
-  const next=await uploadProviderWebsiteImage(providerId,file,'slider');
+export async function replaceProviderSliderImage(providerId:string,row:ProviderSliderImage,file:File,options?:{memorySafeDecode?:boolean}){
+  const next=await uploadProviderWebsiteImage(providerId,file,'slider',options);
   try{const updated=await providerSlider.update(providerId,row.id,{image:next});await removeOwnedProviderWebsiteImage(row.image);return updated;}
   catch(error){await removeOwnedProviderWebsiteImage(next);throw error;}
 }

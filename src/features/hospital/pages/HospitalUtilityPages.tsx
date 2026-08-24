@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react';
-import { CalendarCheck, Eye, KeyRound, LoaderCircle, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CalendarCheck, KeyRound, LoaderCircle, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { Link, Navigate } from 'react-router-dom';
 import { requireSupabase } from '../../../lib/supabase';
 import { HospitalPageHeader } from '../HospitalShell';
 import { bi, useHospitalLanguage } from '../i18n';
@@ -10,7 +10,7 @@ export function HospitalProfilePreviewPage() {
   const { text } = useHospitalLanguage();
   const { provider, loading } = useHospital();
   if (loading) return <div className="hospital-empty"><LoaderCircle className="spin" /></div>;
-  return <><HospitalPageHeader eyebrow={bi('ভিজিটর ভিউ', 'Visitor View')} title={bi('পাবলিক প্রোফাইল প্রিভিউ', 'Public Profile Preview')} description={bi('ভিজিটররা Hospital profile যেভাবে দেখবেন, এখানে সেই live view দেখুন।', 'Preview the live Hospital profile exactly as visitors see it.')} action={provider ? <Link to={`/hospital/${provider.id}`} target="_blank"><Eye /> {text(bi('পূর্ণ স্ক্রিনে খুলুন', 'Open full screen'))}</Link> : undefined} />{provider ? <div className="hospital-profile-preview-frame"><iframe title={text(bi('হাসপাতাল পাবলিক প্রোফাইল', 'Hospital public profile'))} src={`/hospital/${provider.id}`} /></div> : <div className="hospital-empty">{text(bi('Hospital profile পাওয়া যায়নি।', 'Hospital profile was not found.'))}</div>}</>;
+  return provider ? <Navigate to={`/hospital/${provider.id}`} replace /> : <div className="hospital-empty">{text(bi('Hospital profile পাওয়া যায়নি।', 'Hospital profile was not found.'))}</div>;
 }
 
 export function HospitalAppointmentSettingsPage() {

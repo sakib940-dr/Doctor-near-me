@@ -205,8 +205,17 @@ async function decodeJpegWithJavaScript(file: Blob): Promise<{ source: CanvasIma
   };
 }
 
-async function decodeImage(file: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
+async function decodeImage(file: Blob, memorySafeWidth?: number): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
   if (typeof createImageBitmap === 'function') {
+    if (memorySafeWidth) {
+      try {
+        const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image', resizeWidth: memorySafeWidth, resizeQuality: 'high' });
+        if (bitmap.width && bitmap.height) return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+        bitmap.close();
+      } catch {
+        // Older mobile browsers fall through to the established decode chain.
+      }
+    }
     try {
       const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
       if (bitmap.width && bitmap.height) return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
@@ -333,12 +342,12 @@ async function encodeWebpWithinTarget(
   return best && best.size <= hardMaxBytes ? best : null;
 }
 
-async function optimizeWithConfig(file: File, config: PresetConfig | NonNullable<PresetConfig['thumbnail']>): Promise<OptimizedImageResult> {
+async function optimizeWithConfig(file: File, config: PresetConfig | NonNullable<PresetConfig['thumbnail']>, memorySafeDecode = false): Promise<OptimizedImageResult> {
   assertOptimizableImage(file);
   if (typeof document === 'undefined') {
     throw new Error('এই environment-এ image optimization support নেই।');
   }
-  const decoded = await decodeImage(file);
+  const decoded = await decodeImage(file, memorySafeDecode ? Math.max(config.width, config.height) : undefined);
   try {
     const startQuality = 'startQuality' in config ? config.startQuality : 0.88;
     const minQuality = 'minQuality' in config ? config.minQuality : 0.74;
@@ -373,10 +382,10 @@ async function fingerprint(file: Blob) {
   return `${file.size.toString(36)}-${Date.now().toString(36)}`;
 }
 
-export async function optimizeImageSet(file: File, preset: ImageOptimizationPreset): Promise<OptimizedImageSet> {
+export async function optimizeImageSet(file: File, preset: ImageOptimizationPreset, options?: { memorySafeDecode?: boolean }): Promise<OptimizedImageSet> {
   const config = IMAGE_PRESETS[preset];
-  const master = await optimizeWithConfig(file, config);
-  const thumbnail = config.thumbnail ? await optimizeWithConfig(master.file, config.thumbnail) : null;
+  const master = await optimizeWithConfig(file, config, options?.memorySafeDecode);
+  const thumbnail = config.thumbnail ? await optimizeWithConfig(master.file, config.thumbnail, options?.memorySafeDecode) : null;
   return { master, thumbnail, fingerprint: await fingerprint(master.file) };
 }
 

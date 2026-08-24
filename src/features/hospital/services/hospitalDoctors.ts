@@ -67,15 +67,16 @@ export async function archiveHospitalDoctor(providerId: string, cardId: string, 
   if (error) throw error;
 }
 
-export async function uploadHospitalDoctorPhoto(file: File, ownerUserId: string) {
+export async function uploadHospitalDoctorPhoto(file: File, providerId: string) {
   try {
     const { data: { user } } = await requireSupabase().auth.getUser();
-    if (!user || user.id !== ownerUserId) throw new Error('UPLOAD_SESSION_REQUIRED');
+    if (!user) throw new Error('UPLOAD_SESSION_REQUIRED');
     const result = await uploadOptimizedImage({
-      file, bucket: 'public-images', ownerPrefix: ownerUserId, folder: 'hospital-doctors', preset: 'profile',
+      file, bucket: 'public-images', ownerPrefix: user.id, folder: `${providerId}/hospital-doctors`, preset: 'profile', memorySafeDecode: true,
     });
     return result.path;
   } catch (error) {
+    console.error('Hospital doctor photo compression/storage upload failed', error);
     const wrapped = new Error('Unable to upload photo. Please try again.');
     (wrapped as Error & { cause?: unknown }).cause = error;
     throw wrapped;
